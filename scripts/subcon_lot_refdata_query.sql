@@ -1,0 +1,206 @@
+-- SubCon LOT reference-data query (extracted from get_subcon_lot_refdata_rc10.py)
+-- Replace the TIME_INTERVAL placeholder with one of:
+--   1) Specific range:  AND POST_DATE between TO_DATE('YYYY-MM-DD', 'YYYY-MM-DD') AND TO_DATE('YYYY-MM-DD 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
+--   2) Default recent:  AND POST_DATE >= sysdate - 32*interval '1' hour
+
+WITH lot_classes AS
+(
+    SELECT /*+ MATERIALIZE */ UNIQUE LOTCLASS_CD
+    FROM LOTG_OWNER.LOT_CLASS
+    WHERE DESCRIPTION NOT LIKE 'INVENTORY CONV%'
+)
+, src_tgt_xref_with AS
+(
+    SELECT
+        FROM_BANK_CODE,
+        TO_BANK_CODE,
+        REVERSAL_FLAG,
+        FK_GENEALOGY_MAFK AS PARENT_PART_ID,
+        FK_GENEALOGY_MACLA AS PARENT_LOT_CLASS,
+        FK_GENEALOGY_MAIDE AS PARENT_LOT_NUM,
+        FK_GENEALOGY_MANOD AS PARENT_TRANSDATE,
+        FK_GENEALOGY_MANOT AS PARENT_TRANSTIME,
+        FK0GENEALOGY_MAFK  AS PART_ID,
+        FK0GENEALOGY_MACLA AS LOT_CLASS,
+        FK0GENEALOGY_MAIDE AS LOT_NUM,
+        FK1GENEALOGY_MANOD AS TRANSDATE,
+        FK1GENEALOGY_MANOT AS TRANSTIME,
+        POST_DATE,
+        POST_TIME
+    FROM LOTG_OWNER.SRC_TGT_XREF
+)
+, lot_ref AS (
+    SELECT /*+ MATERIALIZE INDEX(v SRC_POSTDATE) */ UNIQUE
+          REGEXP_SUBSTR(FK0GENEALOGY_MAIDE, '([^-]+)?', 1, 1,'i') AS LOT
+        , v.FK0GENEALOGY_MAFK AS PART_ID
+        , v.FK0GENEALOGY_MACLA AS LOT_CLASS
+        , REGEXP_SUBSTR(
+            CASE WHEN FK_GENEALOGY_MACLA LIKE 'B%' OR
+                      COALESCE(ip.type, ppi.PART_TYPE) NOT IN ('WFR','DIE','WAFER','BAS','Diced Part','WDQ Part','Wafer Fab Part','Wafer Post Fab Part') OR
+                      v.FK_GENEALOGY_MAIDE LIKE 'SND%'
+                 THEN FK0GENEALOGY_MAIDE
+                 ELSE FK_GENEALOGY_MAIDE END,
+            '([^-]+)?', 1, 1,'i') AS PARENT_LOT
+        , CASE WHEN COALESCE(ip.type, ppi.PART_TYPE) NOT IN ('WFR','DIE','WAFER','BAS','Diced Part','WDQ Part','Wafer Fab Part','Wafer Post Fab Part')
+                    OR FK_GENEALOGY_MACLA LIKE 'B%'
+                    OR v.FK_GENEALOGY_MAIDE LIKE 'SND%'
+               THEN v.FK0GENEALOGY_MAFK
+               ELSE FK_GENEALOGY_MAFK END AS PARENT_PART_ID
+        , CASE WHEN lcc.DESCRIPTION LIKE '%ENG%' THEN 'E' ELSE 'P' END AS LOT_OWNER
+        , DENSE_RANK() OVER (
+              PARTITION BY REGEXP_SUBSTR(FK0GENEALOGY_MAIDE, '([^-]+)?', 1, 1,'i')
+              ORDER BY v.FK1GENEALOGY_MANOD, v.FK1GENEALOGY_MANOT
+          ) AS DR
+    FROM LOTG_OWNER.SRC_TGT_XREF v
+        LEFT JOIN LOTG_OWNER.LOT_CLASS lcc ON v.FK0GENEALOGY_MACLA = lcc.LOTCLASS_CD
+        LEFT JOIN LOTG_OWNER.LOTG_BOM_TYPE ip ON v.FK_GENEALOGY_MAFK = ip.PART
+        JOIN LOTG_OWNER.PC_ITEM ppi ON v.FK_GENEALOGY_MAFK = ppi.PART_ID
+        JOIN LOTG_OWNER.PC_ITEM pi ON v.FK0GENEALOGY_MAFK = pi.PART_ID
+    WHERE v.FK0GENEALOGY_MACLA IN (SELECT LOTCLASS_CD FROM lot_classes)
+      -- TIME_INTERVAL: use :from_date/:to_date when provided; otherwise use recent default
+      AND (
+        (:from_date IS NOT NULL AND POST_DATE BETWEEN TO_DATE(:from_date, 'YYYY-MM-DD')
+             AND TO_DATE(:to_date || ' 23:59:59', 'YYYY-MM-DD HH24:MI:SS'))
+        OR (:from_date IS NULL AND POST_DATE >= sysdate - 32*interval '1' hour)
+          )
+      AND pi.PART_TYPE IN ('Wafer Post Fab Part','Wafer Fab Part','WDQ Part')
+      AND NOT (v.FROM_BANK_CODE = 'XFCS' AND v.FK0GENEALOGY_MAIDE = v.FK_GENEALOGY_MAIDE)
+      AND NOT EXISTS (
+          SELECT 1
+          FROM src_tgt_xref_with vx
+          WHERE v.FK0GENEALOGY_MAIDE != v.FK_GENEALOGY_MAIDE
+            AND vx.LOT_NUM = v.FK0GENEALOGY_MAIDE
+            AND vx.PARENT_LOT_NUM != v.FK_GENEALOGY_MAIDE
+            AND vx.TRANSDATE = v.FK1GENEALOGY_MANOD
+            AND vx.TRANSTIME = v.FK1GENEALOGY_MANOT
+            AND vx.PART_ID = v.FK0GENEALOGY_MAFK
+            AND vx.PARENT_PART_ID = v.FK_GENEALOGY_MAFK
+      )
+      AND v.FK0GENEALOGY_MACLA NOT LIKE 'B%'
+)
+, walk AS
+(
+    SELECT /*+ MATERIALIZE */ UNIQUE w.*
+    FROM (
+        SELECT LOT_NUM, LOT_CLASS, PART_ID,
+               PARENT_LOT_NUM, PARENT_LOT_CLASS, PARENT_PART_ID,
+               TRANS_DT, PARENT_TRANS_DT,
+               CONNECT_BY_ROOT lot_num AS TOP
+        FROM (
+            SELECT LOT_NUM, LOT_CLASS, PART_ID,
+                   CASE WHEN REGEXP_LIKE(PARENT_LOT_NUM, '^M0.+\\d[A-Z]$')
+                        THEN SUBSTR(PARENT_LOT_NUM, 1, LENGTH(PARENT_LOT_NUM)-1)
+                        WHEN REGEXP_LIKE(PARENT_LOT_NUM, '^PW.+\\d+[A-Z]$')
+                        THEN SUBSTR(PARENT_LOT_NUM, 1, LENGTH(PARENT_LOT_NUM)-1)
+                        ELSE PARENT_LOT_NUM END AS PARENT_LOT_NUM,
+                   PARENT_LOT_CLASS, PARENT_PART_ID,
+                   TO_DATE(TO_CHAR(TRANSDATE,'YYYY-MM-DD') || ' ' || SUBSTR(TRANSTIME,1,4),'YYYY-MM-DD HH24MI')
+                     + CAST(SUBSTR(TRANSTIME,5,2) AS INT)*INTERVAL '1' SECOND AS TRANS_DT,
+                   TO_DATE(TO_CHAR(PARENT_TRANSDATE,'YYYY-MM-DD') || ' ' || SUBSTR(PARENT_TRANSTIME,1,4),'YYYY-MM-DD HH24MI')
+                     + CAST(SUBSTR(PARENT_TRANSTIME,5,2) AS INT)*INTERVAL '1' SECOND AS PARENT_TRANS_DT
+            FROM src_tgt_xref_with v
+            WHERE NOT EXISTS (
+                SELECT 1 FROM src_tgt_xref_with vx
+                WHERE vx.LOT_NUM = v.LOT_NUM
+                  AND vx.PARENT_LOT_NUM != v.PARENT_LOT_NUM
+                  AND vx.TRANSDATE = v.TRANSDATE
+                  AND vx.TRANSTIME = v.TRANSTIME
+                  AND vx.PART_ID = v.PART_ID
+                  AND vx.PARENT_PART_ID = v.PARENT_PART_ID
+            )
+              AND PARENT_LOT_NUM NOT LIKE 'SND%'
+        ) v
+        CONNECT BY NOCYCLE PRIOR PARENT_PART_ID = PART_ID
+                           AND PRIOR PARENT_LOT_NUM = LOT_NUM
+        START WITH EXISTS(
+            SELECT 1 FROM lot_ref sl
+            WHERE sl.PARENT_LOT = v.LOT_NUM AND sl.DR=1
+        )
+    ) w
+    LEFT JOIN LOTG_OWNER.PC_ITEM i ON w.PARENT_PART_ID = i.PART_ID
+    WHERE i.PART_TYPE NOT IN ('Substrate Part','Ingot Part','PolySilicon Part')
+      AND w.PARENT_PART_ID NOT LIKE '%-BAS'
+)
+, translate AS (
+    SELECT UNIQUE
+        REGEXP_SUBSTR(w.LOT_NUM,'([^-]+)?',1,1,'i') AS LOT,
+        LOT_CLASS,
+        CASE WHEN lcc.DESCRIPTION LIKE '%ENG%' THEN 'E' ELSE 'P' END AS LOT_OWNER,
+        REGEXP_REPLACE(
+            CASE
+              WHEN (REGEXP_LIKE(w.PART_ID,'^.+-.+-...$')
+                    OR REGEXP_LIKE(w.PART_ID,'^.+-(ASM|ASY|WDQ|FAB|DSG|EPC|ECH|DFF|SCB|UTP|BMP|WFA|WBP|WPR|BSM|FSM|SWF|FTP|TST|XTD|FTD|APT|UTD|EPT|EPU|XTP|WAF|DIE|XWF|THN|FMD|XMD|EPM|BAS|DWR|NRE|XDW|GLD|XDI|XDS|EPD|DST|EPA|EPW)$'))
+                       THEN SUBSTR(w.PART_ID,1,INSTR(w.PART_ID,'-',-1)-1)
+                  ELSE w.PART_ID END,
+                '-', '_'
+            ) AS PRODUCT,
+        COALESCE(cbt.TYPE,'UNK') AS BOM_PART_TYPE,
+        i.PART_TYPE,
+        REGEXP_SUBSTR(w.PARENT_LOT_NUM,'([^-]+)?',1,1,'i') AS PARENT_LOT,
+        PARENT_LOT_CLASS,
+        REGEXP_REPLACE(
+            CASE
+              WHEN (REGEXP_LIKE(w.PARENT_PART_ID,'^.+-.+-...$')
+                    OR REGEXP_LIKE(w.PARENT_PART_ID,'^.+-(ASM|ASY|WDQ|FAB|DSG|EPC|ECH|DFF|SCB|UTP|BMP|WFA|WBP|WPR|BSM|FSM|SWF|FTP|TST|XTD|FTD|APT|UTD|EPT|EPU|XTP|WAF|DIE|XWF|THN|FMD|XMD|EPM|BAS|DWR|NRE|XDW|GLD|XDI|XDS|EPD|DST|EPA|EPW)$'))
+                       THEN SUBSTR(w.PARENT_PART_ID,1,INSTR(w.PARENT_PART_ID,'-',-1)-1)
+                  ELSE w.PARENT_PART_ID END,
+                '-', '_'
+            ) AS PARENT_PRODUCT,
+        COALESCE(pbt.TYPE,'UNK') AS PARENT_PART_TYPE,
+        TRANS_DT
+    FROM walk w
+      LEFT JOIN LOTG_OWNER.LOTG_BOM_TYPE pbt ON w.PARENT_PART_ID = pbt.PART
+      LEFT JOIN LOTG_OWNER.PC_ITEM i ON w.PART_ID = i.PART_ID
+      LEFT JOIN LOTG_OWNER.LOTG_BOM_TYPE cbt ON w.PART_ID = cbt.PART
+      LEFT JOIN LOTG_OWNER.LOT_CLASS lcc ON w.LOT_CLASS = lcc.LOTCLASS_CD
+)
+, src_lot_walk AS
+(
+    SELECT LOT, PRODUCT, PARENT_LOT, PARENT_PRODUCT, CONNECT_BY_ROOT LOT AS TOP,
+           RANK() OVER (PARTITION BY CONNECT_BY_ROOT LOT ORDER BY TRANS_DT) AS DR
+    FROM translate w
+    CONNECT BY NOCYCLE PRIOR PARENT_PRODUCT = PRODUCT
+                       AND PRIOR PARENT_LOT = LOT
+    START WITH PART_TYPE IN ('Wafer Post Fab Part','Wafer Fab Part','WDQ Part')
+    UNION ALL
+    SELECT PARENT_LOT AS LOT, PARENT_PRODUCT AS PRODUCT,
+           PARENT_LOT, PARENT_PRODUCT, PARENT_LOT AS TOP, 1 AS DR
+    FROM translate w1
+    WHERE NOT EXISTS (
+        SELECT 1 FROM translate w2
+        WHERE w1.PARENT_PRODUCT = w2.PRODUCT
+          AND w1.PARENT_LOT = w2.LOT
+    )
+)
+, src_lot AS
+(
+    SELECT UNIQUE TOP AS LOT, PARENT_LOT AS SOURCE_LOT, PARENT_PRODUCT
+    FROM src_lot_walk w
+    WHERE DR = 1
+)
+SELECT UNIQUE
+    l.LOT,
+    LOT_CLASS,
+    PARENT_LOT,
+    REGEXP_REPLACE(
+        CASE
+          WHEN (REGEXP_LIKE(PART_ID,'^.+-.+-...$')
+                OR REGEXP_LIKE(PART_ID,'^.+-(ASM|ASY|WDQ|FAB|DSG|EPC|ECH|DFF|SCB|UTP|BMP|WFA|WBP|WPR|BSM|FSM|SWF|FTP|TST|XTD|FTD|APT|UTD|EPT|EPU|XTP|WAF|DIE|XWF|THN|FMD|XMD|EPM|BAS|DWR|NRE|XDW|GLD|XDI|XDS|EPD|DST|EPA|EPW)$'))
+            THEN SUBSTR(PART_ID,1,INSTR(PART_ID,'-',-1)-1)
+          ELSE PART_ID END,
+        '-', '_'
+    ) AS PRODUCT,
+    REGEXP_REPLACE(
+        CASE
+          WHEN (REGEXP_LIKE(sl.PARENT_PRODUCT,'^.+-.+-...$')
+                OR REGEXP_LIKE(sl.PARENT_PRODUCT,'^.+-(ASM|ASY|WDQ|FAB|DSG|EPC|ECH|DFF|SCB|UTP|BMP|WFA|WBP|WPR|BSM|FSM|SWF|FTP|TST|XTD|FTD|APT|UTD|EPT|EPU|XTP|WAF|DIE|XWF|THN|FMD|XMD|EPM|BAS|DWR|NRE|XDW|GLD|XDI|XDS|EPD|DST|EPA|EPW)$'))
+            THEN SUBSTR(sl.PARENT_PRODUCT,1,INSTR(sl.PARENT_PRODUCT,'-',-1)-1)
+          ELSE sl.PARENT_PRODUCT END,
+        '-', '_'
+    ) AS PARENT_PRODUCT,
+    LOT_OWNER,
+    COALESCE(sl.SOURCE_LOT, PARENT_LOT, ' ') AS SOURCE_LOT
+FROM lot_ref l
+  LEFT JOIN src_lot sl ON l.PARENT_LOT = sl.LOT
+WHERE l.DR = 1
+ORDER BY l.LOT;

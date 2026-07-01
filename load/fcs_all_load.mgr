@@ -1,0 +1,438 @@
+### JND FJM WMC prep ###
+$DPLOAD/pp_jnd_fjm_decrypt_unzip.cfg : -mtime -log $DPLOG/pp_jnd_fjm_decrypt_unzip.cfg.log -sleep 60 : JND_FJM_WMC
+
+### JND FJM WMC prep ###
+$DPLOAD/pp_jnd_tesec_wmc_ref.cfg : -mtime -log $DPLOG/pp_jnd_tesec_wmc_ref.cfg.log -sleep 60 : JND_TESEC_WMC_REF
+
+###  $DPLOAD/fcs_prod_ref_loader.cfg : -mtime -log $DPLOG/fcs_prod_ref_loader.cfg.log -sleep 05 : REFDB_DEV_SVR  ###
+$DPLOAD/fcs_prod_ref_loader_lot.cfg  : -mtime -log $DPLOG/fcs_prod_ref_load_lot.cfg.log -sleep 05 : REFDB_PROD_LOT_LOADER_TO_PPLOT
+$DPLOAD/fcs_prod_ref_loader_flot.cfg  : -mtime -log $DPLOG/fcs_prod_ref_load_flot.cfg.log -sleep 05 : REFDB_PROD_FLOT_LOADER_TO_PPFINALLOT
+$DPLOAD/fcs_prod_ref_loader_lotclass.cfg  : -mtime -log $DPLOG/fcs_prod_ref_loader_lotclass.cfg.log -sleep 05 : REFDB_PROD_LOTCLASS_LOADER_TO_PPLOTCLASS
+$DPLOAD/fcs_prod_ref_loader_product.cfg  : -mtime -log $DPLOG/fcs_prod_ref_loader_product.cfg.log -sleep 05 : REFDB_PROD_PRODUCT_LOADER_TO_PPPROD
+$DPLOAD/fcs_prod_ref_loader_mesFlot.cfg  : -mtime -log $DPLOG/fcs_prod_ref_loader_mesFlot.cfg.log -sleep 05 : REFDB_PROD_MESFLOT_LOADER_TO_PPFINALLOT
+$DPLOAD/fcs_prod_ref_loader_subconFlot.cfg  : -mtime -log $DPLOG/fcs_prod_ref_loader_subconFlot.cfg.log -sleep 05 : REFDB_PROD_SUBCON_FLOT_LOADER_TO_PPFINALLOT
+$DPLOAD/fcs_prod_ref_loader_subconlot.cfg  : -mtime -log $DPLOG/fcs_prod_ref_loader_subconlot.cfg.log -sleep 05 : REFDB_PROD_SUBCON_LOT_LOADER_TO_PPLOT
+$DPLOAD/fcs_prod_ref_loader_catSplitFlot.cfg  : -mtime -log $DPLOG/fcs_prod_ref_loader_catSplitFlot.cfg.log -sleep 05 : REFDB_PROD_CAT_SPLIT_FLOT_LOADER_TO_PPFINALLOT
+$DPLOAD/fcs_prod_ref_loader_slice.cfg : -mtime -log $DPLOG/fcs_prod_ref_loader_slice.cfg.log -sleep 05 : REFDB_SLICE_LOADER_TO_ONSLICE
+$DPLOAD/fcs_prod_ref_loader_meslot.cfg : -mtime -log $DPLOG/fcs_prod_ref_loader.meslot.cfg.log : REFDB_PRD_SVR_MESLOT
+### $DPLOAD/fcs_prod_ref_lotGen.cfg : -mtime -log $DPLOG/fcs_prod_ref_lotGgen.cfg.log : LOTG_NOFILTER  ###
+$DPLOAD/fcs_prod_ref_loader_mesLotGen_nofilter_mes.cfg : -mtime -log $DPLOG/fcs_prod_ref_loader_mesLotGen_nofilter_mes.cfg.log -sleep 05 : MES_LOTG_NOFILTER
+$DPLOAD/fcs_prod_ref_loader_mesLotGen_nofilter_cmes.cfg : -mtime -log $DPLOG/fcs_prod_ref_loader_mesLotGen_nofilter_cmes.cfg.log -sleep 05 : CMES_LOTG_NOFILTER
+$DPLOAD/fcs_prod_ref_loader_mesLotGen_nofilter_cast.cfg : -mtime -log $DPLOG/fcs_prod_ref_loader_mesLotGen_nofilter_cast.cfg.log -sleep 05 : CAST_LOTG_NOFILTER
+$DPLOAD/fcs_prod_ref_loader_mesLotGen_nofilter_lotG2gen.cfg : -mtime -log $DPLOG/fcs_prod_ref_loader_mesLotGen_nofilter_lotG2gen.cfg.log -sleep 05 : LOTG2GEN_LOTG_NOFILTER
+
+
+### BK ###
+$DPLOAD/fcs_pp_bk_sort_wmap_sep.cfg : -mtime -log $DPLOG/fcs_pp_bk_sort_wmap_sep.cfg.log -sleep 60 : BK_BINMAP_SEP
+$DPLOAD/fcs_bk_sort_wmap_nam_reworkfiles_folder_checker.cfg : -log $DPLOG/fcs_bk_sort_wmap_nam_reworkfiles_folder_checker.cfg.log -sleep 60 : BK_BINMAP_NAM_METADATA_VERIFIER_REWORK_FILES_CHECKER
+$DPLOAD/fcs_metadata_verifier_bksort_wmap_nam.cfg : -mtime -log $DPLOG/fcs_metadata_verifier_bksort_wmap_nam.cfg.log -sleep 30  : BK_BINMAP_NAM_METADATA_VERIFIER
+$DPLOAD/fcs_pp_bk_sort_wmap_nam.cfg : -mtime -log $DPLOG/fcs_pp_bk_sort_wmap_nam.cfg.log -sleep 60 : BK_BINMAP_NAM
+### $DPLOAD/fcs_pp_bk_sort.cfg : -mtime -log $DPLOG/fcs_pp_bk_sort.cfg.log -sleep 60 : BK_SORT ###
+$DPLOAD/fcs_pp_bksort_bstdf.cfg : -mtime -log $DPLOG/fcs_pp_bksort_bstdf.cfg.log -sleep 60 : BKSORT_BSTDF
+$DPLOAD/fcs_pp_bksort_eagle.cfg : -mtime -log $DPLOG/fcs_pp_bksort_eagle.cfg.log -sleep 60 : BKSORT_EAGLE
+$DPLOAD/fcs_pp_bksort_tmt.cfg : -mtime -log $DPLOG/fcs_pp_bksort_tmt.cfg.log -sleep 60 : BKSORT_TMT
+$DPLOAD/fcs_pp_bksort_itclcr.cfg : -mtime -log $DPLOG/fcs_pp_bksort_itclcr.cfg.log -sleep 60 : BKSORT_ITCLCR
+
+###  $DPLOAD/fcs_pp_bk_et.cfg : -mtime -log $DPLOG/fcs_pp_bk_et.cfg.log -sleep 60 : BK_ET  ###
+$DPLOAD/fcs_pp_custom_bket_hp.cfg : -mtime -log $DPLOG/fcs_pp_custom_bket_hp.cfg.log -sleep 60 : BK_ET_HP_CUSTOM
+$DPLOAD/fcs_pp_bk_et_hp_ams_process.cfg : -mtime -log $DPLOG/fcs_pp_bk_et_hp_ams_process.cfg.log -sleep 60 : BK_ET_HP_AMS_PROCESS
+$DPLOAD/fcs_pp_bk_et_hp_ams_product.cfg : -mtime -log $DPLOG/fcs_pp_bk_et_hp_ams_product.cfg.log -sleep 60 : BK_ET_HP_AMS_PRODUCT 
+$DPLOAD/fcs_pp_bk_et_hp_ad3_process.cfg : -mtime -log $DPLOG/fcs_pp_bk_et_hp_ad3_process.cfg.log -sleep 60 : BK_ET_HP_AD3_PROCESS 
+$DPLOAD/fcs_pp_bk_et_hp_ad3_product.cfg : -mtime -log $DPLOG/fcs_pp_bk_et_hp_ad3_product.cfg.log -sleep 60 : BK_ET_HP_AD3_PRODUCT 
+$DPLOAD/fcs_pp_bk_et_hp_bstdf_process.cfg : -mtime -log $DPLOG/fcs_pp_bk_et_hp_bstdf_process.cfg.log -sleep 60 : BK_ET_HP_BSTDF_PROCESS 
+$DPLOAD/fcs_pp_bk_et_hp_bstdf_product.cfg : -mtime -log $DPLOG/fcs_pp_bk_et_hp_bstdf_product.cfg.log -sleep 60 : BK_ET_HP_BSTDF_PRODUCT
+$DPLOAD/fcs_pp_bk_et_hp_et_process.cfg : -mtime -log $DPLOG/fcs_pp_bk_et_hp_et_process.cfg.log -sleep 60 : BK_ET_HP_ET_PROCESS 
+$DPLOAD/fcs_pp_bk_et_hp_et_product.cfg : -mtime -log $DPLOG/fcs_pp_bk_et_hp_et_pproduct.cfg.log -sleep 60 : BK_ET_HP_ET_PRODUCT
+###  $DPLOAD/fcs_pp_bk_rel.cfg : -mtime -log $DPLOG/fcs_pp_bk_rel.cfg.log -sleep 60 : BK_REL  ###
+$DPLOAD/fcs_pp_bk_rel_tesec.cfg : -mtime -log $DPLOG/fcs_pp_bk_rel_tesec.cfg.log -sleep 60 : BK_REL_TESEC
+$DPLOAD/fcs_pp_custom_rel_statec.cfg : -mtime -log $DPLOG/fcs_pp_custom_rel_statec.cfg.log -sleep 60 : BK_REL_STATEC_CUSTOM
+$DPLOAD/fcs_pp_bk_rel_statec_log2.cfg : -mtime -log $DPLOG/fcs_pp_bk_rel_statec_log2.cfg.log -sleep 60 : BK_REL_STATEC_LOG2
+$DPLOAD/fcs_pp_bk_rel_statec_sum.cfg : -mtime -log $DPLOG/fcs_pp_bk_rel_statec_sum.cfg.log -sleep 60 : BK_REL_STATEC_SUM
+$DPLOAD/fcs_pp_bk_fab.cfg : -mtime -log $DPLOG/fcs_pp_bk_fab.cfg.log -sleep 60 : BKFB_RS75
+###  $DPLOAD/fcs_pp_bk_wks.cfg : -mtime -log $DPLOG/fcs_pp_bk_wks.cfg.log -sleep 60 : BK_WKS  ###
+$DPLOAD/fcs_pp_bk_epi_wks.cfg : -mtime -log $DPLOG/fcs_pp_bk_epi_wks.cfg.log -sleep 60 : BK_WKS_EPI
+$DPLOAD/fcs_pp_bk_fb8_wks.cfg : -mtime -log $DPLOG/fcs_pp_bk_fb8_wks.cfg.log -sleep 60 : BK_WKS_FB8
+$DPLOAD/fcs_pp_bk_sort_wks.cfg : -mtime -log $DPLOG/fcs_pp_bk_sort_wks.cfg.log -sleep 60 : BK_WKS_SORT
+$DPLOAD/fcs_pp_bk_wks_fb6.cfg : -mtime -log $DPLOG/fcs_pp_bk_wks_fb6.cfg.log -sleep 60 : BK_WKS_FB6
+$DPLOAD/pp_bk_sic_wlbi.cfg : -mtime -log $DPLOG/pp_bk_sic_wlbi.cfg.log -sleep 30 : BK_WLBI
+
+
+###CP FT ###
+$DPLOAD/fcs_metadata_verifier_cpft_statec.cfg : -mtime -log $DPLOG/fcs_metadata_verifier_cpft_statec.cfg.log -sleep 10 : CPFT_STATEC_METADATA_VERIFIER
+###$DPLOAD/fcs_pp_cp_ft.cfg : -mtime -log $DPLOG/fcs_pp_cp_ft.cfg.log -sleep 60 : CP_FT
+$DPLOAD/fcs_pp_cpft_fet.cfg : -mtime -log $DPLOG/fcs_pp_cpft_fet.cfg.log -sleep 60 : CPFT_FET
+$DPLOAD/fcs_pp_custom_cpft_mct.cfg : -mtime -log $DPLOG/fcs_pp_custom_cpft_mct.cfg.log -sleep 60 : CUSTOM_CPFT_MCT
+$DPLOAD/fcs_pp_cpft_mct.cfg : -mtime -log $DPLOG/fcs_pp_cpft_mct.cfg.log -sleep 60 : CPFT_MCT
+$DPLOAD/fcs_pp_custom_cpft_statec.cfg : -mtime -log $DPLOG/fcs_pp_custom_cpft_statec.cfg.log -sleep 60 : CUSTOM_CPFT_STATEC
+$DPLOAD/fcs_pp_cpft_statec_log2.cfg : -mtime -log $DPLOG/fcs_pp_cpft_statec_log2.cfg.log -sleep 60 : CPFT_STATEC_LOG2
+$DPLOAD/fcs_pp_cpft_statec_sum.cfg : -mtime -log $DPLOG/fcs_pp_cpft_statec_sum.cfg.log -sleep 60 : CPFT_STATEC_SUM
+$DPLOAD/fcs_pp_cpft_icos.cfg : -mtime -log $DPLOG/fcs_pp_cpft_icos.cfg.log -sleep 60 : CPFT_ICOS
+$DPLOAD/fcs_pp_cpft_powertech.cfg : -mtime -log $DPLOG/fcs_pp_cpft_powertech.cfg.log -sleep 60 : CPFT_POWERTECH
+$DPLOAD/fcs_pp_cpft_tmt.cfg : -mtime -log $DPLOG/fcs_pp_cpft_tmt.cfg.log -sleep 60 : CPFT_TMT
+$DPLOAD/fcs_metadata_verifier_cpft_eagle.cfg : -mtime -log $DPLOG/fcs_metadata_verifier_cpft_eagle.cfg.log -sleep 10 : CPFT_EAGLE_METADATA_VERIFIER
+$DPLOAD/fcs_pp_cpft_eagle.cfg : -mtime -log $DPLOG/fcs_pp_cpft_eagle.cfg.log -sleep 60 : CPFT_EAGLE
+
+### CP AST ###
+###$DPLOAD/fcs_pp_cp_ast.cfg : -mtime -log $DPLOG/fcs_pp_cp_ast.cfg.log -sleep 60 : CP_AST
+$DPLOAD/fcs_pp_cpast_autovis.cfg : -mtime -log $DPLOG/fcs_pp_cpast_autovis.cfg.log -sleep 60 : CPAST_AUTOVIS
+$DPLOAD/fcs_pp_cpast_pbf_douyee.cfg : -mtime -log $DPLOG/fcs_pp_cpast_pbf_douyee.cfg.log -sleep 60 : CPAST_PBF_DOUYEE
+$DPLOAD/fcs_pp_cpast_tar_srm.cfg : -mtime -log $DPLOG/fcs_pp_cpast_tar_srm.cfg.log -sleep 60 : CPAST_TAR_SRM
+### CP WMAP ###
+$DPLOAD/fcs_metadata_verifier_cpsort_wmap_sep.cfg : -mtime -log $DPLOG/fcs_metadata_verifier_cpsort_wmap_sep.cfg.log -sleep 10 : CPSORT_WMAP_SEP_METADATA_VERIFIER
+$DPLOAD/fcs_pp_cp_sort_wmap_sep.cfg : -mtime -log $DPLOG/fcs_pp_cp_sort_wmap_sep.cfg.log -sleep 60 : CP_WMAP_SEP
+### CP SORT ###
+### $DPLOAD/fcs_pp_cp_sort.cfg : -mtime -log $DPLOG/fcs_pp_cp_sort.cfg.log -sleep 60 : CP_SORT ####
+$DPLOAD/fcs_metadata_verifier_cpsort_eagle.cfg : -mtime -log $DPLOG/fcs_metadata_verifier_cpsort_eagle.cfg.log -sleep 10 : CPSORT_EAGLE_METADATA_VERIFIER
+$DPLOAD/fcs_pp_cpsort_eagle.cfg : -mtime -log $DPLOG/fcs_cpsort_eagle.cfg.log -sleep 60 : CPSORT_EAGLE
+$DPLOAD/fcs_metadata_verifier_cpcsp_wmap_nam.cfg : -mtime -log $DPLOG/fcs_metadata_verifier_cpcsp_wmap_nam.cfg.log -sleep 10 : CPCSP_WMAP_NAM_METADATA_VERIFIER
+$DPLOAD/fcs_cpcsp_wmap_nam.cfg : -mtime -log $DPLOG/fcs_cpcsp_wmap_nam.cfg.log -sleep 60 : CPCSP_WMAP_NAM
+$DPLOAD/fcs_pp_cpsort_fet.cfg : -mtime -log $DPLOG/fcs_pp_cpsort_fet.cfg.log -sleep 60 :CPSORT_FET
+$DPLOAD/fcs_pp_cpsort_fet_quad.cfg : -mtime -log $DPLOG/fcs_pp_cpsort_fet_quad.cfg.log -sleep 60 : CPSORT_FET_QUAD
+$DPLOAD/fcs_pp_cpsort_tmt.cfg : -mtime -log $DPLOG/fcs_pp_cpsort_tmt.cfg.log -sleep 60 : CPSORT_TMT
+$DPLOAD/fcs_pp_cpcsp_icos.cfg : -mtime -log $DPLOG/fcs_pp_cpcsp_icos.cfg.log -sleep 60 : CPCSP_ICOS
+### CP SORT ADVAN ###
+$DPLOAD/fcs_pp_cp_sort_advan.cfg : -mtime -run rm -log $DPLOG/fcs_pp_cp_sort_advan.cfg.log -sleep 60 : CP_SORT_ADVAN
+
+### CPAST CAMSTAR ###
+### $DPLOAD/fcs_pp_cp_camstar.cfg : -mtime -log $DPLOG/fcs_pp_cp_camstar.cfg.log -sleep 60 : CP_CAMSTAR ###
+$DPLOAD/fcs_pp_unzip_cpast_camstar.cfg : -mtime -log $DPLOG/fcs_pp_unzip_cpast_camstar.cfg.log -sleep 60 : UNZIP_CPAST_CAMSTAR
+$DPLOAD/fcs_pp_cpast_camstar_loss.cfg : -mtime -log $DPLOG/fcs_pp_cpast_camstar_loss.cfg.log -sleep 60 : CPAST_CAMSTAR_LOSS
+$DPLOAD/fcs_pp_cpast_camstar_leh.cfg : -mtime -log $DPLOG/fcs_pp_cpast_camstar_leh.cfg.log -sleep 60 : CPAST_CAMSTAR_LEH
+$DPLOAD/fcs_pp_cpast_camstar_lotevent.cfg : -mtime -log $DPLOG/fcs_pp_cpast_camstar_lotevent.cfg.log -sleep 60 : CPAST_CAMSTAR_LOTEVENT
+$DPLOAD/fcs_pp_cpast_camstar_lotattr.cfg : -mtime -log $DPLOG/fcs_pp_cpast_camstar_lotattr.cfg.log -sleep 60 : CPAST_CAMSTAR_LOTATTR
+$DPLOAD/fcs_pp_cpast_camstar_eqp_event.cfg : -mtime -log $DPLOG/fcs_pp_cpast_camstar_eqp_event.cfg.log -sleep 60 : CPAST_CAMSTAR_EQP_EVENT
+
+### CPSORT CAMSTAR ###
+$DPLOAD/fcs_pp_unzip_cpsort_camstar.cfg : -mtime -log $DPLOG/fcs_pp_unzip_cpsort_camstar.cfg.log -sleep 60 : UNZIP_CPSORT_CAMSTAR
+$DPLOAD/fcs_pp_cpsort_camstar_loss.cfg : -mtime -log $DPLOG/fcs_pp_cpsort_camstar_loss.cfg.log -sleep 60 : CPSORT_CAMSTAR_LOSS
+$DPLOAD/fcs_pp_cpsort_camstar_weh.cfg : -mtime -log $DPLOG/fcs_pp_cpsort_camstar_weh.cfg.log -sleep 60 : CPSORT_CAMSTAR_WEH
+$DPLOAD/fcs_pp_cpsort_camstar_lotevent.cfg : -mtime -log $DPLOG/fcs_pp_cpsort_camstar_lotevent.cfg.log -sleep 60 : CPSORT_CAMSTAR_LOTEVENT
+$DPLOAD/fcs_pp_cpsort_camstar_lotattr.cfg : -mtime -log $DPLOG/fcs_pp_cpsort_camstar_lotattr.cfg.log -sleep 60 : CPSORT_CAMSTAR_LOTATTR
+$DPLOAD/fcs_pp_cpsort_camstar_eqp_event.cfg : -mtime -log $DPLOG/fcs_pp_cpsort_camstar_eqp_event.cfg.log -sleep 60 : CPSORT_CAMSTAR_EQP_EVENT
+
+
+### SZ FT ###
+$DPLOAD/fcs_pp_szft_eagle.cfg : -mtime -log $DPLOG/fcs_pp_szft_eagle.cfg.log -sleep 60 : SZ_FT_EAGLE
+$DPLOAD/fcs_pp_szft_mostrak.cfg : -mtime -files 500 -log $DPLOG/fcs_pp_szft_mostrak.cfg.log -sleep 60 : SZ_FT_MOSTRAK
+$DPLOAD/fcs_pp_szft_spm.cfg : -mtime -log $DPLOG/fcs_pp_szft_spm.cfg.log -sleep 60 : SZ_FT_SPM
+$DPLOAD/fcs_pp_szft_tesec.cfg : -mtime -log $DPLOG/fcs_pp_szft_tesec.cfg.log -sleep 60 : SZ_FT_TESEC
+$DPLOAD/fcs_pp_szft_tmt.cfg : -mtime -log $DPLOG/fcs_pp_szft_tmt.cfg.log -sleep 60 : SZ_FT_TMT
+$DPLOAD/fcs_pp_szft_shiba.cfg : -mtime -log $DPLOG/fcs_pp_szft_shiba.cfg.log -sleep 60 : SZ_FT_SHIBA
+$DPLOAD/fcs_pp_szft_iso.cfg : -mtime -files 500 -log $DPLOG/fcs_pp_szft_iso.cfg.log -sleep 60 : SZ_FT_ISO
+$DPLOAD/fcs_pp_szft_ptech.cfg : -mtime -log $DPLOG/fcs_pp_szft_ptech.cfg.log -sleep 60 : SZ_FT_PTECH
+###SZ AST ###
+$DPLOAD/fcs_pp_sz_ast.cfg : -mtime -log $DPLOG/fcs_pp_szast_autovis.cfg.log -sleep 60 : SZAST_AUTOVIS
+### SZ REL ###
+### $DPLOAD/fcs_pp_sz_rel.cfg : -mtime -log $DPLOG/fcs_pp_sz_rel.cfg.log -sleep 60 : SZ_REL ###
+$DPLOAD/fcs_pp_szrel_eagle.cfg : -mtime -log $DPLOG/fcs_pp_sz_rel_eagle.cfg.log -sleep 60 : SZ_REL_EAGLE
+$DPLOAD/fcs_pp_szrel_mostrak.cfg : -mtime -log $DPLOG/fcs_pp_sz_rel_mostrak.cfg.log -sleep 60 : SZ_REL_MOSTRAK
+$DPLOAD/fcs_pp_szrel_spm_log2.cfg : -mtime -log $DPLOG/fcs_pp_sz_rel_spm_log2.cfg.log -sleep 60 : SZ_REL_SPM_LOG2
+$DPLOAD/fcs_pp_szrel_spm_sum.cfg : -mtime -log $DPLOG/fcs_pp_sz_rel_spm_sum.cfg.log -sleep 60 : SZ_REL_SPM_SUM
+$DPLOAD/fcs_pp_szrel_shiba.cfg : -mtime -log $DPLOG/fcs_pp_sz_rel_shiba.cfg.log -sleep 60 : SZ_REL_SHIBA
+
+
+### SZ CAMSTAR ###
+### $DPLOAD/fcs_pp_sz_camstar.cfg : -mtime -log $DPLOG/fcs_pp_sz_camstar.cfg.log -sleep 60 : SZ_CAMSTAR ###
+$DPLOAD/fcs_pp_unzip_sz_pre_ast_assembly_camstar.cfg : -mtime -log $DPLOG/fcs_pp_unzip_sz_pre_ast_assembly_camstar.cfg.log -sleep 60 : SZ_PRE_ASSEMBLY_CAMSTAR_UNZIP
+$DPLOAD/fcs_pp_sz_pre_assembly_camstar_loss.cfg : -mtime -log $DPLOG/fcs_pp_sz_pre_assembly_camstar_loss.cfg.log -sleep 60 : SZ_PRE_ASSEMBLY_CAMSTAR_LOSS
+$DPLOAD/fcs_pp_sz_pre_assembly_camstar_weh.cfg : -mtime -log $DPLOG/fcs_pp_sz_pre_assembly_camstar_weh.cfg.log -sleep 60 : SZ_PRE_ASSEMBLY_CAMSTAR_WEH
+$DPLOAD/fcs_pp_sz_pre_assembly_camstar_lotevent.cfg : -mtime -log $DPLOG/fcs_pp_sz_pre_assembly_camstar_lotevent.cfg.log -sleep 60 : SZ_PRE_ASSEMBLY_CAMSTAR_LOTEVENT
+$DPLOAD/fcs_pp_sz_pre_assembly_camstar_lotattr.cfg : -mtime -log $DPLOG/fcs_pp_sz_pre_assembly_camstar_lotattr.cfg.log -sleep 60 : SZ_PRE_ASSEMBLY_CAMSTAR_LOTATTR
+$DPLOAD/fcs_pp_sz_pre_assembly_camstar_eqp_event.cfg : -mtime -log $DPLOG/fcs_pp_sz_pre_assembly_camstar_eqp_event.cfg.log -sleep 60 : SZ_PRE_ASSEMBLY_CAMSTAR_EQP_EVENT
+
+$DPLOAD/fcs_pp_unzip_sz_ast_camstar.cfg : -mtime -log $DPLOG/fcs_pp_unzip_sz_ast_camstar.cfg.log -sleep 60 : SZ_AST_CAMSTAR_UNZIP
+$DPLOAD/fcs_pp_sz_ast_camstar_loss.cfg : -mtime -log $DPLOG/fcs_pp_sz_ast_camstar_loss.cfg.log -sleep 60 : SZ_AST_CAMSTAR_LOSS
+$DPLOAD/fcs_pp_sz_ast_camstar_leh.cfg : -mtime -log $DPLOG/fcs_pp_sz_ast_camstar_leh.cfg.log -sleep 60 : SZ_AST_CAMSTAR_LEH
+$DPLOAD/fcs_pp_sz_ast_camstar_lotevent.cfg : -mtime -log $DPLOG/fcs_pp_sz_ast_camstar_lotevent.cfg.log -sleep 60 : SZ_AST_CAMSTAR_LOTEVENT
+$DPLOAD/fcs_pp_sz_ast_camstar_lotattr.cfg : -mtime -log $DPLOG/fcs_pp_sz_ast_camstar_lotattr.cfg.log -sleep 60 : SZ_AST_CAMSTAR_LOTATTR
+$DPLOAD/fcs_pp_sz_ast_camstar_remove_duplicate_header.cfg : -mtime -log $DPLOG/fcs_pp_sz_ast_camstar_remove_duplicate_header.cfg.log -sleep 60 : SZ_AST_CAMSTAR_REMOVE_DUP_HEADER
+
+### SZ BurnIn
+$DPLOAD/fcs_pp_szft_sic_burn_in.cfg: -mtime -log $DPLOG/fcs_pp_szft_sic_burn_in.cfg.log -sleep 60 : SZ_SiC_BurnIn
+
+### MT ###
+$DPLOAD/fcs_pp_mt_wmap_sep.cfg : -mtime -log $DPLOG/fcs_pp_mt_wmap_sep.cfg.log -sleep 60 : MT_WMAP_SEP
+$DPLOAD/fcs_pp_mt_wmap_sz.cfg : -mtime -log $DPLOG/fcs_pp_mt_wmap_sz.cfg.log -sleep 60 : MT_WMAP_SZ
+$DPLOAD/fcs_pp_mt_wmap_nam.cfg : -mtime -log $DPLOG/fcs_pp_mt_wmap_nam.cfg.log -sleep 60 : MT_WMAP_NAM
+$DPLOAD/fcs_pp_mtsort_eagle.cfg : -mtime -log $DPLOG/fcs_pp_mtsort_eagle.cfg.log -sleep 60 : MT_SORT_EAGLE
+$DPLOAD/fcs_pp_mtsort_sz.cfg : -mtime -log $DPLOG/fcs_pp_mtsort_sz.cfg.log -sleep 60 : MT_SORT_SZ
+$DPLOAD/fcs_pp_mtsort_tesec.cfg : -mtime -log $DPLOG/fcs_pp_mtsort_tesec.cfg.log -sleep 60 : MT_SORT_TESEC
+### commented because replaced with the above individual config eagle, sz and tesec 
+#####$DPLOAD/fcs_pp_mt_sort.cfg : -mtime -log $DPLOG/fcs_pp_mt_sort.cfg.log -sleep 60 : MT_SORT
+
+$DPLOAD/fcs_pp_mt_wks.cfg : -mtime -log $DPLOG/fcs_pp_mt_wks.cfg.log -sleep 60 : MT_WKS
+
+#### $DPLOAD/fcs_pp_mt_et.cfg : -mtime -log $DPLOG/fcs_pp_mt_et.cfg.log -sleep 60 : MT_ET ###
+$DPLOAD/fcs_pp_custom_mt_et_rdhm.cfg : -mtime -log $DPLOG/fcs_pp_custom_mt_et_rdhm.cfg.log -sleep 60 : MT_ET_CUSTOM
+$DPLOAD/fcs_pp_mt_et_rdhm_process.cfg : -mtime -log $DPLOG/fcs_pp_mt_et_rdhm_process.cfg.log -sleep 60 : MT_ET_RDHM_PROCESS
+$DPLOAD/fcs_pp_mt_et_rdhm_product.cfg : -mtime -log $DPLOG/fcs_pp_mt_et_rdhm_product.cfg.log -sleep 60 : MT_ET_RDHM_PRODUCT
+
+### ME ###
+$DPLOAD/fcs_pp_me_wmap_sep.cfg : -mtime -log $DPLOG/fcs_pp_me_wmap_sep.cfg.log -sleep 60 : ME_BINMAP_SEP
+### $DPLOAD/fcs_pp_me_sort.cfg : -mtime -log $DPLOG/fcs_pp_me_sort.cfg.log -sleep 60 : ME_SORT ##
+$DPLOAD/fcs_pp_me_sort_eagle.cfg : -mtime -log $DPLOG/fcs_pp_me_sort_eagle.cfg.log -sleep 60 : MET_SORT_EAGLE
+$DPLOAD/fcs_pp_custom_me_sort_mct.cfg : -mtime -log $DPLOG/fcs_pp_custom_me_sort_mct.cfg.log -sleep 60 : MET_SORT_MCT_CUSTOM
+$DPLOAD/fcs_pp_me_sort_mct.cfg : -mtime -log $DPLOG/fcs_pp_me_sort_mct.cfg.log -sleep 60 : MET_SORT_MCT
+$DPLOAD/fcs_pp_me_sort_advan.cfg : -mtime -log $DPLOG/fcs_pp_me_sort_advan.cfg.log -sleep 60 : MET_SORT_ADVAN
+$DPLOAD/fcs_pp_me_sort_fet.cfg : -mtime -log $DPLOG/fcs_pp_me_sort_fet.cfg.log -sleep 60 : MET_SORT_FET
+#### $DPLOAD/fcs_pp_me_asm.cfg : -mtime -log $DPLOG/fcs_pp_me_asm.cfg.log -sleep 60 : MEFAB_EQP_ASM ###
+$DPLOAD/fcs_pp_me_fab_eqp_asm_wafer_level.cfg : -mtime -log $DPLOG/fcs_pp_me_fab_eqp_asm_wafer_level.cfg.log -sleep 60 : ME_FAB_EQP_ASM_WAFER_LEVEL
+$DPLOAD/fcs_pp_me_fab_eqp_asm_lot_level.cfg : -mtime -log $DPLOG/fcs_pp_me_fab_eqp_asm_lot_level.cfg.log -sleep 60 : ME_FAB_EQP_ASM_LOT_LEVEL
+
+### ME FT ###
+###  $DPLOAD/fcs_pp_me_ft.cfg : -mtime -log $DPLOG/fcs_pp_meft_eagle.cfg.log -sleep 60 : MEFT_EAGLE ###
+$DPLOAD/fcs_pp_custom_me_ft_eagle.cfg : -mtime -log $DPLOG/fcs_pp_custom_me_ft_eagle.cfg.log -sleep 60 : ME_FT_EAGLE_CUSTOM
+$DPLOAD/fcs_pp_me_ft_eagle.cfg : -mtime -log $DPLOG/fcs_pp_me_ft_eagle.cfg.log -sleep 60 : ME_FT_EAGLE
+
+####  $DPLOAD/fcs_pp_me_et.cfg : -mtime -log $DPLOG/fcs_pp_meet.cfg.log -sleep 60 : MEET  ###
+$DPLOAD/fcs_pp_custom_me_et.cfg : -mtime -log $DPLOG/fcs_pp_custom_me_et.cfg.log -sleep 60 : ME_ET_CUSTOM 
+$DPLOAD/fcs_pp_me_et_accu_process.cfg : -mtime -log $DPLOG/fcs_pp_me_et_accu_process.cfg.log -sleep 60 : ME_ET_ACCU_PROCESS
+$DPLOAD/fcs_pp_me_et_accu_product.cfg : -mtime -log $DPLOG/fcs_pp_me_et_accu_product.cfg.log -sleep 60 : ME_ET_ACCU_PRODUCT
+$DPLOAD/fcs_pp_me_et_rdhm_process.cfg : -mtime -log $DPLOG/fcs_pp_me_et_rdhm_process.cfg.log -sleep 60 : ME_ET_RDHM_PROCESS
+$DPLOAD/fcs_pp_me_et_rdhm_product.cfg : -mtime -log $DPLOG/fcs_pp_me_et_rdhm_product.cfg.log -sleep 60 : ME_ET_RDHM_PRODUCT
+
+### ME REL ###
+### $DPLOAD/fcs_pp_me_rel.cfg : -mtime -log $DPLOG/fcs_pp_cp_me_rel.cfg.log -sleep 60 : ME_REL ###
+$DPLOAD/fcs_pp_me_rel_eagle.cfg : -mtime -log fcs_pp_me_rel_eagle.cfg.log -sleep 60 : ME_REL_EAGLE
+$DPLOAD/fcs_pp_me_rel_advan.cfg : -mtime -log fcs_pp_me_rel_advan.cfg.log -sleep 60 : ME_REL_ADVAN
+$DPLOAD/fcs_pp_custom_me_rel_mct.cfg : -mtime -log fcs_pp_custom_me_rel_mct.cfg.log -sleep 60 : ME_REL_MCT_CUSTOM
+$DPLOAD/fcs_pp_me_rel_mct.cfg : -mtime -log fcs_pp_me_rel_mct.cfg.log -sleep 60 : ME_REL_MCT
+
+### ME WKS ###
+### $DPLOAD/fcs_pp_me_wks.cfg : -mtime -log $DPLOG/fcs_pp_me_wks.cfg.log -sleep 60 : ME_WKS ###
+$DPLOAD/fcs_pp_me_fab_wks.cfg : -mtime -log $DPLOG/fcs_pp_me_fab_wks.cfg.log -sleep 60 : ME_FAB_WKS 
+$DPLOAD/fcs_pp_me_sort_wks.cfg : -mtime -log $DPLOG/fcs_pp_me_sort_wks.cfg.log -sleep 60 : ME_SORT_WKS 
+
+### OUTSOURCE SORT ###
+###  $DPLOAD/fcs_pp_outsource_sort.cfg : -mtime -log $DPLOG/fcs_pp_outsource_sort.cfg.log -sleep 60 : OUTSOURCE_SORT ###
+$DPLOAD/fcs_pp_gtk_tw_sort_wmap_aww.cfg : -mtime -log $DPLOG/fcs_pp_gtk_tw_sort_wmap_aww.cfg.log -sleep 60 : GTW_TW_SORT_WMAP_AWW
+$DPLOAD/fcs_pp_gtk_tw_sort_wmap_nam.cfg : -mtime -log $DPLOG/fcs_pp_gtk_tw_sort_wmap_nam.cfg.log -sleep 60 : GTW_TW_SORT_WMAP_NAM
+$DPLOAD/fcs_pp_isti_tw_csp_wmap_asc.cfg : -mtime -log $DPLOG/fcs_pp_isti_tw_csp_wmap_asc.cfg.log -sleep 60 : ISTI_TW_SORT_WMAP_ASC
+$DPLOAD/fcs_pp_amkor_kr_csp_wmap_aww.cfg : -mtime -log $DPLOG/fcs_pp_amkor_kr_csp_wmap_aww.cfg.log -sleep 60 : AMKOR_KR_CSP_WMAP_AWW
+$DPLOAD/fcs_pp_amkor_kr_csp_advan.cfg : -mtime -log $DPLOG/fcs_pp_amkor_kr_csp_advan.cfg.log -sleep 60 : AMKOR_KR_CSP_ADVAN
+$DPLOAD/fcs_pp_amkor_tw_csp_eagle.cfg : -mtime -log $DPLOG/fcs_pp_amkor_tw_csp_eagle.cfg.log -sleep 60 : AMKOR_TW_CSP_EAGLE 
+$DPLOAD/fcs_pp_custom_isti_tw_csp_eagle.cfg : -mtime -log $DPLOG/fcs_pp_custom_isti_tw_csp_eagle.cfg.log -sleep 60 : ISTI_TW_CSP_EAGLE_CUSTOM 
+$DPLOAD/fcs_pp_isti_tw_csp_eagle_ets_log.cfg : -mtime -log $DPLOG/fcs_pp_isti_tw_csp_eagle_ets_log.cfg.log -sleep 60 : ISTI_TW_CSP_EAGLE_ETS_LOG 
+$DPLOAD/fcs_pp_isti_tw_csp_eagle_ets_stdf.cfg : -mtime -log $DPLOG/fcs_pp_isti_tw_csp_eagle_ets_stdf.cfg.log -sleep 60 : ISTI_TW_CSP_EAGLE_ETS_STDF 
+$DPLOAD/fcs_pp_isti_tw_sort_tmt.cfg : -mtime -log $DPLOG/fcs_pp_isti_tw_sort_tmt.cfg.log -sleep 60 : ISTI_TW_SORT_TMT 
+$DPLOAD/fcs_pp_silan_cn_sort_wmap_nam.cfg : -mtime -log $DPLOG/fcs_pp_silan_cn_sort_wmap_nam.cfg.log -sleep 60 : SILAN_CN_SORT_WMAP_NAM 
+$DPLOAD/fcs_pp_silan_cn_sort_dpat_nam.cfg : -mtime -log $DPLOG/fcs_pp_silan_cn_sort_dpat_nam.cfg.log -sleep 60 : SILAN_CN_SORT_DPAT_NAM 
+$DPLOAD/fcs_pp_silan_cn_sort_bstdf.cfg : -mtime -log $DPLOG/fcs_pp_silan_cn_sort_bstdf.cfg.log -sleep 60 : SILAN_CN_SORT_BSTDF
+$DPLOAD/fcs_pp_phenitec_jp_sort_tesec.cfg : -mtime -log $DPLOG/fcs_pp_phenitec_jp_sort_tesec.cfg.log -sleep 60 : PHENITIC_JP_SORT_TESEC 
+$DPLOAD/fcs_pp_huatian_cn_sort_wmap_nam.cfg : -mtime -log $DPLOG/fcs_pp_huatian_cn_sort_wmap_nam.cfg.log -sleep 60 : HUATIAN_CN_SORT_WMAP_NAM 
+$DPLOAD/fcs_pp_huatian_cn_sort_t2k.cfg : -mtime -log $DPLOG/fcs_pp_huatian_cn_sort_t2k.cfg.log -sleep 60 : HUATIAN_CN_SORT_T2K 
+
+
+### OUTSOURCE FT ###
+$DPLOAD/fcs_pp_hana_th_ft_eagle.cfg : -mtime -log $DPLOG/fcs_pp_hana_th_ft_eagle.cfg.log -sleep 60 : HANA_FT_EAGLE
+$DPLOAD/fcs_pp_hana_th_ft_advan.cfg : -mtime -log $DPLOG/fcs_pp_hana_th_ft_advan.cfg.log -sleep 60 : HANA_FT_ADVAN
+###  $DPLOAD/fcs_pp_hana_th_ft_mct.cfg : -mtime -log $DPLOG/fcs_pp_hana_th_ft_mct.cfg.log -sleep 60 : HANA_FT_MCT ###
+$DPLOAD/fcs_pp_custom_hana_th_ft_mct.cfg : -mtime -log $DPLOG/fcs_pp_custom_hana_th_ft_mct.cfg.log -sleep 60 : HANA_FT_MCT_CUSTOM 
+$DPLOAD/fcs_pp_hana_th_ft_mct.cfg : -mtime -log $DPLOG/fcs_pp_hana_th_ft_mct.cfg.log -sleep 60 : HANA_FT_MCT
+$DPLOAD/fcs_pp_hana_th_ft_tmt.cfg : -mtime -log $DPLOG/fcs_pp_hana_th_ft_tmt.cfg.log -sleep 60 : HANA_FT_TMT
+$DPLOAD/fcs_pp_asent_tw_ft_bstdf.cfg : -mtime -log $DPLOG/fcs_pp_asent_tw_ft_bstdf.cfg.log -sleep 60 : ASENT_FT_BSTDF
+$DPLOAD/fcs_pp_custom_atec_ph_ft_mct.cfg : -mtime -log $DPLOG/fcs_pp_custom_atec_ph_ft_mct.cfg.log -sleep 60 : ATEC_PH_FT_MCT_CUSTOM
+$DPLOAD/fcs_pp_atec_ph_ft_mct.cfg : -mtime -log $DPLOG/fcs_pp_atec_ph_ft_mct.cfg.log -sleep 60 : ATEC_PH_FT_MCT
+### $DPLOAD/fcs_pp_atec_ph_ft_statec.cfg : -mtime -log $DPLOG/fcs_pp_atec_ph_ft_statec.cfg.log -sleep 60 : ATEC_FT_STATEC ###
+$DPLOAD/fcs_pp_custom_atec_ph_ft_statec.cfg : -mtime -log $DPLOG/fcs_pp_custom_atec_ph_ft_statec.cfg.log -sleep 60 : ATEC_PH_FT_STATEC_CUSTOM
+$DPLOAD/fcs_pp_atec_ph_ft_statec_log2.cfg : -mtime -log $DPLOG/fcs_pp_atec_ph_ft_statec_log2.cfg.log -sleep 60 : ATEC_PH_FT_STATEC_LOG2
+$DPLOAD/fcs_pp_atec_ph_ft_statec_sum.cfg : -mtime -log $DPLOG/fcs_pp_atec_ph_ft_statec_sum.cfg.log -sleep 60 : ATEC_PH_FT_STATEC_SUM
+$DPLOAD/fcs_pp_atec_ph_ft_tmt.cfg : -mtime -log $DPLOG/fcs_pp_atec_ph_ft_tmt.cfg.log -sleep 60 : ATEC_FT_TMT
+$DPLOAD/fcs_pp_atec_ph_ft_eagle.cfg : -mtime -log $DPLOG/fcs_pp_atec_ph_ft_eagle.cfg.log -sleep 60 : ATEC_FT_EAGLE
+
+### $DPLOAD/fcs_pp_gem_cn_ft_qtec.cfg : -mtime -log $DPLOG/fcs_pp_gem_cn_ft_qtec.cfg.log -sleep 60 : GEM_FT_QTEC ###
+$DPLOAD/fcs_pp_custom_gem_cn_ft_qtec.cfg : -mtime -log $DPLOG/fcs_pp_custom_gem_cn_ft_qtec.cfg.log -sleep 60 : GEM_FT_QTEC_CUSTOM
+$DPLOAD/fcs_pp_gem_cn_ft_qtec_xls.cfg : -mtime -log $DPLOG/ffcs_pp_gem_cn_ft_qtec_xls.cfg.log -sleep 60 : GEM_FT_QTEC_XLS 
+$DPLOAD/fcs_pp_gem_cn_ft_qtec_txt.cfg : -mtime -log $DPLOG/ffcs_pp_gem_cn_ft_qtec_txt.cfg.log -sleep 60 : GEM_FT_QTEC_TXT
+$DPLOAD/fcs_pp_custom_gtk_tw_ft_mct.cfg : -mtime -log $DPLOG/fcs_pp_custom_gtk_tw_ft_mct.cfg.log -sleep 60 : GTK_FT_MCT_CUSTOM
+$DPLOAD/fcs_pp_gtk_tw_ft_mct.cfg : -mtime -log $DPLOG/fcs_pp_gtk_tw_ft_mct.cfg.log -sleep 60 : GTK_FT_MCT
+$DPLOAD/fcs_pp_gtk_tw_ft_tmt.cfg : -mtime -log $DPLOG/fcs_pp_gtk_tw_ft_tmt.cfg.log -sleep 60 : GTK_FT_TMT
+$DPLOAD/fcs_pp_gtk_tw_ft_eagle.cfg : -mtime -log $DPLOG/fcs_pp_gtk_tw_ft_eagle.cfg.log -sleep 60 : GTK_FT_EAGLE
+### $DPLOAD/fcs_pp_jcet_cn_ft_itec.cfg : -mtime -log $DPLOG/fcs_pp_jcet_cn_ft_itec.cfg.log -sleep 60 : JCET_FT_ITEC ###
+$DPLOAD/fcs_pp_jcet_cn_ft_itec_csv.cfg : -mtime -log $DPLOG/fcs_pp_jcet_cn_ft_itec_csv.cfg.log -sleep 60 : JCET_FT_ITEC_CSV
+$DPLOAD/fcs_pp_jcet_cn_ft_itec_txt.cfg : -mtime -log $DPLOG/fcs_pp_jcet_cn_ft_itec_txt.cfg.log -sleep 60 : JCET_FT_ITEC_TXT
+### $DPLOAD/fcs_pp_jcet_cn_ft_juno.cfg : -mtime -log $DPLOG/fcs_pp_jcet_cn_ft_juno.cfg.log -sleep 60 : JCET_FT_JUNO ###
+$DPLOAD/fcs_pp_custom_jcet_cn_ft_juno.cfg : -mtime -log $DPLOG/fcs_pp_custom_jcet_cn_ft_juno.cfg.log -sleep 60 : JCET_FT_JUNO_CUSTOM
+$DPLOAD/fcs_pp_jcet_cn_ft_juno_xls_data.cfg : -mtime -log $DPLOG/fcs_pp_jcet_cn_ft_juno_xls_data.cfg.log -sleep 60 : JCET_FT_JUNO_XLS_DATA 
+$DPLOAD/fcs_pp_jcet_cn_ft_juno_xls_sum.cfg : -mtime -log $DPLOG/fcs_pp_jcet_cn_ft_juno_xls_sum.cfg.log -sleep 60 : JCET_FT_JUNO_XLS_SUM
+$DPLOAD/fcs_pp_jcet_cn_ft_juno_csv_sum.cfg : -mtime -log $DPLOG/fcs_pp_jcet_cn_ft_juno_csv_sum.cfg.log -sleep 60 : JCET_FT_JUNO_CSV_SUM
+
+$DPLOAD/fcs_pp_ase_my_ft_eagle.cfg : -mtime -log $DPLOG/fcs_pp_ase_my_ft_eagle.cfg.log -sleep 60 : ASE_FT_EAGLE
+$DPLOAD/fcs_pp_amkor_tw_ft_wmap_aww.cfg : -mtime -log $DPLOG/fcs_pp_amkor_tw_ft_wmap_aww.cfg.log -sleep 60 : AMKOR_FT_AWW
+$DPLOAD/fcs_pp_utac_th_ft_tmt.cfg : -mtime -log $DPLOG/fcs_pp_utac_th_ft_tmt.cfg.log -sleep 60 : UTAC_FT_TMT
+$DPLOAD/fcs_pp_custom_utac_th_ft_mct.cfg : -mtime -log $DPLOG/fcs_pp_custom_utac_th_ft_mct.cfg.log -sleep 60 : UTAC_FT_MCT_CUSTOM
+$DPLOAD/fcs_pp_utac_th_ft_mct.cfg : -mtime -log $DPLOG/fcs_pp_utac_th_ft_mct.cfg.log -sleep 60 : UTAC_FT_MCT
+
+### OUTSOURCE GTK MOSAIC
+$DPLOAD/fcs_metadata_verifier_gtk_tw_sort_mosaic_bk_wmap_nam.cfg : -mtime -files 5000 -log $DPLOG/fcs_metadata_verifier_gtk_tw_sort_mosaic_bk_wmap_nam.cfg.log -sleep 60 : GTK_TW_SORT_MOSAIC_BK_WMAP_NAM_METADATA_VERIFIER
+$DPLOAD/fcs_pp_gtk_tw_sort_mosaic_bk_wmap_nam.cfg : -mtime -log $DPLOG/fcs_pp_gtk_tw_sort_mosaic_bk_wmap_nam.cfg.log -sleep 60 : GTK_TW_SORT_MOSAIC_BK_WMAP_NAM
+$DPLOAD/fcs_pp_gtk_tw_sort_mosaic_bk_tmt.cfg : -mtime -log $DPLOG/fcs_pp_gtk_tw_sort_mosaic_bk_tmt.cfg.log -sleep 60 : GTK_TW_SORT_MOSAIC_BK_TMT
+
+### OUTSOURCE AST ###
+$DPLOAD/fcs_pp_outsource_ast.cfg : -mtime -log $DPLOG/fcs_pp_outsource_ast.cfg.log -sleep 60 : OUTSOURCE_AST
+
+### OUTSOURCE SUB ###
+### $DPLOAD/fcs_pp_outsource_sub.cfg : -mtime -log $DPLOG/fcs_pp_outsource_sub.cfg.log -sleep 60 : OUTSOURCE_SUB ###
+$DPLOAD/fcs_pp_globitech_us_sub.cfg : -mtime -log $DPLOG/fcs_pp_globitech_us_sub.cfg.log -sleep 60 : GLOBITECH_US_SUB
+$DPLOAD/fcs_pp_lgsiltron_kr_sub.cfg : -mtime -log $DPLOG/fcs_pp_lgsiltron_kr_sub.cfg.log -sleep 60 : LGSILTRON_KR_SUB 
+$DPLOAD/fcs_pp_custom_silt_us_sub.cfg : -mtime -log $DPLOG/fcs_pp_custom_silt_us_sub.cfg.log -sleep 60 : SILT_US_SUB_CUSTOM
+$DPLOAD/fcs_pp_silt_us_sub_xls.cfg : -mtime -log $DPLOG/fcs_pp_silt_us_sub_xls.cfg.log -sleep 60 : SILT_US_SUB_XLS 
+$DPLOAD/fcs_pp_silt_us_sub_xlsx.cfg : -mtime -log $DPLOG/fcs_pp_silt_us_sub_xlsx.cfg.log -sleep 60 : SILT_US_SUB_XLSX
+$DPLOAD/fcs_pp_sumco_us_sub.cfg : -mtime -log $DPLOG/fcs_pp_sumco_us_sub.cfg.log -sleep 60 : SUMCO_US_SUB 
+$DPLOAD/fcs_pp_sunedison_us_sub.cfg : -mtime -log $DPLOG/fcs_pp_sunedison_us_sub.cfg.log -sleep 60 : SUNEDISON_US_SUB 
+$DPLOAD/fcs_pp_epiworld_us_sub.cfg : -mtime -log $DPLOG/fcs_pp_epiworld_us_sub.cfg.log -sleep 60 : EPIWORLD_US_SUB 
+$DPLOAD/fcs_pp_wfrwrks_tw_sub.cfg : -mtime -log $DPLOG/fcs_pp_wfrwrks_tw_sub.cfg.log -sleep 60 : WAFERWORKS_US_SUB 
+$DPLOAD/fcs_pp_cree_us_sub.cfg : -mtime -log $DPLOG/fcs_pp_cree_us_sub.cfg.log -sleep 60 : CREE_US_SUB 
+$DPLOAD/fcs_pp_globalwfrs_jp_sub.cfg : -mtime -log $DPLOG/fcs_pp_globalwfrs_jp_sub.cfg.log -sleep 60 : GLOBALWAFERS_US_SUB 
+
+
+### OUTSOURCE ET ###
+### $DPLOAD/fcs_pp_mxic_tw_et_hp.cfg : -mtime -log $DPLOG/fcs_pp_mxic_tw_et_hp.cfg.log -sleep 60 : MXIC_ET_HP ###
+$DPLOAD/fcs_pp_mxic_tw_et_hp_process.cfg : -mtime -log $DPLOG/fcs_pp_mxic_tw_et_hp_process.cfg.log -sleep 60 : MXIC_ET_HP_PROCESS
+$DPLOAD/fcs_pp_mxic_tw_et_hp_product.cfg : -mtime -log $DPLOG/fcs_pp_mxic_tw_et_hp_product.cfg.log -sleep 60 : MXIC_ET_HP_PRODUCT
+
+
+###  $DPLOAD/fcs_pp_tsmc_tw_et_hp.cfg : -mtime -log $DPLOG/fcs_pp_tsmc_tw_et_hp.cfg.log -sleep 60 : TSMC_ET_HP  ###
+$DPLOAD/fcs_pp_tsmc_tw_et_hp_process.cfg : -mtime -log $DPLOG/fcs_pp_tsmc_tw_et_hp_process.cfg.log -sleep 60 : TSMC_ET_HP_PROCESS
+$DPLOAD/fcs_pp_tsmc_tw_et_hp_product.cfg : -mtime -log $DPLOG/fcs_pp_tsmc_tw_et_hp_product.cfg.log -sleep 60 : TSMC_ET_HP_PRODUCT
+
+### $DPLOAD/fcs_pp_vgrd_tw_et_eagle.cfg : -mtime -log $DPLOG/fcs_pp_vgrd_tw_et_eagle.cfg.log -sleep 60 : VGRD_ET_EAGLE ###
+$DPLOAD/fcs_pp_vgrd_tw_et_eagle_process.cfg : -mtime -log $DPLOG/fcs_pp_vgrd_tw_et_eagle_process.cfg.log -sleep 60 : VGRD_ET_EAGLE_PROCESS 
+$DPLOAD/fcs_pp_vgrd_tw_et_eagle_product.cfg : -mtime -log $DPLOG/fcs_pp_vgrd_tw_et_eagle_product.cfg.log -sleep 60 : VGRD_ET_EAGLE_PRODUCT
+
+### CZ_DATA ###
+$DPLOAD/fcs_pp_onsemi_ft.cfg : -mtime -log $DPLOG/fcs_pp_cz_data.cfg.log -sleep 60 : CZ_DATA
+
+### EFK WAT KEYSIGHT
+$DPLOAD/efk_wat_keysight_csv_to_xml_uncompress.cfg : -mtime -log $DPLOG/efk_wat_keysight_csv_to_xml_uncompress.cfg.log -sleep 60 : EFK_WAT_KEYSIGHT_CSV_TO_XML_UNCOMPRESS 
+$DPLOAD/efk_wat_keysight_csv_to_xml_pp.cfg : -mtime -log $DPLOG/efk_wat_keysight_csv_to_xml_pp.cfg.log -sleep 60 : EFK_WAT_KEYSIGHT_CSV_TO_XML 
+
+
+### EFK WEH
+$DPLOAD/efk_weh_txt_split_by_tech.cfg : -mtime -log $DPLOG/efk_weh_txt_split_by_tech.cfg.log -sleep 60 : EFK_WEH_SPLIT_BY_TECH
+$DPLOAD/efk_weh_txt_pp.cfg : -mtime -log $DPLOG/efk_weh_txt_pp.cfg.log -sleep 60 : EFK_WEH
+
+### ONSEMI REFDB LOADING ###
+### $DPLOAD/onsemi_refdb_loader.cfg : -mtime -log $DPLOG/onsemi_refdb_loader.cfg.log -sleep 60 : ONSEMI_REFDB_LOAD ###
+$DPLOAD/onsemi_refdb_loader_jnd_ship_scribe.cfg : -mtime -log $DPLOG/onsemi_refdb_loader_jnd_ship_scribe.cfg.log -sleep 60 : ONSEMI_REFDB_LOAD_JND_SCRIBE
+$DPLOAD/onsemi_refdb_loader_efk_weh_onlot.cfg : -mtime -log $DPLOG/onsemi_refdb_loader_efk_weh_onlot.cfg.log -sleep 60 : ONSEMI_REFDB_LOAD_EFK_WEH_TO_ONLOT
+$DPLOAD/onsemi_refdb_loader_efk_weh_onprod.cfg : -mtime -log $DPLOG/onsemi_refdb_loader_efk_weh_onprod.cfg.log -sleep 60 : ONSEMI_REFDB_LOAD_EFK_WEH_TO_ONPROD
+$DPLOAD/onsemi_refdb_loader_efk_weh_onscribe.cfg : -mtime -log $DPLOG/onsemi_refdb_loader_efk_weh_onscribe.cfg.log -sleep 60 : ONSEMI_REFDB_LOAD_EFK_WEH_TO_ONSCRIBE
+
+
+### SIC ECOFA ####
+###  $DPLOAD/sic_ecofa_pp.cfg : -mtime -log $DPLOG/sic_ecofa_pp.cfg.log -sleep 60 : SIC_ECOFA  ###
+$DPLOAD/sic_ecofa_wafer_details.cfg : -mtime -log $DPLOG/sic_ecofa_wafer_details.cfg.log -sleep 60 : SIC_ECOFA_WAFER_DETAILS
+$DPLOAD/sic_ecofa_wafer_coordinates.cfg : -mtime -log $DPLOG/sic_ecofa_wafer_coordinates.cfg.log -sleep 60 : SIC_ECOFA_WAFER_COORDINATES 
+
+
+### GTAT PUCK ECOFA ###
+$DPLOAD/gtat_puck_ecofa_pp.cfg : -mtime -log $DPLOG/gtat_puck_ecofa_pp.cfg.log -sleep 60 : GTAT_PUCK_ECOFA
+
+### CZ2 WEH ###
+$DPLOAD/onsemi_pp_cz2_weh.cfg : -mtime -log $DPLOG/nsemi_pp_cz2_weh.cfg.log -sleep 60 : CZ2_WEH
+
+### ISG TRACE assembly genealogy
+$DPLOAD/isg_trace_assembly_genealogy_kyec_ft.cfg : -mtime -log $DPLOG/isg_trace_assembly_genealogy_kyec_ft.cfg.log -sleep 60 : ISG_KYEC_FT
+$DPLOAD/isg_trace_assembly_genealogy_kingpak_ft.cfg : -mtime -log $DPLOG/isg_trace_assembly_genealogy_kingpak_ft.cfg.log -sleep 60 : ISG_Kingpak_FT
+$DPLOAD/isg_trace_assembly_genealogy_asem_ft.cfg : -mtime -log $DPLOG/isg_trace_assembly_genealogy_asem_ft.cfg.log -sleep 60 : ISG_ASEM_FT
+$DPLOAD/isg_trace_assembly_genealogy_aql_ft.cfg : -mtime -log $DPLOG/isg_trace_assembly_genealogy_aql_ft.cfg.log -sleep 60 : ISG_AQL_FT
+
+### TANKEBLU PUCK ECOFA
+$DPLOAD/tankeblu_puck_ecofa_pp.cfg : -mtime -log $DPLOG/tankeblu_puck_ecofa_pp.cfg.log -sleep 60 : TANKEBLU_PUCK_ECOFA
+
+### HESHENG PUCK ECOFA
+$DPLOAD/hesheng_puck_ecofa_pp.cfg : -mtime -log $DPLOG/hesheng_puck_ecofa_pp.cfg.log -sleep 60 : HESHENG_PUCK_ECOFA
+
+### TAISIC PUCK ECOFA
+$DPLOAD/taisic_puck_ecofa_pp.cfg : -mtime -log $DPLOG/taisic_puck_ecofa_pp.cfg.log -sleep 60 : TAISIC_PUCK_ECOFA
+
+### POWERCHIP_PCM_WAT
+### ---old perl version no episcribe insertion to refdb.onscribe---$DPLOAD/pp_powerchip_pcm_wat.cfg : -mtime -log $DPLOG/pp_powerchip_pcm_wat.cfg.log -sleep 60 : POWERCHIP_PCM_WAT
+$DPLOAD/pp_powerchip_wat_pcm.cfg : -mtime -log $DPLOG/pp_powerchip_wat_pcm.cfg.log -sleep 60 : POWERCHIP_PCM_WAT
+
+### JND SCRIBE FILE REFDB LOADING ###
+$DPLOAD/jnd_scribe_refdb_loader.cfg : -mtime -log $DPLOG/jnd_scribe_refdb_loader.cfg.log -sleep 60 : JND_SCRIBE_REFDB_LOADER
+### JND SCRIBE FILE ACCUMULATOR ###
+$DPLOAD/pp_jnd_scribe_accumulator.cfg : -mtime -log $DPLOG/pp_jnd_scribe_accumulator.cfg.log -sleep 60 : JND_SCRIBE_FILE_ACCUMULATOR
+### JND SHIP SCRIBE FILE ACCUMULATOR ###
+$DPLOAD/pp_jnd_ship_scribe_accumulator.cfg : -mtime -log $DPLOG/pp_jnd_ship_scribe_accumulator.cfg.log -sleep 60 : JND_SHIP_SCRIBE_FILE_ACCUMULATOR
+### JND PROBE TESEC Preprocessor Enricher ###
+$DPLOAD/pp_jnd_probe_tesec.cfg : -mtime -log $DPLOG/pp_jnd_probe_tesec.cfg.log -sleep 30 : JND_PROBE_TESEC_PREPROCESSOR_ENRICHER  ###
+### JND PROBE Advantest Preprocessor Enricher ###
+$DPLOAD/pp_jnd_probe_advantest.cfg : -mtime -log $DPLOG/pp_jnd_probe_advantest.cfg.log -sleep 30 : JND_PROBE_ADVANTEST_PREPROCESSOR_ENRICHER  ###
+### JND PCM KDF ###
+$DPLOAD/pp_jnd_pcm_kdf.cfg : -mtime -log $DPLOG/pp_jnd_pcm_kdf.cfg.log -sleep 30 : JND_PCM_KDF_PREPROCESSOR_ENRICHER
+### JND PCM MAPS11_SPEC ###
+$DPLOAD/pp_jnd_pcm_spec.cfg : -mtime -log $DPLOG/pp_jnd_pcm_spec.cfg.log -sleep 30 : JND_PCM_MAPS11_SPEC_PREPROCESSOR_ENRICHER
+### JND PCM RAW MAPS ###
+$DPLOAD/pp_jnd_pcm_raw_maps.cfg : -mtime -log $DPLOG/pp_jnd_pcm_raw_maps.cfg.log -sleep 30 : JND_PCM_RAW_MAPS_PREPROCESSOR_ENRICHER
+### JND MET/EDC ###
+$DPLOAD/pp_jnd_met_edc_preprocess_enrich.cfg : -mtime -log $DPLOG/pp_jnd_met_edc_preprocess_enrich.cfg.log -sleep 30 : JND_MET_EDC_PREPROCESSOR_ENRICHER
+### JND PHOTOLITO ###
+$DPLOAD/pp_jnd_photolito.cfg : -mtime -log $DPLOG/pp_jnd_photolito.cfg.log -sleep 30 : JND_PHOTOLITO_PREPROCESSOR_ENRICHER
+### JND UPM Tranlator ###
+$DPLOAD/pp_jnd_upm_to_xml.cfg : -mtime -log $DPLOG/pp_jnd_upm_to_xml.cfg.log -sleep 30 : JND_UPM_TO_XML_TRANSLATOR
+### JND UPM Enricher ###
+$DPLOAD/pp_jnd_upm_xml_enricher.cfg : -mtime -log $DPLOG/pp_jnd_upm_xml_enricher.cfg.log -sleep 30 : JND_UPM_ENRICHER
+
+###  ISTI MOSAIC BK 
+$DPLOAD/fcs_pp_outsource_isti_tw_sort_mosaic_eagle.cfg : -mtime -log $DPLOG/fcs_pp_outsource_isti_tw_sort_mosaic_eagle.cfg.log -sleep 60 : ISTI_TW_SORT_MOSAIC_EAGLE
+$DPLOAD/fcs_pp_outsource_isti_tw_sort_mosaic_bk_wmap_nam.cfg : -mtime -log $DPLOG/fcs_pp_outsource_isti_tw_sort_mosaic_bk_wmap_nam.cfg.log -sleep 60 : ISTI_TW_SORT_MOSAIC_BK_WMAP_NAM
+
+### VN2 DEFCT Klarf 1.2 Defect List outside sample test paln stripper ###
+###  $DPLOAD/pp_osv_klarf_defect.cfg : -mtime -log $DPLOG/pp_osv_klarf_defect.cfg.log -sleep 30 : VN2_DEFECT_KLARF12_ENRICHER  ###
+$DPLOAD/pp_osv_klarf12_defect_production.cfg : -mtime -log $DPLOG/pp_osv_klarf12_defect_production.cfg.log -sleep 30 : VN2_DEFECT_KLARF12_ENRICHER_PRODUCTION 
+$DPLOAD/pp_osv_klarf12_defect_sandbox.cfg : -mtime -log $DPLOG/pp_osv_klarf12_defect_sandbox.cfg.log -sleep 30 : VN2_DEFECT_KLARF12_ENRICHER_SANDBOX
+
+
+
+### SZ DEFCT Klarf 1.2 Defect List outside sample test paln stripper ###
+###  $DPLOAD/pp_sz_klarf_defect.cfg : -mtime -log $DPLOG/pp_sz_klarf_defect.cfg.log -sleep 30 : SZ_DEFECT_KLARF12_ENRICHER  ###
+$DPLOAD/pp_sz_klarf12_defect_production.cfg : -mtime -log $DPLOG/pp_sz_klarf12_defect_production.cfg.log -sleep 30 : SZ_DEFECT_KLARF12_ENRICHER_PRODUCTION
+$DPLOAD/pp_sz_klarf12_defect_sandbox.cfg : -mtime -log $DPLOG/pp_sz_klarf12_defect_sandbox.cfg.log -sleep 30 : SZ_DEFECT_KLARF12_ENRICHER_SANDBOX
+
+### SEMISIC PUCK ECOFA ###
+$DPLOAD/semisic_puck_ecofa_pp.cfg : -mtime -log $DPLOG/semisic_puck_ecofa_pp.cfg.log -sleep 60 : SEMISIC_PUCK_ECOFA
+
+### SICC PUCK ECOFA ###
+$DPLOAD/sicc_puck_ecofa_pp.cfg : -mtime -log $DPLOG/sicc_puck_ecofa_pp.cfg.log -sleep 60 : SICC_PUCK_ECOFA
+
+### SYNLIGHT PUCK ECOFA ###
+$DPLOAD/synlight_puck_ecofa_pp.cfg : -mtime -log $DPLOG/synlight_puck_ecofa_pp.cfg.log -sleep 60 : SYNLIGHT_PUCK_ECOFA
+
+### SUMIXTAL PUCK ECOFA ###
+$DPLOAD/sumixtal_puck_ecofa_pp.cfg : -mtime -log $DPLOG/sumixtal_puck_ecofa_pp.cfg.log -sleep 60 : SUMIXTAL_PUCK_ECOFA
+
+### ISG PRB AUTOCHAR ###
+$DPLOAD/isg_prb_autochar_pp.cfg : -mtime -log $DPLOG/isg_prb_autochar_pp.cfg.log -sleep 60 : ISG_PRB_AUTOCHAR
+
+### JND LOT METADATA ###
+$DPLOAD/pp_jnd_lot_metadata.cfg : -mtime -log $DPLOG/pp_jnd_lot_metadata.cfg.log -sleep 30 : JND_LOT_METADATA
+
+### JND LEH ###
+$DPLOAD/pp_jnd_leh.cfg : -mtime -log $DPLOG/pp_jnd_leh.cfg.log -sleep 60 : JND_LEH
+
+### SUZHOU VISION INSPECTION FT
+$DPLOAD/pp_sz_vision_inspection.cfg : -mtime -log $DPLOG/pp_sz_vision_inspection.cfg.log -sleep 60 : SZ_VISION_INSPECTION
+
+### SUZHOU WIRE BOND
+#$DPLOAD/sz_ft_wirebond_csv_pp.cfg : -mtime -log $DPLOG/sz_ft_wirebond_csv_pp.cfg.log -sleep 60 : SZ_WIRE_BOND
+
+## QORVO_PSI_RG
+$DPLOAD/pp_FT_xfab_qorvo_psi_rg_csv.cfg : -mtime -log $DPLOG/pp_FT_xfab_qorvo_psi_rg_csv.cfg.log -sleep 30 : QORVO_PSI_FinalTest_RG_CSV_ENRICHER
+
+## QORVO_PSI_FT
+$DPLOAD/pp_FT_xfab_qorvo_psi_ft_csv.cfg : -mtime -log $DPLOG/pp_FT_xfab_qorvo_psi_ft_csv.cfg.log -sleep 30 : QORVO_PSI_FinalTest_FT_CSV_ENRICHER
+
+## QORVO_PSI_QA
+$DPLOAD/pp_FT_xfab_qorvo_psi_qa_csv.cfg : -mtime -log $DPLOG/pp_FT_xfab_qorvo_psi_qa_csv.cfg.log -sleep 30 : QORVO_PSI_FinalTest_QA_CSV_ENRICHER
+
+## QORVO_PSI_CR
+$DPLOAD/pp_FT_xfab_qorvo_psi_cr_csv.cfg : -mtime -log $DPLOG/pp_FT_xfab_qorvo_psi_cr_csv.cfg.log -sleep 30 : QORVO_PSI_FinalTest_CR_CSV_ENRICHER
+
+### BACKEND ECOFA
+$DPLOAD/backend_ecofa_pp.cfg : -mtime -log $DPLOG/backend_ecofa_pp.cfg.log -sleep 60 : BACKEND_ECOFA
+
+### RAW SILICON COFA
+$DPLOAD/silicon_raw_cofa.cfg : -mtime -log $DPLOG/silicon_raw_cofa.cfg.log -sleep 60 : SILICON_RAW_COFA

@@ -1,0 +1,29 @@
+4.0
+27
+1	SYBCHAR	1	255	""	1	facility
+2	SYBCHAR	1	255	""	2	entity_group_1_prompt
+3	SYBCHAR	1	255	""	3	entity_group_2_prompt
+4	SYBCHAR	1	255	""	4	entity_group_3_prompt
+5	SYBCHAR	1	255	""	5	entity_group_4_prompt
+6	SYBCHAR	1	255	""	6	entity_group_5_prompt
+7	SYBCHAR	1	255	""	7	parameter_group_1_prompt
+8	SYBCHAR	1	255	""	8	parameter_group_2_prompt
+9	SYBCHAR	1	255	""	9	parameter_group_3_prompt
+10	SYBCHAR	1	255	""	10	prod_group_1_prompt
+11	SYBCHAR	1	255	""	11	prod_group_2_prompt
+12	SYBCHAR	1	255	""	12	prod_group_3_prompt
+13	SYBCHAR	1	255	""	13	prod_group_4_prompt
+14	SYBCHAR	1	255	""	14	prod_group_5_prompt
+15	SYBCHAR	1	255	""	15	oper_group_1_prompt
+16	SYBCHAR	1	255	""	16	oper_group_2_prompt
+17	SYBCHAR	1	255	""	17	oper_group_3_prompt
+18	SYBCHAR	1	255	""	18	route_group_1_prompt
+19	SYBCHAR	1	255	""	19	route_group_2_prompt
+20	SYBCHAR	1	255	""	20	event_group_1_prompt
+21	SYBCHAR	1	255	""	21	event_group_2_prompt
+22	SYBCHAR	1	255	""	22	event_group_3_prompt
+23	SYBCHAR	1	255	""	23	event_group_4_prompt
+24	SYBCHAR	1	255	""	24	event_group_5_prompt
+25	SYBCHAR	1	255	""	25	scp_group_1_prompt
+26	SYBCHAR	1	255	""	26	scp_group_2_prompt
+27	SYBCHAR	1	255	""	27	scp_group_3_prompt

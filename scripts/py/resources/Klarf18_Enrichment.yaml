@@ -1,0 +1,152 @@
+# Klarf 1.8 Enrichment Configuration
+
+# CZ2 Specific Enrichment (Reflects Silicon process rules)
+CZ2_KLARF_18_Si:
+  match_fab: ["CZ2"]
+  env: "CZ2_Defect"
+  fields:
+    DateTimeMask: { type: constant, value: "YYYY/MM/DD HH24:MI:SS", target: DATE_TIME_MASK }
+    AlternateProduct: { type: constant, value: "NA", target: ALTERNATE_PRODUCT }
+    Fab: { type: constant, value: "CZ2:TEROSIL-161", target: FAB }
+    Facility: { type: constant, value: "CZ2:TEROSIL-161", target: FACILITY }
+    LotId: { type: record, source: LotRecord, target: LOT_ID }
+    LotType: { type: constant, value: "NA", target: LOT_TYPE }
+    Process: { type: field, source: SampleSize, index: 0, slice: [0, 3], target: PROCESS }
+    Product: { type: field, source: DeviceID, index: 0, target: PRODUCT }
+    Pti2: { type: constant, value: "NA", target: PTI_2 }
+    ProbeProgramName:
+      type: field
+      source: SampleSize
+      index: 0
+      slice: [0, 3]
+      target: PROBE_PROGRAM_NAME
+      fallback: { type: field, source: DeviceID, index: 0 }
+    Recipe: { type: field, source: RecipeID, index: 0, target: RECIPE }
+    ResultTime: { type: field, source: FileTimestamp, format: "{0} {1}", regex_replace: ["(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})", "\\3/\\1/\\2"], target: RESULT_TIME }
+    Slot: { type: field, source: SlotNumber, index: 0, target: SLOT }
+    SourceLot:
+      type: field
+      source: LotRecord
+      regex_replace: ["\\.[^.]*$", ".S"]
+      target: SOURCE_LOT
+    StartTime: { type: field, source: ResultTimestamp, format: "{0} {1}", regex_replace: ["(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})", "\\3/\\1/\\2"], target: START_TIME }
+    Step: { type: field, source: StepID, index: 0, target: STEP }
+    Technology: { type: constant, value: "NA", target: TECHNOLOGY }
+    TesterId: { type: field, source: InspectionStationID, index: 2, target: TESTER_ID }
+    TesterType: { type: field, source: InspectionStationID, index: 1, target: TESTER_TYPE }
+    WaferId:
+      type: composite
+      template: "{lot_prefix}-{wafer_num}"
+      target: WAFER_ID
+      parts:
+        lot_prefix: { type: record, source: LotRecord, regex_replace: ["\\.[^.]*$", ""] }
+        wafer_num: { type: record, source: WaferRecord, regex_replace: ["^W_", ""] }
+    WaferNumber: { type: record, source: WaferRecord, regex_replace: ["^W_", ""], target: WAFER_NUMBER }
+
+# Pass-through configuration (Direct mappings from file, no logic)
+DEFAULT:
+  env: "klarf_18_enricher"
+  fields:
+    AlternateProduct: { type: constant, value: "NA" }
+    Fab: { type: field, source: FabID, index: 0 }
+    Facility: { type: field, source: FabID, index: 0 }
+    LotId: { type: record, source: LotRecord }
+    LotType: { type: constant, value: "NA" }
+    Process: { type: field, source: SampleSize, index: 0, slice: [0, 3] }
+    Product: { type: field, source: DeviceID, index: 0 }
+    ProbeProgramName: { type: field, source: DeviceID, index: 0 }
+    Recipe: { type: field, source: RecipeID, index: 0 }
+    ResultTime: { type: field, source: FileTimestamp, format: "{0} {1}", regex_replace: ["(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})", "\\3/\\1/\\2"] }
+    Slot: { type: field, source: SlotNumber, index: 0 }
+    SourceLot: { type: record, source: LotRecord }
+    StartTime: { type: field, source: ResultTimestamp, format: "{0} {1}", regex_replace: ["(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})", "\\3/\\1/\\2"] }
+    Step: { type: field, source: StepID, index: 0 }
+    Technology: { type: constant, value: "NA" }
+    TesterId: { type: field, source: InspectionStationID, index: 2 }
+    TesterType: { type: field, source: InspectionStationID, index: 1 }
+    WaferId: { type: record, source: WaferRecord }
+    WaferNumber: { type: field, source: SlotNumber, index: 0 }
+
+# Other Sites
+JND:
+  match_fab: ["JND"]
+  env: "jnd_defect"
+  fields:
+    Fab: { type: constant, value: "JND:AIZU2 FAB (PTI)" }
+    Facility: { type: constant, value: "JND:AIZU2 FAB (PTI)" }
+    LotId: { type: record, source: LotRecord }
+    # ... other JND specific mappings ...
+
+# BK_SICA88_Rework ERT Priority Setup
+BK_SICA88_Rework:
+  env: "kri_klarf_18_epi_rework"
+  ws_site_retry: "BK"
+  fields:
+    AlternateProduct:
+      type: refdb
+      source: productCode
+      fallback: { type: constant, value: "NA", target: ALTERNATE_PRODUCT }
+    Fab:
+      type: refdb
+      source: fab
+      fallback: { type: constant, value: "KRI", target: FAB }
+    Facility:
+      type: refdb
+      source: fab # Assuming Facility is mapped same as Fab
+      fallback: { type: constant, value: "KRI", target: FACILITY }
+    LotId: { type: record, source: LotRecord, target: LOT_ID }
+    LotType:
+      type: refdb
+      source: lotType
+      fallback: { type: constant, value: "NA", target: LOT_TYPE }
+    Process:
+      type: refdb
+      source: process
+      fallback: { type: constant, value: "NA", target: PROCESS }
+    Product:
+      type: field
+      source: DeviceID
+      index: 0
+      regex_replace: ["-[a-zA-Z0-9]{3}$", ""]
+      target: PRODUCT
+    Recipe: { type: field, source: RecipeID, index: 0, target: RECIPE }
+    ResultTime: { type: field, source: FileTimestamp, format: "{0} {1}", regex_replace: ["(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})", "\\1/\\2/\\3"], target: RESULT_TIME }
+    Slot: { type: field, source: SlotNumber, index: 0, target: SLOT }
+    SourceLot:
+      type: refdb
+      source: sourceLot
+      format: "{0}.S"
+      # If refdb sourceLot is missing, fallback to the LotRecord from the file
+      # and ensure it has a trailing `.S` (strip existing suffix and append .S).
+      fallback:
+        type: field
+        source: LotRecord
+        regex_replace: ["(\\.[^.]*)?$", ".S"]
+        target: SOURCE_LOT
+    StartTime: { type: field, source: ResultTimestamp, format: "{0} {1}", regex_replace: ["(\\d{1,2})[-/](\\d{1,2})[-/](\\d{4})", "\\1/\\2/\\3"], target: START_TIME }
+    Step: { type: field, source: StepID, index: 0, target: STEP }
+    Technology:
+      type: refdb
+      source: technology
+      fallback: { type: constant, value: "NA", target: TECHNOLOGY }
+    TesterId: { type: field, source: InspectionStationID, index: 2, target: TESTER_ID }
+    TesterType:
+      type: field
+      source: InspectionStationID
+      format: "{1}"
+      target: TESTER_TYPE
+    TestFacility:
+      type: refdb
+      source: fab
+      fallback: { type: constant, value: "KRI", target: TEST_FACILITY }
+    WaferId:
+      type: wafer_record
+      source: WaferRecord
+      construction_mode: source_lot_wafer_number
+      source_lot_refdb_source: sourceLot
+      source_lot_source: LotRecord
+      scribe_regex: "^([A-Z0-9]+)-(\\d{2})\\s[A-Z0-9]{2}$"
+      scribe_wafer_group: 2
+      scribe_replacement: "\\1_\\2"
+      target: WAFER_ID
+    WaferNumber: { type: field, source: SlotNumber, index: 0, target: WAFER_NUMBER }

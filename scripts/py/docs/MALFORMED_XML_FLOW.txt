@@ -1,0 +1,128 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                    MALFORMED XML HANDLING FLOW                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+                              ┌─────────────────┐
+                              │  Input XML File │
+                              └────────┬────────┘
+                                       │
+                                       ▼
+                        ┌──────────────────────────┐
+                        │  TIER 1: Normal Parsing  │
+                        │  (xml.etree.ElementTree) │
+                        └──────────┬───────────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+                    ▼                             ▼
+            ┌───────────────┐            ┌────────────────┐
+            │   SUCCESS ✓   │            │   FAILED ✗     │
+            └───────┬───────┘            └────────┬───────┘
+                    │                             │
+                    │                             ▼
+                    │              ┌──────────────────────────────┐
+                    │              │  Show Diagnostic Information │
+                    │              │  - Error line & column       │
+                    │              │  - Context (±2 lines)        │
+                    │              │  - Problematic character     │
+                    │              │  - Snippet with pointer      │
+                    │              └──────────┬───────────────────┘
+                    │                         │
+                    │                         ▼
+                    │              ┌──────────────────────────────┐
+                    │              │  TIER 2: Sanitization        │
+                    │              │  - Escape & → &amp;          │
+                    │              │  - Escape < → &lt;           │
+                    │              │  - Escape > → &gt;           │
+                    │              │  - Normalize whitespace      │
+                    │              │  - Remove control chars      │
+                    │              │  - Fix encoding issues       │
+                    │              └──────────┬───────────────────┘
+                    │                         │
+                    │          ┌──────────────┴──────────────┐
+                    │          │                             │
+                    │          ▼                             ▼
+                    │  ┌───────────────┐            ┌────────────────┐
+                    │  │   SUCCESS ✓   │            │   FAILED ✗     │
+                    │  │ is_malformed  │            └────────┬───────┘
+                    │  │    = True     │                     │
+                    │  └───────┬───────┘                     ▼
+                    │          │              ┌──────────────────────────────┐
+                    │          │              │  Show Diagnostic Information │
+                    │          │              │  (on sanitized content)      │
+                    │          │              └──────────┬───────────────────┘
+                    │          │                         │
+                    │          │                         ▼
+                    │          │              ┌──────────────────────────────┐
+                    │          │              │  TIER 3: Regex Extraction    │
+                    │          │              │  - Find <Lot> tag            │
+                    │          │              │  - Extract attributes        │
+                    │          │              │  - Build minimal tree        │
+                    │          │              └──────────┬───────────────────┘
+                    │          │                         │
+                    │          │          ┌──────────────┴──────────────┐
+                    │          │          │                             │
+                    │          │          ▼                             ▼
+                    │          │  ┌───────────────┐            ┌────────────────┐
+                    │          │  │   SUCCESS ✓   │            │   FAILED ✗     │
+                    │          │  │ is_malformed  │            │   EXIT(1)      │
+                    │          │  │    = True     │            │   No output    │
+                    │          │  └───────┬───────┘            └────────────────┘
+                    │          │          │
+                    └──────────┴──────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │  Continue Processing │
+                    │  - Extract metadata  │
+                    │  - Enrich XML        │
+                    │  - Add wafer map     │
+                    └──────────┬───────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+                ▼                             ▼
+    ┌───────────────────────┐     ┌───────────────────────┐
+    │  is_malformed = False │     │  is_malformed = True  │
+    │  Complete metadata    │     │  OR missing metadata  │
+    └───────────┬───────────┘     └───────────┬───────────┘
+                │                             │
+                ▼                             ▼
+    ┌───────────────────────┐     ┌───────────────────────┐
+    │  Route to PRODUCTION  │     │  Route to SANDBOX     │
+    │  ✓ Output generated   │     │  ✓ Output generated   │
+    └───────────────────────┘     └───────────────────────┘
+
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                           KEY IMPROVEMENTS                                ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                           ║
+║  BEFORE:  Parse Error → EXIT(1) → No output file                         ║
+║                                                                           ║
+║  AFTER:   Parse Error → Sanitize → Retry → Fallback → Output to SANDBOX  ║
+║                                                                           ║
+║  ✓ Files are always processed (unless completely unrecoverable)          ║
+║  ✓ Detailed diagnostics show exact problem location                      ║
+║  ✓ Automatic routing based on data quality                               ║
+║  ✓ No manual intervention needed for common issues                       ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+
+EXAMPLE: Your Case with "line 4, column 331" Error
+═══════════════════════════════════════════════════
+
+Input XML (line 4):
+  <Lot PartType="FPF5-1" UserText="			" TestCode="Probe&Test" ...>
+                                                              ↑
+                                                         Column 331
+                                                      (Unescaped &)
+
+Flow:
+  1. TIER 1: Parse fails at column 331
+  2. DIAGNOSTIC: Shows "&" character is the problem
+  3. TIER 2: Sanitizes → "Probe&amp;Test"
+  4. SUCCESS: Parses correctly, marks is_malformed=True
+  5. ROUTING: Sends to SANDBOX (safety measure)
+  6. OUTPUT: File generated successfully ✓

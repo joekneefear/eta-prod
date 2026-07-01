@@ -1,0 +1,87 @@
+#
+# FINAL TEST FET TEST RESULT POLARITY REFERENCE
+#
+# Date		Who		Comment  
+# ==========	=============	================================
+# 03/06/2002	Ben Rommel Kho	Original
+#
+#
+# Note: Data must be comma delimited
+#
+#						Spec Limits	Spec Limits
+#						N-Ch	N-Ch	P-Ch	P-Ch	Bias	N-Ch	P-Ch 
+# TestName   Description			Low	Hi  	Low	Hi	Name	Bias   	Bias
+# --------   -----------			---	---	---	---	------	-----	-----
+  BTON,      B-Emitter ON Voltage Pulsed,       +,      +,      -,      -,      IC,     +,      -
+  BTONP,     B-Emitter ON Voltage Pulsed,       +,      +,      -,      -,      IC,     +,      -
+  BVCBO,     C-BBreakdown Voltage,              +,      +,      -,      -,      IC,     +,      -
+  BVCEO,     C Sustaining E Voltage,            +,      +,      -,      -,      IC,     +,      -
+  BVCER,     C-E Bdown Voltage w/ R on B to Gnd,+,      +,      -,      -,      IC,     +,      -
+  BVCES,     C-E Breakdown Voltage,             +,      +,      -,      -,      IC,     +,      -
+  BVCEV,     C-E Breakdown Voltage,             +,      +,      -,      -,      IC,     +,      -
+  BVDSX,     Drain Source Breakdown Voltage,    +,      +,      -,      -,      ID,     +,      -
+  BVEBO,     E-B Breakdown  Voltage,            +,      +,      -,      -,      IE,     +,      -
+  BVGSS,     Breakdown Voltage (G &S),          +,      +,      -,      -,      IG,     +,      -
+  BVG1G2,    BVG1G2,                            +,      +,      -,      -,      IG1G2,  +,      -
+  GM1I,      Transconductance (Current),        +,      +,      +,      +,      VDS,    +,      -
+  GM1IP,     Pulsed Transconductance (Current), +,      +,      +,      +,      VDS,    +,      -
+  GM1V,      Transconductance (Voltage),        +,      +,      +,      +,      VDS,    +,      -
+  GM1VP,     Pulsed Transconductance (Voltage), +,      +,      +,      +,      VDS,    +,      -
+  GOSI,      1kHz Conductance,                  +,      +,      +,      +,      VDS,    +,      -
+  HFB,       DC Current Gain,                   +,      +,      +,      +,      VCB,    +,      -
+  HFE,       DC Current Gain,                   +,      +,      +,      +,      VCE,    +,      -
+  HFE2,      DC Current Gain for High Current,  +,      +,      +,      +,      VCE,    +,      -
+  HFEAC,     AC Forward Current Gain @ 1KHz,    +,      +,      +,      +,      VCE,    +,      -
+  HFEP,      DC Current Gain Pulsed,            +,      +,      +,      +,      VCE,    +,      -
+  HFEP2,     DC Current Gain 4 Darlington  Dev, +,      +,      +,      +,      VCE,    +,      -
+  IADJ,      IADJ,                              -,      +,      -,      +,      ,    	,
+  IB,        IB,                                -,      +,      -,      +,      ,     	, 
+  IBP,       IBP,                               -,      +,      -,      +,      ,     	, 
+  IBBP2,     IBBP2,                             -,      +,      -,      +,      ,     	,      
+  IBEV,      C Cutoff Current,                  -,      +,      -,      +,      ,       , 
+  IADJP,     Regulator Current (Adjust pin),    +,      +,      +,      +,      ,       ,
+  ICBO,      C Cutoff Current,                  -,      +,      -,      +,      ,    	, 
+  ICC,       Regulator Current (Reference pin), +,      +,      +,      +,      ,       ,
+  ICEO,      C Cutoff Current,                  -,      +,      -,      +,      ,    	,      
+  ICER,      C-E Lkage Current w/ R on B to Gnd,-,      +,      -,      +,      ,    	,      
+  ICES,      C Cutoff Current,                  -,      +,      -,      +,      ,    	,      
+  ICEV,      C Cutoff Current,                  -,      +,      -,      +,      ,    	,      
+  ICEX,      C Cutoff Current,                  -,      +,      -,      +,      ,    	,     
+  IDSX,      Drain Saturation Current or Idoff, +,      +,      -,      -,      VDS,    +,      -
+  IDSXP,     Drain Saturation Current (Pulsed), +,      +,      -,      -,      VDS,    +,      -
+  IEBO,      Emitter Cutoff Current,            -,      +,      -,      +,      VEB,    +,      -
+  IG1,       Gate On Current,                   -,      +,      -,      +,      VGD,    +,      -
+  IGDO,      Leakage Current (G & D),           +,      +,      -,      -,      VGD,    +,      -
+  IGSS,      Leakage (G &S),                    -,      +,      -,      +,      VG,     -,      +
+  IR,        Reverse current,                   -,      +,      -,      +,      ,     	,      
+  ISDX,      Drain Saturation Current or Idoff, -,      +,      -,      +,      ,    	,      
+  KEL,       Kelvin/Contact test,               -,      +,      -,      +,      ,       ,
+  RDS,       Resistance (D & S),                +,      +,      +,      +,      ID,     +,      -
+  RDSP,      Resistance (D & S) Pulsed,         +,      +,      +,      +,      ,       ,
+  VBCF,      Forward Voltage (G & D),           +,      +,      -,      -,      IB,     +,      -
+  VBCFP,     Forward Voltage (Pulsed),          +,      +,      -,      -,      IB,     +,      -
+  VBEON ,    B-E ON Voltage,                    +,      +,      -,      -,      IC,     +,      -
+  VBEF,      Forward Voltage B-E,               +,      +,      -,      -,      IB,     +,      -
+  VBEFP,     Forward Voltage B-E,               +,      +,      -,      -,      IB,     +,      -
+  VBES,      B-E Saturation Voltage,            +,      +,      -,      -,      IC,     +,      -
+  VBESP,     B-E Saturation Voltage Pulsed,     +,      +,      -,      -,      IC,     +,      -
+  VCES,      C-E Saturation Voltage,            +,      +,      -,      -,      IC,     +,      -
+  VCESP,     C-E Saturation Voltage Pulsed,     +,      +,      -,      -,      IC,     +,      -
+  VDS,       Voltage  (D & S),                  +,      +,      -,      -,      ID,     +,      -
+  VDSP,      Voltage  (D & S),                  +,      +,      -,      -,      ID,     +,      -
+  VF,        Forward Voltage,                   +,      +,      -,      -,      IF,     +,      -
+  VFP,       Forward Voltage (Pulsed),          +,      +,      -,      -,      IF,     +,      -
+  VGS1,      VP/Pinch-off Voltage,              +,      +,      -,      -,      VDS,    +,      -
+  VGS1P,     VP/Pinch-off Voltage,              +,      +,      -,      -,      VDS,    +,      -
+  VGSF,      Forward Voltage (G & S),           +,      +,      -,      -,      IG,     +,      -
+  VO,        Reg Output Voltage(Low current),   +,      +,      +,      +,      VIN,    +,      +
+  VOAP,      Reg Output Voltage(High current),  +,      +,      +,      +,      VIN,    +,      +
+  VOP,       Reg Output Voltage,                +,      +,      +,      +,      VIN,    +,      +
+  VR,        Breakdown Voltage,                 +,      +,      -,      -,      IR,     +,      -
+  VSDP,      Voltage From Source to Drain(PM),  +,      +,      -,      -,      IS,     +,      -
+  VSD,       Drain Source Diode Forward Voltage,+,      +,      -,      -,      IS,     +,      -
+  VTH1,      Gate Threshold Voltage,            +,      +,      -,      -,      ID,     +,      -
+  VTMP,      Thrshold Main Terminl Pulse Voltge,+,      +,      -,      -,      IT,     +,      -
+  VZ,        Zener Voltage,                     +,      +,      +,      +,      ,       ,
+  VZS,       TVS Test,                          +,      +,      +,      +,      ,       ,
+  ZZ,        Zener Dynamic Impedance,           +,      +,      +,      +,      ,     	,	

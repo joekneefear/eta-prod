@@ -1,0 +1,13 @@
+setenv EDB_ENV amkor_ph_ft_fet
+setenv DB_ROOT /apps/exensio_data/data
+setenv EDB_LOG $DPLOG/fetch_log
+
+setenv FTP_IN      /apps/exensio_data/data/${EDB_ENV}
+setenv FTP_IN_WAIT /apps/exensio_data/data/${EDB_ENV}_wait
+
+setenv PULL_NODE oruxymsetl01p.onsemi.com
+setenv PULL_USER dpower
+setenv PULL_PASS 5taRf1sh
+setenv PULL_MODE bin
+setenv PULL_PATH /data/amkor_ph_ft_fet/CPR/Processed 
+setenv PULL_FILE_TYPE *.CPR *.PRN

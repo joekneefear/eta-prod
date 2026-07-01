@@ -1,0 +1,201 @@
+#!/usr/bin/perl
+#
+# FSC Perl STDF Libraries
+#
+# Confidential Property of Fairchild Semiconductor Corperation
+# (c) Copyright Fairchild Semiconductor Corperation, 1999
+# All rights reserved
+#
+#
+# MODIFICATION HISTORY:
+#
+# DATE       WHO             DESCRIPTION
+# __________ ______________  __________________________________________________
+# 11-02-1999 Steve Frampton  Original.  Contact Information:
+#                            (207) 273-3364
+#                            sframpto@fairchildsemi.com,
+#                            sframpto@midcoast.com
+# 02-09-2000 Steve Frampton  rewrote to accomodate new read_ascii_rec
+#                            and new read_ascii_head functions.
+#                            Added ability to call custom
+#                            read_ascii_rec_XXX functions.
+#                            added use Carp within package in
+# 10-10-2000 Steve Frampton  Changed stdf_copy to use stdfPL_current.spec
+#
+# 04-09-2010 Scott Boothby   Don't use current for 104 files.  Use the 104 spec file instead.
+# 01-Mar-2013 Scott Boothby  Added support for STDF+ v2.04
+$useage = '
+Perform the reverse of stdf_copy -ascii.
+Converts an ascii dump to an stdf_file.  Useful for editing
+binary STDF files.
+
+stdf_copy_ascii [-l loglevel] [-n] [-s] [[input_file] output_file]
+
+OPTIONS
+  -l loglevel Where loglevel is a number > 0.  Higher loglevels provide
+  more detail.
+
+  -n Show file line numbers.
+
+  -s Skip first record.  Allows the creation of file without FAR, MIR,
+     EMIR records.  A FAR, MIR or EMIR record is required in the input
+     file to initialize the CPU and STDF_VERSION.
+
+ARGUMENTS
+  input_file STDF V4 or + ascii file name.  If - is specified,
+             input file is stdin.
+
+  output_file Output file.  If - is specified, output file is
+              stdout.  If not specified output file is stdout.
+
+  if input_file and output_file are not specified, then stdin
+  and stdout are used.
+
+
+' ;
+
+#
+# will cause stdf_pack/unpack to fix Infinity, -Infinity and NaN for
+# R*4s .... provided that it is not commented out.
+#
+$fix_bad_float = 1 ;
+
+
+#
+# Load libraries
+#
+use Carp ;  # error messages - does not work within stdf_use.pl
+# set path to executable for libraries
+use English ;
+use FindBin ; 
+use lib "$FindBin::Bin" ; # set up path for libraries the same as script
+use lib $ENV{'STDF_PERL_LIB'} ; # look for libraries in this directory
+
+require "stdf_use.pl" ;  # libraries that are not generated
+
+$loglevel = 0 ;
+$record_number=0 ;
+
+while (substr($ARGV[0],0,1) eq '-' && !($ARGV[0] eq '-'))  # parse all options
+  {
+  if ($ARGV[0] eq '-l') { shift; $loglevel = shift; }
+  elsif ($ARGV[0] eq '-n') { $loglines = shift; }
+  elsif ($ARGV[0] eq '-s') { shift; $skip_first = 1 ; }
+  elsif ($ARGV[0] eq '-h') { print $useage; exit ; }
+  else
+    { confess "-$arg is not a valid argument\n" ; }
+  }
+
+if ($ARGV[0] && !($ARGV[0] eq '-') )
+  {
+  $in_fn = shift ;
+  open INPUT, "<$in_fn" or confess "Could not open $in_fn\n" ;
+  }
+else
+  {
+  $in_fn = '-' ;
+  open INPUT, "<&STDIN" or confess 'Could not open STDIN\n' ;
+  }
+if ($ARGV[0] && !($ARGV[0] eq '-') )
+  {
+  $out_fn = shift ;
+  if ($out_fn eq $in_fn)
+    { confess "Input and Output file names are the same\n" ; }
+  open OUTPUT, ">$out_fn" or confess "Could not open $out_fn\n" ;
+  }
+else
+  {
+  $out_fn = '-' ;
+  open OUTPUT, ">&STDOUT" or confess "Could not open STDOUT\n" ;
+  }
+
+binmode OUTPUT ;
+open LOG, ">&STDERR" or confess "Could not open STDERR\n" ;
+#
+# read first record
+#
+$stdf_ver = 0 ;
+($status, $recordname) = read_ascii_head( \*INPUT ) ;
+($status, $stdf_ver) = read_ascii_rec( \*INPUT, $recordname ) ;
+#
+# check the version and load a specification
+#
+if ($stdf_ver==4) 
+{
+	$in_spec='stdfV4'; 
+	$in_gen=$in_spec;
+}
+elsif ($stdf_ver ==3) 
+{
+	$in_spec='stdfV3';
+	$in_gen=$in_spec;
+}
+elsif ($stdf_ver == 104)
+{
+	$in_spec='stdfPL_104' ;
+	$in_gen=$in_spec;
+}
+elsif ($stdf_ver > 104)
+{ 
+	$in_spec='stdfPL_current' ; 
+	$in_gen='stdfPL_' . $stdf_ver ; 
+}
+else
+  {
+  warn "Don't have a spec file for stdf version: $stdf_ver" ;
+  $in_spec='' ;
+  }
+if (! ($in_spec eq '') )
+  {
+  #
+  # load output specifications
+  #
+  package out ;
+  use Carp ;
+  if ( !eval(&::generate_all($::in_gen.'.spec' )))
+    { confess $@ ; }
+  require $::in_spec.'.pl' ;
+  }
+#
+# patch up undefined values in the first record
+#
+# $recordname = lc($out::get_record_name{$rec_typ.'_'.$rec_sub}) ;
+foreach $fieldname (keys %{'out::'.$recordname})
+  {
+  if ( ! defined(${'out::'.$recordname}{$fieldname}))
+    {
+    if ( ! defined(${out::init{$recordname}{$fieldname}}))
+      {
+      confess "$recordname.$fieldname=undef, default value, also undefined" ;
+      }
+    ${'out::'.$recordname}{$fieldname} = ${out::init{$recordname}{$fieldname}};
+    }
+  }
+#
+# continue processing file
+#
+while ( $status )
+  {
+  #
+  # pack record and output
+  #
+  $record_number++ ;
+  if (! $skip_first)
+    {
+    #
+    # skip first record of output
+    # first record is needed to define file for stdf_copy_ascii,
+    # but may not be desired in data stream
+    #
+    print OUTPUT &{'out::pack_'.uc($recordname)}( \%{'out::'.$recordname} ) ;
+    }
+  else { $skip_first = 0 ; }
+  ($status, $recordname) = read_ascii_head( \*INPUT ) ;
+  if ( defined( &{'out::read_ascii_rec_'.uc($recordname)} ) )
+    {  # special records, like gdr
+    ($status) = &{'out::read_ascii_rec_'.uc($recordname)}( \*INPUT );
+    }
+  else  # most records
+    { ($status) = read_ascii_rec( \*INPUT, $recordname ) ; }
+  }
+

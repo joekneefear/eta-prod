@@ -1,0 +1,11 @@
+4.0
+9
+1	SYBCHAR	1	255	""	1	product_id
+2	SYBCHAR	1	255	""	2	device_id
+3	SYBCHAR	1	255	""	3	design_rev
+4	SYBCHAR	1	255	""	4	family
+5	SYBCHAR	1	255	""	5	product_group
+6	SYBCHAR	1	255	""	6	integration_level
+7	SYBCHAR	1	255	""	7	pkg_id
+8	SYBCHAR	1	255	""	8	pkg_type
+9	SYBCHAR	1	255	""	9	product_key

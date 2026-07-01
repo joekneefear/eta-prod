@@ -1,0 +1,89 @@
+# E142 Extraction Configuration
+# Supports multiple facilities and execution modes
+
+# Global defaults
+defaults:
+  source_odbc: MART_SNOWFLAKE
+  source_warehouse: MFG_PRD_RPT_WH
+  source_schema: ANALYTICSPRD.MFG
+  get_product: true
+  max_hours: 120
+  prod_not_regexp: "^NVG.+"
+  benchmark_log: "${DPLOG}/benchmark.jsonl"
+  # Oracle benchmark logging disabled (EXNQA TNS not configured on this server)
+  # benchmark_db_dsn: EXNQA  # Oracle DB: exnqa-db.onsemi.com:1740/EXNQA.onsemi.com
+  # benchmark_db_user: true  # Credentials: refdb / br#^gox66312sdAB
+
+# Path configuration
+# You can use:
+#   - Absolute paths: "/export/home/dpower/scripts"
+#   - Environment variables: "${DPSCRIPT}" (will expand at runtime)
+#   - Mix: "${HOME}/scripts"
+paths:
+  script_dir: "${DPSCRIPT}"
+  log_dir: "${DPLOG}"
+  data_dir: "${DPDATA}/data"
+  status_dir: "${HOME}/status_files"
+  perl_interpreter: "perl_db"  # Perl interpreter with DBI modules (default: perl_db)
+
+# Facility configurations
+facilities:
+  VN5:
+    facility_code: VN5
+    facility_name: "Vietnam/OSV"
+    flow: B1T
+    view_name: E142_VN5_B1T_EXENSIO_FAB2PUCK_RPT
+    out_trace: "${DPDATA}/data/e142_trace"
+    stages:
+      WAFER:
+        enabled: true
+        modfile: "${HOME}/status_files/getSnowflakeE142ModuleTrace.pl.E142_VN5_B1T_EXENSIO_FAB2PUCK_RPT.wafer.prd.moddate"
+        cron_schedule: "00 3,15 * * *"
+      TEST:
+        enabled: true
+        modfile: "${HOME}/status_files/getSnowflakeE142ModuleTrace.pl.E142_VN5_B1T_EXENSIO_FAB2PUCK_RPT.test.prd.moddate"
+        cron_schedule: "20 4,16 * * *"
+      DIEBOND:
+        enabled: true
+        modfile: "${HOME}/status_files/getSnowflakeE142ModuleTrace.pl.E142_VN5_B1T_EXENSIO_FAB2PUCK_RPT.diebond.prd.moddate"
+        cron_schedule: "50 5,17 * * *"
+
+  MY1:
+    facility_code: MY1
+    facility_name: "Malaysia/SBN"
+    flow: PIM
+    view_name: E142_MY1_PIM_EXENSIO_FAB2PUCK_RPT
+    out_trace: "${DPDATA}/data/e142_pim_trace"
+    stages:
+      WAFER:
+        enabled: true
+        modfile: "${HOME}/status_files/getSnowflakeE142ModuleTrace.pl.E142_MY1_PIM_EXENSIO_FAB2PUCK_RPT.wafer.prd.moddate"
+        cron_schedule: "05 6,18 * * *"
+      TEST:
+        enabled: true
+        modfile: "${HOME}/status_files/getSnowflakeE142ModuleTrace.pl.E142_MY1_PIM_EXENSIO_FAB2PUCK_RPT.test.prd.moddate"
+        cron_schedule: "30 7,19 * * *"
+      DIEBOND:
+        enabled: true
+        modfile: "${HOME}/status_files/getSnowflakeE142ModuleTrace.pl.E142_MY1_PIM_EXENSIO_FAB2PUCK_RPT.diebond.prd.moddate"
+        cron_schedule: "00 8,20 * * *"
+
+  CNG:
+    facility_code: CNG
+    facility_name: "China/Shenzhen"
+    flow: PIM
+    view_name: E142_CNG_PIM_EXENSIO_FAB2PUCK_RPT
+    out_trace: "${DPDATA}/data/e142_pim_trace"
+    stages:
+      WAFER:
+        enabled: true
+        modfile: "${HOME}/status_files/getSnowflakeE142ModuleTrace.pl.E142_CNG_PIM_EXENSIO_FAB2PUCK_RPT.wafer.prd.moddate"
+        cron_schedule: "30 9,21 * * *"
+      TEST:
+        enabled: true
+        modfile: "${HOME}/status_files/getSnowflakeE142ModuleTrace.pl.E142_CNG_PIM_EXENSIO_FAB2PUCK_RPT.test.prd.moddate"
+        cron_schedule: "15 10,22 * * *"
+      DIEBOND:
+        enabled: true
+        modfile: "${HOME}/status_files/getSnowflakeE142ModuleTrace.pl.E142_CNG_PIM_EXENSIO_FAB2PUCK_RPT.diebond.prd.moddate"
+        cron_schedule: "45 11,23 * * *"

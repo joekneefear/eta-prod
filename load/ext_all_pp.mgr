@@ -1,0 +1,30 @@
+### KYEC Aptina Probe prep ###
+$DPLOAD/ext_pp_prb_aptina_dlog_to_xml_kyec.cfg : -mtime -log $DPLOG/ext_pp_prb_aptina_dlog_to_xml_kyec.cfg.log -sleep 60 : EXT_KYEC_PROBE_APTINA
+
+### KYEC Aptina FT prep ###
+$DPLOAD/ext_pp_ft_aptina_dlog_to_xml_kyec.cfg : -mtime -log $DPLOG/ext_pp_ft_aptina_dlog_to_xml_kyec.cfg.log -sleep 60 : EXT_KYEC_FT_APTINA
+
+### KYEC Aptina FT DLOG I750 wafer indexes prep ###
+$DPLOAD/ext_pp_ft_aptina_dlog_i750_wafer_indexes_to_xml_kyec.cfg : -mtime -log $DPLOG/ext_pp_ft_aptina_dlog_i750_wafer_indexes_to_xml_kyec.cfg.log -sleep 60 : EXT_KYEC_FT_APTINA_DLOG_I750_wafer_indexes
+
+### Kingpak Aptina FT prep ###
+$DPLOAD/ext_pp_ft_aptina_dlog_to_xml_kingpak.cfg : -mtime -log $DPLOG/ext_pp_ft_aptina_dlog_to_xml_kingpak.cfg.log -sleep 60 : EXT_KINGPAK_FT_APTINA
+
+### KINGAPK Aptina FT DLOG I750 wafer indexes prep ###
+$DPLOAD/ext_pp_ft_aptina_dlog_i750_wafer_indexes_to_xml_kingpak.cfg : -mtime -log $DPLOG/ext_pp_ft_aptina_dlog_i750_wafer_indexes_to_xml_kingpak.cfg.log -sleep 60 : EXT_KINGAPK_FT_APTINA_DLOG_I750_wafer_indexes
+
+### ASEM Aptina FT prep ###
+$DPLOAD/ext_pp_ft_aptina_dlog_to_xml_asem.cfg : -mtime -log $DPLOG/ext_pp_ft_aptina_dlog_to_xml_asem.cfg.log -sleep 60 : EXT_ASEM_FT_APTINA
+
+### ASEM Aptina FT DLOG I750 wafer indexes prep ###
+$DPLOAD/ext_pp_ft_aptina_dlog_i750_wafer_indexes_to_xml_asem.cfg : -mtime -log $DPLOG/ext_pp_ft_aptina_dlog_i750_wafer_indexes_to_xml_asem.cfg.log -sleep 60 : EXT_ASEM_FT_APTINA_DLOG_I750_wafer_indexes
+
+### NAMPA Aptina Probe prep ###
+$DPLOAD/pp_prb_nampa_aptina_dlog_to_xml.cfg : -mtime -log $DPLOG/pp_prb_nampa_aptina_dlog_to_xml.cfg.log -sleep 60 : NAMPA_PROBE_APTINA
+$DPLOAD/pp_prb_nampa_aptina_dlog_to_xml_loader_3.cfg : -mtime -log $DPLOG/pp_prb_nampa_aptina_dlog_to_xml_loader_3.cfg.log -sleep 60 : NAMPA_PROBE_APTINA_3
+
+### CONDOR Aptina Probe prep ###
+$DPLOAD/pp_prb_condor_aptina_dlog_to_xml.cfg : -mtime -log $DPLOG/pp_prb_condor_aptina_dlog_to_xml.cfg.log -sleep 60 : CONDOR_PROBE_APTINA
+
+### AQL Aptina FT  prep ###
+$DPLOAD/pp_ft_aql_aptina_dlog_to_xml.cfg : -mtime -log $DPLOG/pp_pp_ft_aql_aptina_dlog_to_xml.cfg.log -sleep 60 : AQL_FT_APTINA

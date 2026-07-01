@@ -1,0 +1,30 @@
+4.0
+28
+1	SYBCHAR	1	255	""	1	operation
+2	SYBCHAR	1	255	""	2	facility
+3	SYBCHAR	1	255	""	3	short_description
+4	SYBCHAR	1	255	""	4	long_description
+5	SYBCHAR	1	255	""	5	oper_group_1
+6	SYBCHAR	1	255	""	6	oper_group_2
+7	SYBCHAR	1	255	""	7	oper_group_3
+8	SYBCHAR	1	255	""	8	units
+9	SYBCHAR	1	255	""	9	c_user_def_big_data_1
+10	SYBCHAR	1	255	""	10	d_user_def_big_data_1
+11	SYBCHAR	1	255	""	11	c_user_def_big_data_2
+12	SYBCHAR	1	255	""	12	d_user_def_big_data_2
+13	SYBCHAR	1	255	""	13	c_user_def_big_data_3
+14	SYBCHAR	1	255	""	14	d_user_def_big_data_3
+15	SYBCHAR	1	255	""	15	c_user_def_big_data_4
+16	SYBCHAR	1	255	""	16	d_user_def_big_data_4
+17	SYBCHAR	1	255	""	17	c_user_def_big_data_5
+18	SYBCHAR	1	255	""	18	d_user_def_big_data_5
+19	SYBCHAR	1	255	""	19	c_user_def_small_data_1
+20	SYBCHAR	1	255	""	20	d_user_def_small_data_1
+21	SYBCHAR	1	255	""	21	c_user_def_small_data_2
+22	SYBCHAR	1	255	""	22	d_user_def_small_data_2
+23	SYBCHAR	1	255	""	23	c_user_def_small_data_3
+24	SYBCHAR	1	255	""	24	d_user_def_small_data_3
+25	SYBCHAR	1	255	""	25	c_user_def_small_data_4
+26	SYBCHAR	1	255	""	26	d_user_def_small_data_4
+27	SYBCHAR	1	255	""	27	c_user_def_small_data_5
+28	SYBCHAR	1	255	""	28	d_user_def_small_data_5

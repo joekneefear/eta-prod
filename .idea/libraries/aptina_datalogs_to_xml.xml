@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="aptina-datalogs-to-xml">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/scripts/uva/scripts/aptina-datalogs-to-xml.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,101 @@
+$DPLOAD/fcs_prod_ref_loader.cfg   : -mtime -log_db central_log -log $DPLOG/fcs_prod_ref_loader.cfg.log : REFDB_DEV_SVR
+$DPLOAD/fcs_prod_ref_lotGen.cfg   : -mtime -log_db central_log -log $DPLOG/fcs_prod_ref_lotGgen.cfg.log : LOTG_NOFILTER
+
+### BK ###
+$DPLOAD/fcs_pp_bk_sort_wmap.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bk_sort_wmap.cfg.log -sleep 60 : BK_BINMAP_SEP
+$DPLOAD/fcs_pp_bk_sort_wmap_nam.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bk_sort_wmap_nam.cfg.log -sleep 60 : BK_BINMAP_NAM
+$DPLOAD/fcs_pp_bk_sort.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bk_sort.cfg.log -sleep 60 : BK_SORT
+$DPLOAD/fcs_pp_bksort_bstdf.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bksort_bstdf.cfg.log -sleep 60 : BKSORT_BSTDF
+$DPLOAD/fcs_pp_bksort_eagle.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bksort_eagle.cfg.log -sleep 60 : BKSORT_EAGLE
+$DPLOAD/fcs_pp_bksort_tmt.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bksort_tmt.cfg.log -sleep 60 : BKSORT_TMT
+$DPLOAD/fcs_pp_bksort_itclcr.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bksort_itclcr.cfg.log -sleep 60 : BKSORT_ITCLCR
+
+$DPLOAD/fcs_pp_bk_et.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bk_et.cfg.log -sleep 60 : BK_ET
+$DPLOAD/fcs_pp_bk_rel.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bk_rel.cfg.log -sleep 60 : BK_REL
+$DPLOAD/fcs_pp_bk_fab.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bk_fab.cfg.log -sleep 60 : BKFB_RS75
+$DPLOAD/fcs_pp_bk_wks.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bk_wks.cfg.log -sleep 60 : BK_WKS
+
+
+###CP FT ###
+$DPLOAD/fcs_pp_cp_ft.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_cp_ft.cfg.log -sleep 60 : CP_FT
+### CP AST ###
+$DPLOAD/fcs_pp_cp_ast.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_cp_ast.cfg.log -sleep 60 : CP_AST
+### CP WMAP ###
+$DPLOAD/fcs_pp_cp_sort_wmap_sep.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_cp_sort_wmap_sep.cfg.log -sleep 60 : CP_WMAP_SEP
+### CP SORT ###
+$DPLOAD/fcs_pp_cp_sort.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_cp_sort.cfg.log -sleep 60 : CP_SORT
+### CP SORT ADVAN ###
+$DPLOAD/fcs_pp_cp_sort_advan.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_cp_sort_advan.cfg.log -sleep 60 : CP_SORT_ADVAN
+### CP CAMSTAR ###
+$DPLOAD/fcs_pp_cp_camstar.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_cp_camstar.cfg.log -sleep 60 : CP_CAMSTAR
+
+### SZ FT ###
+$DPLOAD/fcs_pp_szft_eagle.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_szft_eagle.cfg.log -sleep 60 : SZ_FT_EAGLE
+$DPLOAD/fcs_pp_szft_mostrak.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_szft_mostrak.cfg.log -sleep 60 : SZ_FT_MOSTRAK
+$DPLOAD/fcs_pp_szft_spm.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_szft_spm.cfg.log -sleep 60 : SZ_FT_SPM
+$DPLOAD/fcs_pp_szft_tesec.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_szft_tesec.cfg.log -sleep 60 : SZ_FT_TESEC
+$DPLOAD/fcs_pp_szft_tmt.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_szft_tmt.cfg.log -sleep 60 : SZ_FT_TMT
+$DPLOAD/fcs_pp_szft_shiba.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_szft_shiba.cfg.log -sleep 60 : SZ_FT_SHIBA
+$DPLOAD/fcs_pp_szft_iso.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_szft_iso.cfg.log -sleep 60 : SZ_FT_ISO
+$DPLOAD/fcs_pp_szft_ptech.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_szft_ptech.cfg.log -sleep 60 : SZ_FT_PTECH
+###SZ AST ###
+$DPLOAD/fcs_pp_sz_ast.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_szast_autovis.cfg.log -sleep 60 : SZAST_AUTOVIS
+### SZ REL ###
+$DPLOAD/fcs_pp_sz_rel.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_sz_rel.cfg.log -sleep 60 : SZ_REL
+### SZ CAMSTAR ###
+$DPLOAD/fcs_pp_sz_camstar.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_sz_camstar.cfg.log -sleep 60 : SZ_CAMSTAR
+
+### MT ###
+$DPLOAD/fcs_pp_mt_wmap_sep.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_mt_wmap_sep.cfg.log -sleep 60 : MT_WMAP_SEP
+$DPLOAD/fcs_pp_mt_wmap_sz.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_mt_wmap_sz.cfg.log -sleep 60 : MT_WMAP_SZ
+$DPLOAD/fcs_pp_mt_wmap_nam.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_mt_wmap_nam.cfg.log -sleep 60 : MT_WMAP_NAM
+$DPLOAD/fcs_pp_mt_sort.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_mt_sort.cfg.log -sleep 60 : MT_SORT
+$DPLOAD/fcs_pp_mt_wks.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_mt_wks.cfg.log -sleep 60 : MT_WKS
+$DPLOAD/fcs_pp_mt_et.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_mt_et.cfg.log -sleep 60 : MT_ET
+
+### ME ###
+$DPLOAD/fcs_pp_me_wmap_sep.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_me_wmap_sep.cfg.log -sleep 60 : ME_BINMAP_SEP
+$DPLOAD/fcs_pp_me_sort.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_me_sort.cfg.log -sleep 60 : ME_SORT
+$DPLOAD/fcs_pp_me_asm.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_me_asm.cfg.log -sleep 60 : MEFAB_EQP_ASM
+### ME FT ###
+$DPLOAD/fcs_pp_me_ft.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_meft_eagle.cfg.log -sleep 60 : MEFT_EAGLE
+$DPLOAD/fcs_pp_me_et.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_meet.cfg.log -sleep 60 : MEET
+### ME REL ###
+$DPLOAD/fcs_pp_me_rel.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_cp_me_rel.cfg.log -sleep 60 : ME_REL
+### ME WKS ###
+$DPLOAD/fcs_pp_me_wks.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_me_wks.cfg.log -sleep 60 : ME_WKS
+
+### OUTSOURCE SORT ###
+$DPLOAD/fcs_pp_outsource_sort.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_outsource_sort.cfg.log -sleep 60 : OUTSOURCE_SORT
+
+### OUTSOURCE FT ###
+$DPLOAD/fcs_pp_hana_th_ft_eagle.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_hana_th_ft_eagle.cfg.log -sleep 60 : HANA_FT_EAGLE
+$DPLOAD/fcs_pp_hana_th_ft_advan.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_hana_th_ft_advan.cfg.log -sleep 60 : HANA_FT_ADVAN
+$DPLOAD/fcs_pp_hana_th_ft_mct.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_hana_th_ft_mct.cfg.log -sleep 60 : HANA_FT_MCT
+$DPLOAD/fcs_pp_hana_th_ft_tmt.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_hana_th_ft_tmt.cfg.log -sleep 60 : HANA_FT_TMT
+$DPLOAD/fcs_pp_asent_tw_ft_bstdf.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_asent_tw_ft_bstdf.cfg.log -sleep 60 : ASENT_FT_BSTDF
+$DPLOAD/fcs_pp_atec_ph_ft_mct.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_atec_ph_ft_mct.cfg.log -sleep 60 : ATEC_FT_MCT
+$DPLOAD/fcs_pp_atec_ph_ft_statec.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_atec_ph_ft_statec.cfg.log -sleep 60 : ATEC_FT_STATEC
+$DPLOAD/fcs_pp_atec_ph_ft_tmt.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_atec_ph_ft_tmt.cfg.log -sleep 60 : ATEC_FT_TMT
+$DPLOAD/fcs_pp_atec_ph_ft_eagle.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_atec_ph_ft_eagle.cfg.log -sleep 60 : ATEC_FT_EAGLE
+$DPLOAD/fcs_pp_gem_cn_ft_qtec.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_gem_cn_ft_qtec.cfg.log -sleep 60 : GEM_FT_QTEC
+$DPLOAD/fcs_pp_gtk_tw_ft_mct.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_gtk_tw_ft_mct.cfg.log -sleep 60 : GTK_FT_MCT
+$DPLOAD/fcs_pp_gtk_tw_ft_tmt.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_gtk_tw_ft_tmt.cfg.log -sleep 60 : GTK_FT_TMT
+$DPLOAD/fcs_pp_gtk_tw_ft_eagle.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_gtk_tw_ft_eagle.cfg.log -sleep 60 : GTK_FT_EAGLE
+$DPLOAD/fcs_pp_jcet_cn_ft_itec.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_jcet_cn_ft_itec.cfg.log -sleep 60 : JCET_FT_ITEC
+$DPLOAD/fcs_pp_jcet_cn_ft_juno.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_jcet_cn_ft_juno.cfg.log -sleep 60 : JCET_FT_JUNO
+$DPLOAD/fcs_pp_ase_my_ft_eagle.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_ase_my_ft_eagle.cfg.log -sleep 60 : ASE_FT_EAGLE
+
+### OUTSOURCE AST ###
+$DPLOAD/fcs_pp_outsource_ast.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_outsource_ast.cfg.log -sleep 60 : OUTSOURCE_AST
+
+### OUTSOURCE SUB ###
+$DPLOAD/fcs_pp_outsource_sub.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_outsource_sub.cfg.log -sleep 60 : OUTSOURCE_SUB
+
+### OUTSOURCE ET ###
+$DPLOAD/fcs_pp_mxic_tw_et_hp.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_mxic_tw_et_hp.cfg.log -sleep 60 : MXIC_ET_HP
+$DPLOAD/fcs_pp_tsmc_tw_et_hp.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_tsmc_tw_et_hp.cfg.log -sleep 60 : TSMC_ET_HP
+$DPLOAD/fcs_pp_vgrd_tw_et_eagle.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_vgrd_tw_et_eagle.cfg.log -sleep 60 : VGRD_ET_EAGLE
+
+### CZ_DATA ###
+$DPLOAD/fcs_pp_onsemi_ft.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_cz_data.cfg.log -sleep 60 : CZ_DATA

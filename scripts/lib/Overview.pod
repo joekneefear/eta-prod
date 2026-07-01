@@ -1,0 +1,265 @@
+
+=pod
+
+=head1 NAME PPDF : pre-processer development framework overview
+
+The framework provides model based development for easy to develop, test , extend and maintain the code in order to convert source file to dataPower Intermediate Interface File (IFF) with conjunction with Reference table to lookup additional information.
+
+=head1 Development Flow
+
+=over 4
+
+=item 1 Develop parser for the target datasource in PDF/Parser
+
+Ideally one parser for one datasource type (Tester type).
+
+Parser read source file structure and map to L<PDF::DpData::Model.pm>
+
+The site specific logic should NOT in the parser module. This should be in the main pl file.
+
+See L<PDF/Parser/Eagle.pm|http://oruxymsetl01d.fairchildsemi.com/svn/dataPOWER/ETL/trunk/DPHOME/lib/PDF/Parser/Eagle.pm> for example.
+
+=item 2 Write test script for unit test
+
+See L<t/15_eagle.t|http://oruxymsetl01d.fairchildsemi.com/svn/dataPOWER/ETL/trunk/DPHOME/scripts/t/15_eagle.t> for example.
+
+usage
+  
+  cd $DPSCRIPT
+  perl_db -Ilib t/15_eagle.t
+
+=item 3 Develop main script in $DPSCRIPT
+
+The main script will use the developed parser and print IFF and limit if required. 
+
+Adjust output file format details by setting output indexes and conditions using L<PDF::Formmater::IFF.pm> 
+
+Site specific logic should be localized to this main scirpt
+
+See L<fcs_eagle_log_IFF.pl|http://oruxymsetl01d.fairchildsemi.com/svn/dataPOWER/ETL/trunk/DPHOME/scripts/fcs_eagle_log_IFF.pl> for example.
+
+=item 4 Write test script for integration test using L<PDF::Test::Runner.pm>
+
+See L<t/57_run_eagle.t|http://oruxymsetl01d.fairchildsemi.com/svn/dataPOWER/ETL/trunk/DPHOME/scripts/t/57_run_eagle.t> for example.
+
+usage
+   
+   cd $DPSCRIPT
+   perl_db -Ilib t/57_run_eagle.t
+
+=item 5 write cfg file and test run by DpLoad.pl
+
+=back
+
+=head1 Main flow
+
+Main flow in *.pl should look like below
+
+  my $wr = PDF::DpWriter->new({         # create writer object to set output dir. 
+      outdir => $outdir,                # failed if outdir doesn't exist.
+      ext => 'iff',                     # extension
+      basename => (baesname $infile)}); # basename. output file = <outdir>/<basename>_<waferNumber>.<ext>
+
+  my $parser = PDF::Parser::<The target data source>; 
+  my $model = $parser->readFile($infile);   # model is an instance of PDF::DpData::Model
+  
+   ... do something additional or site specific handling ...
+
+  $wr->noMeta(1) unless($model->header->populateMeta) ; 
+                                 # lookup PP_LOT and PP_PROD in Refdb to get Product, Family, SourceLot, and so on
+                                 # set noMeta =1 to $wr object. This will change output dir to $outdir_noMeta
+
+  $model->updateProgram;         # update Program name. new program name will be <PROGRAM>::<PRODUCT>::<DataSource>
+  $model->updateWMap              # lookup PP_WMAP. get the values in database or get the value from table.
+  $wr->noWMap(1) unless ($model->wmap->isConfirmed)
+                                 # set noWMap =1 to $wr object. This will change output dir to $outdir_noWMap
+                      
+  my $fmt = new_formatter->new({ # create Formmater instance. new_formmater-> new is the alias of PDF::Formatter::IFF->new
+      writer => $wr,             # set writer and model
+      model => $model,}); 
+
+  $fmt->printPar;                # print IFF for Parameteric data. printBinmap for Binmap data
+  
+  if ($model->isLimitNew) {      # lookup PP_LIMIT table if the limit for this PROGRAM and REVISION is new
+    $model->buildLimit;          # build PDF::DpData::Limit object from tests object in $model
+    $model->limit->testItems([qw/ number name units group/]);
+                                 # set test conditions to print. default = number, name, units
+    $model->limit->conditionNames([qw/ testCond PINS/]); 
+                                 # set header names for <CONDITIONS> if required
+    $fmt->printLimit;            # print Limit
+    $model->limit->registerRefdb;  # insert into PP_LIMIT
+  }
+
+=head1 Data Model
+
+The data model classes are defined in PDF::DpData and sub classes.
+
+Thereare 9 classes with common baes class
+  
+  PDF::DpData::HeaderLong    # Header for data by Lot such as WaferSort, BinMap, FinalTest, PCM..
+  PDF::DpData::HeaderShort   # Header for data by Program or Product such as LEH, Met 
+  PDF::DpData::Limit         # Limit object
+  PDF::DpData::WMap          # Wafer Map configuration object
+  PDF::DpData::Model         # top object. this object represent Lot
+  PDF::DpData::Wafer         # wafer object. all the die data are link to at least this wafer
+  PDF::DpData::Test          # Test definition
+  PDF::DpData::Bin           # Bin definition and bin count
+  PDF::DpData::Die           # Die level data
+
+  ## base class
+  PDF::DpData::Base
+
+All classes are exposed by L<PDF::DpData.pm>, therefore you can access all the classes by just use PDF::DpData
+
+See details in L<PDF::DpData::Model.pm>
+
+=head1 L<Reference Tables|RefdbTables.pod>
+
+=head1 Data Acccessor Object
+
+All script should use L<PDF::DAO.pm> to get database handler to accesss reference table.
+
+  use PFD::DAO.pm;
+  my $dh = getRefdb;  # it will connect to database if not connected.
+
+The handler is L<DBIx::Simple|http://search.cpam.com/perldoc?DBIx::Simple> , and you can use all standard method in DBIx::Simple.
+
+  my $hash = $dh->select('PP_LOT',*,{lot=>$lot})->hash;
+
+However, all the sql script should be maintained in L<PDF::DAO::Refdb.pm> , and each script should call the defined function in L<PDF::DAO::Refdb.pm>.
+
+  my $hash = getRefdb->getSourceLot($lot);
+
+=head1 Meta Lookup
+
+The most of the source file doesn't contain required Meta information for dataPower loading, such as FAMILY, PROCESS, PACKAGE, PRODUCT, LOT_CLASS.
+
+=head2 Look up by Fab Lot
+
+look up lot in L<PP_LOT|RefdbTables.pod/PP_LOT> , L<PP_LOTCLASS|RefdbTables.pod/PP_LOTCLASS> and L<PP_PROD|RefdbTables.pod/PP_PROD> and get Lot and Product related information
+
+=head2 Look up by Final Lot 
+
+look up lot in L<PP_FINALLOT|RefdbTables.pod/PP_FINALLOT> , L<PP_LOTCLASS|RefdbTables.pod/PP_LOTCLASS> and L<PP_PROD|RefdbTables.pod/PP_PROD> and get Lot and Product related information
+
+=head2 Look up by Product
+
+look up lot in L<PP_PROD|RefdbTables.pod/PP_PROD> and get Product related information
+
+use following modules to lookup Meta from Refdb tables.
+
+=head2 Recursive Search for SOURCE_LOT
+
+Need to find source lot from L<PP_LOT|PDF::RefdbTables/PP_LOT> table.
+
+use following module/method to get SOURCE_LOT
+
+L<PDF::DAO::Refdb.pm/getSourceLot(lot)>
+
+=head1 Generate Limit file
+
+limit file must be created only once for a combination of Program and Revision.
+
+To avoid duplicate limit file creation, pre-processor need to lookup PP_LIMITS table if the limit file is already created or not. It not, create limit file and insert into PP_LIMITS.
+
+The L<PDF::DpData::Limit.pm> will  take all the above logic.
+
+=head1 WaferMap Config 
+
+WaferMap configuration is very important for WaferSort, binMap, Defect type data. The proper WaferMap information must set when the program load data at the 1st time.
+
+For some datasource, (seprobe, national array map, stdf) have wafer map information in input data file. Preprpcessor need to calcualte Center_X and Center_Y from given data. Typlically, Origin of Coodinates (Left top, Right Bottom,...) Die size, Flat position, Flat Type (F or U) are required for calculation. However, it is difficult to calculate center_X/Y for all casee.
+
+To avoid to load with unconfirmed or non-precise wafer map, preprocessor need to look up PP_WMAP table. Key = PRODUCT and Teste Type.
+
+If the record exists and confirm =1, print out iff file in normal output directory.
+
+If not, print out iff file in $output_noWMap directory.
+
+The DpLoad should load files in noWMap into sandbox dataPower schema. 
+
+Once verified the wafer map, update PP_WMAP with confirmed = 1.
+
+The L<PDF::DpData::WMap.pm> will take care all the above logic.
+
+=head1 L<PDF::DpLoad.pm>
+
+B<dpExit> -- exit script with err.jnk. Must call when the scirpt exit
+
+B<formatDate> -- format date text to YYYY/MM/DD HH24::MI::SS in UTC.
+
+B<currentDate> -- return curren Datetime in YYYY/MM/DD HH24:MI::SS in local timezone
+
+B<trim> -- trim space|tab|\b|" at the begin or end of string. remove double byte chars
+
+B<repNA> -- replace '' or undefined value to "NA" after trim.
+
+=head1 L<PDF::Log.pm>
+
+Logging module (Wrapper class of Log::Log4perl)
+
+=head1 L<PDF::DpWriter.pm>
+
+Writer object to handle exception of Meta Not found and WMap Not found
+
+=head1 L<PDF::DpData::Model.pm>
+
+=head1 PDF::Parser
+
+Parser class for each datasource.
+
+Following parsers are available
+
+=head2 L<PDF::Parser::Eagle.pm>
+
+=head2 L<PDF::Parser::SEPM.pm>
+
+=head2 L<PDF::Parser::Tmt.pm>
+
+=head2 L<PDF::Parser::Asc.pm>
+
+=head2 L<PDF::Parser::Nam.pm>
+
+=head2 L<PDF::Parser::Stdf.pm>
+
+=head2 L<PDF::Parser::Accueol.pm>
+
+=head2 L<PDF::Parser::HP_ET.pm>
+
+=head1 L<PDF::Formatter.pm>
+
+Formatter class create output file from a model. This class is exporter class.
+
+There is only one formatter available
+
+=head2 L<PDF::Formatter::IFF.pm>
+
+=head1 sample preprocessor scripts
+
+=over 4
+
+=item binMap
+
+L<fcs_se_probe_IFF.pl|http://oruxymsetl01d.fairchildsemi.com/svn/dataPOWER/ETL/trunk/DPHOME/scripts/fcs_se_probe_IFF.pl> 
+
+=item WaferSort / FinalTest
+
+L<fcs_eagle_log.pl|http://oruxymsetl01d.fairchildsemi.com/svn/dataPOWER/ETL/trunk/DPHOME/scripts/fcs_eagle_log_IFF.pl>
+
+=back
+
+=head1 AUTHOR
+
+B<kazuki.kunitoshi@pdf.com>
+
+=head1 CHANGES
+
+  2015/03/31 kazukik: 1st verion
+  2015/04/20 kazukik: production release
+
+=head1 LICENSE
+
+(C) PDF Solutions Inc. 2015 All rights reserved.
+
+=cut
+

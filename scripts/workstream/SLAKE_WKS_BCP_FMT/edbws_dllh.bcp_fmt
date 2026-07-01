@@ -1,0 +1,10 @@
+4.0
+8
+1	SYBCHAR	1	512	""	1	system_datetime
+2	SYBCHAR	1	512	""	2	lot_id
+3	SYBCHAR	1	512	""	3	facility
+4	SYBCHAR	1	512	""	4	wks_transaction
+5	SYBINT2	0	2	""	5	operation
+6	SYBCHAR	1	512	""	6	product
+7	SYBCHAR	1	512	""	7	route
+8	SYBCHAR	0	1	""	8	phantom_flag

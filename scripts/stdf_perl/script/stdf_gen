@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+#
+# FSC Perl STDF Libraries
+#
+# Confidential Property of Fairchild Semiconductor Corperation
+# (c) Copyright Fairchild Semiconductor Corperation, 1999
+# All rights reserved
+#
+# MODIFICATION HISTORY:
+#
+# DATE       WHO             DESCRIPTION
+# __________ ______________  __________________________________________________
+# 11-02-1999 Steve Frampton  Original.  Contact Information:
+#                            (207) 273-3364
+#                            sframpto@fairchildsemi.com,
+#                            sframpto@midcoast.com
+#
+$useage = 
+'
+Shell wrapper for the generate_all routine used to generate the stdf
+routines.
+
+Use for debug and development purposes of this library.
+Use for debug of *.spec files.
+
+stdf_gen [-h] spec_file
+
+where spec_file is an stdf specification file, e.g. stdfPL.spec
+      or stdfV4.spec.
+
+output is to stdout.
+
+Notes:
+Use this utility to generate stdf code
+and syntax check using perl on output.
+
+Spec files are very sensitive to delimiters !
+Comment \'#\' lines are allowed.  # must be in first character of line.
+Single empty lines are used to delimit STDF record definitions.
+Extra empty lines will break it.
+Empty lines are not allowed before the first record, or after the last.
+Fields are delimited by tab characters.  Extra tab characters or any
+space characters will cause problems !
+There is virtually no syntax checking at all.  Be carefull.
+
+
+Example:
+stdf_gen stdfPL.spec > stdfPL.test_code
+perl stdfPL.test_code
+
+<Perl will spit out any syntax errors here>
+Find problems in stdfPL.test_code file, then trace back to stdfPL.spec
+file.
+Edit stdfPL.spec file to fix problems.
+' ;
+
+#
+# Load libraries
+#
+use Carp ;  # error messages - does not work within stdf_use.pl
+# set path to executable for libraries
+use FindBin ; 
+use lib "$FindBin::Bin" ; # set up path for libraries the same as script
+use lib $ENV{'STDF_PERL_LIB'} ; # look for libraries in this directory
+
+require "stdf_use.pl" ;  # libraries that are not generated
+
+if ($ARGV[0] eq '-h')
+   { print $useage ; exit ; }
+$file = shift ;
+if ( ! (-r $file) )
+  {
+  confess "Cannot read $file \n" ;
+  }
+print generate_all( $file ) ;
+exit ;

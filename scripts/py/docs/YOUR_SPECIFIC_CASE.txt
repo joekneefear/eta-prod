@@ -1,0 +1,268 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                    YOUR SPECIFIC CASE - VISUAL GUIDE                      ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+WHAT YOU SEE IN VSCODE:
+═══════════════════════════════════════════════════════════════════════════
+
+    <Lot PartType="FPF5-1" UserText="EM☐EM☐EM☐EM☐EM☐EM☐EM☐EM☐EM☐" 
+         OperatorName="HTTVXF" TesterType="881-TT/A" ...>
+                                      ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+                                      These are ERROR BOXES
+                                      Corrupted/Invalid Characters
+
+
+WHAT THEY ACTUALLY ARE:
+═══════════════════════════════════════════════════════════════════════════
+
+    Character: ESC (Escape)
+    Hex Code:  0x1B
+    Decimal:   27
+    Valid XML: ❌ NO - Not allowed in XML 1.0
+
+    These are likely ANSI escape sequences from test equipment:
+    \x1B[31m  ← Red color code
+    \x1B[0m   ← Reset code
+
+
+WHY IT FAILS:
+═══════════════════════════════════════════════════════════════════════════
+
+    XML 1.0 ALLOWS:
+    ✓ Tab (0x09)
+    ✓ Newline (0x0A)
+    ✓ Carriage Return (0x0D)
+    ✓ Space and above (0x20-0xD7FF)
+    
+    XML 1.0 DOES NOT ALLOW:
+    ✗ Control characters 0x00-0x08
+    ✗ Control characters 0x0B-0x0C
+    ✗ Control characters 0x0E-0x1F  ← ESC (0x1B) is here!
+    ✗ DEL character (0x7F)
+
+
+THE ERROR:
+═══════════════════════════════════════════════════════════════════════════
+
+    ERROR: Failed to parse XML: not well-formed (invalid token): 
+           line 4, column 331
+                        ↑
+                        One of the ESC characters
+
+
+THE SOLUTION FLOW:
+═══════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │ INPUT: <Lot UserText="EM☐EM☐EM☐EM☐EM☐" ...>                │
+    └────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ TIER 1: Normal Parse                                        │
+    │ Result: ❌ FAILED at column 331                             │
+    └────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ DIAGNOSTIC OUTPUT:                                          │
+    │ ERROR: Character at error position: '\x1b' (ord=27)        │
+    │ ERROR: Snippet: ...UserText="EM☐EM☐" OperatorName=...     │
+    │ ERROR:                     ^                                │
+    └────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ TIER 2: Sanitization                                        │
+    │                                                             │
+    │ Step 1: Fix encoding issues                                │
+    │   • Replace invalid UTF-8 sequences                        │
+    │   • Remove replacement characters                          │
+    │                                                             │
+    │ Step 2: Filter invalid XML characters                      │
+    │   • Check each character against XML 1.0 spec              │
+    │   • Remove ESC (0x1B) and other control chars              │
+    │   • Keep only valid characters                             │
+    │                                                             │
+    │ Step 3: Other fixes                                        │
+    │   • Escape &, <, >                                         │
+    │   • Normalize whitespace                                   │
+    │   • Remove null bytes                                      │
+    └────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ RESULT: <Lot UserText="" OperatorName="HTTVXF" ...>        │
+    │         All corrupted characters removed ✓                  │
+    └────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ TIER 2: Retry Parse                                         │
+    │ Result: ✓ SUCCESS                                           │
+    │ Flag: is_malformed = True                                   │
+    └────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ Continue Processing:                                        │
+    │ • Extract metadata                                          │
+    │ • Enrich XML                                                │
+    │ • Add wafer map                                             │
+    │ • Generate output file                                      │
+    └────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ ROUTING: SANDBOX                                            │
+    │ Reason: is_malformed = True                                 │
+    │ Output: File generated successfully ✓                       │
+    └─────────────────────────────────────────────────────────────┘
+
+
+BEFORE vs AFTER:
+═══════════════════════════════════════════════════════════════════════════
+
+    BEFORE THE FIX:
+    ───────────────
+    ❌ Parse fails at column 331
+    ❌ Script exits with error
+    ❌ No output file generated
+    ❌ Manual intervention required
+    ❌ Data lost
+
+
+    AFTER THE FIX:
+    ──────────────
+    ✓ Parse fails initially (expected)
+    ✓ Diagnostic shows exact problem
+    ✓ Sanitizer removes corrupted chars
+    ✓ Parse succeeds on retry
+    ✓ Processing continues
+    ✓ Output file generated
+    ✓ Routed to SANDBOX
+    ✓ No manual intervention needed
+    ✓ Data preserved (except corrupted chars)
+
+
+WHAT YOU'LL SEE IN THE LOG:
+═══════════════════════════════════════════════════════════════════════════
+
+    WARN: Initial XML parse failed: not well-formed (invalid token): 
+          line 4, column 331
+    
+    ERROR: XML Parse Error at line 4, column 331
+    ERROR: Context:
+    ERROR:     Line 2: <STDML>
+    ERROR:     Line 3: <Metadata>...</Metadata>
+    ERROR: >>> Line 4: <Lot PartType="FPF5-1" UserText="EM☐EM☐EM☐"...
+    ERROR:     Line 5: <ParametricData>
+    ERROR: Character at error position: '\x1b' (ord=27)
+    ERROR: Snippet: ...UserText="EM☐EM☐" OperatorName="HTTVXF"...
+    ERROR:                    ^
+    
+    INFO: Attempting to sanitize and re-parse XML...
+    INFO: XML sanitization completed (removed invalid characters and 
+          fixed encoding)
+    INFO: XML successfully parsed after sanitization
+    WARN: XML file is malformed - will route to SANDBOX
+    
+    [Processing continues...]
+    
+    INFO: Output file generated: /path/to/output.xml.gz
+    INFO: Routed to: SANDBOX
+
+
+WHAT GETS REMOVED:
+═══════════════════════════════════════════════════════════════════════════
+
+    Original UserText value:
+    ┌────────────────────────────────────────────────────────────┐
+    │ "EM☐EM☐EM☐EM☐EM☐EM☐EM☐EM☐EM☐"                            │
+    │  ↑  ↑  ↑  ↑  ↑  ↑  ↑  ↑  ↑                                │
+    │  All of these are ESC (0x1B) characters                    │
+    │  Total: ~9 invalid characters                              │
+    └────────────────────────────────────────────────────────────┘
+
+    After sanitization:
+    ┌────────────────────────────────────────────────────────────┐
+    │ ""                                                         │
+    │ Empty string - all invalid characters removed              │
+    └────────────────────────────────────────────────────────────┘
+
+
+WHAT GETS PRESERVED:
+═══════════════════════════════════════════════════════════════════════════
+
+    ✓ All other attributes (PartType, OperatorName, etc.)
+    ✓ All test data (ParametricData)
+    ✓ All metadata
+    ✓ Complete file structure
+    ✓ All valid content
+
+
+WHY ROUTE TO SANDBOX:
+═══════════════════════════════════════════════════════════════════════════
+
+    1. Data Quality Concern
+       → Corrupted characters indicate potential issues
+    
+    2. Source System Problem
+       → Test equipment may need configuration fix
+    
+    3. Safety Measure
+       → Allows review before production
+    
+    4. Traceability
+       → Maintains audit trail
+
+
+NEXT STEPS:
+═══════════════════════════════════════════════════════════════════════════
+
+    IMMEDIATE (Automatic):
+    ✓ File processes successfully
+    ✓ Output generated
+    ✓ Routed to SANDBOX
+    ✓ No action needed
+
+    SHORT-TERM (Optional):
+    • Review SANDBOX files
+    • Check if pattern is common
+    • Investigate test equipment
+
+    LONG-TERM (Preventive):
+    • Update test equipment config to disable ANSI codes
+    • Ensure proper UTF-8 encoding
+    • Add validation at source
+
+
+SUMMARY:
+═══════════════════════════════════════════════════════════════════════════
+
+    Problem:  Corrupted ESC characters (0x1B) in UserText attribute
+    Location: Line 4, column 331
+    Cause:    Test equipment outputting ANSI escape sequences
+    Solution: Enhanced sanitizer removes invalid XML characters
+    Result:   File processes successfully, routes to SANDBOX
+    Impact:   UserText becomes empty, all other data preserved
+    Action:   None required - fully automatic
+
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                         YOUR QUESTION ANSWERED                            ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                           ║
+║  Q: Is this causing the malformed XML?                                   ║
+║  A: YES - The "EM☐" characters are invalid ESC (0x1B) control chars     ║
+║                                                                           ║
+║  Q: Will Tier 2 fix it?                                                  ║
+║  A: YES - Sanitizer removes all invalid XML characters automatically     ║
+║                                                                           ║
+║  Q: Will my file be processed?                                           ║
+║  A: YES - Output file generated and routed to SANDBOX                    ║
+║                                                                           ║
+║  Q: Do I need to do anything?                                            ║
+║  A: NO - Completely automatic, no manual intervention needed             ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝

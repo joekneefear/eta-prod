@@ -1,0 +1,509 @@
+"""
+SYNOPSIS
+
+DESCRIPTION
+    Utility 
+
+AUTHOR
+    junifferallan.garcia@onsemi.com
+
+CHANGES
+    2023-Sep-06 - jgarcia - initial
+    2023-Sep-16 - jgarcia - added process_command_line_args
+
+LICENSE
+    (C) onsemi 2023 All rights reserved.
+"""
+
+import os
+import psutil
+import sys
+import re
+import time
+import subprocess
+import magic
+import traceback
+import yaml
+from datetime import datetime, timedelta
+from calendar import month_abbr
+from pathlib import Path
+import logging.handlers as handlers
+from datetime import datetime
+from calendar import timegm
+# from time import sleep, strftime, localtime, time
+from lib.Log import Log
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+class Util:
+    # logger = Log.get_logger()
+    
+    @staticmethod
+    def dp_exit(code=0, error=None, warn=None):
+        #logger = self.logger
+        error_list = []
+        warn_list = []
+        out_file = "err.jnk"
+        trace = "\t".join(traceback.format_stack()).replace('\n', '\t')
+        
+        if error is not None:
+            if isinstance(error, list):
+                error_list.extend(error)
+            else:
+                error_list.append(error)
+
+            error_list.append(trace)
+
+        if warn is not None:
+            if isinstance(warn, list):
+                warn_list.extend(warn)
+            else:
+                warn_list.append(warn)
+
+        err_count = len(error_list)
+        warn_count = len(warn_list)
+
+        with open(out_file, "w") as outfile:
+            outfile.write(f"{err_count}\t{warn_count}\n")
+
+            for msg in error_list:
+                outfile.write(f"1\t9001\tE\t0\t0\t{msg}\n")
+                Log.ERROR(f"ERROR: {msg}")
+
+            for msg in warn_list:
+                outfile.write(f"1\t9002\tW\t0\t0\t{msg}\n")
+                #print(f"WARNING: {msg}")
+                Log.WARN(f"WARNING: {msg}")
+
+        #Log.INFO("############ End " sys.argv[0] + " script (code = " + code +")")
+        log_message = f"############ End {sys.argv[0]} script (code = {code}) #######"
+        Log.INFO(log_message)
+
+        if code == 10:
+            sys.exit(10)
+        elif code == 100:
+            sys.exit(0)
+        else:
+            sys.exit(code)
+            
+    @staticmethod       
+    def process_command_line_args(arguments):
+        args_dict = {}
+        in_file = arguments.pop(0)
+        args_dict['infile'] = in_file
+        for arg in arguments:
+            key_value = arg.split('=')
+            #print(f"KEY_VALUE={key_value}")
+            if len(key_value) == 2:
+                key, value = key_value
+                key = key.replace("--", "")
+                #print(f"KEY={key}||VALUE={value}")
+                args_dict[key] = value
+        #print(args_dict)
+        return args_dict
+    
+    @staticmethod
+    def rename_file(old_name, new_name):
+        try:
+            os.rename(old_name, new_name)
+            Log.INFO(f"File renamed from {old_name} to {new_name} successfully.")
+        except FileNotFoundError:
+            Log.INFO(f"The file {old_name} was not found.")
+        except Exception as e:
+            Log.ERROR(f"An error occurred: {e}")
+            Util.dp_exit(1,"An error occured during renaming of filename.")
+    
+    @staticmethod
+    def is_gzip(file_path):
+        mime = magic.Magic()
+        file_type = mime.from_file(file_path)
+        return 'gzip' in file_type
+    
+    @staticmethod
+    def is_gzipped(file_path):
+        """Check if the file is already compressed with gzip."""
+        if os.path.isfile(file_path):
+            with open(file_path, 'rb') as f:
+                return f.read(2) == b'\x1f\x8b'  # Gzip magic number
+        return False
+   
+    # Define a function to replace multiple spaces with a single space
+    def clean_spaces(text):
+        return ' '.join(text.split())
+
+    @staticmethod
+    def looks_like_number(value):
+        return value.isnumeric()
+
+    @staticmethod
+    def rep_na(data):
+        if not data.strip() or re.search(r'null|undef', data, re.IGNORECASE):
+            return 'NA'
+        return data.strip()
+
+    @staticmethod
+    def current_date():
+        return datetime.now().strftime("%Y%m%d_%H:%M:%S")
+    
+    @staticmethod
+    def get_logging_time():
+        now = datetime.now()
+        compressed_timestamp = now.strftime("%Y%m%d%H%M%S")
+        return compressed_timestamp
+
+    """ @staticmethod
+    def format_date_to_yyyymmdd(date, tz=None):
+        months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+        new_date = None
+
+        if not date:
+            WARN("Date value is undefined")
+            return date
+
+        match = re.match(r"(\d{4})\D(\d{1,2})\D(\d{1,2})\D+(\d{1,2})\D(\d{1,2})\D(\d{1,2})", date)
+        if match:
+            new_date = f"{match.group(1)}/{match.group(2):02d}/{match.group(3):02d} {match.group(4):02d}:{match.group(5):02d}:{match.group(6):02d}"
+        # Other date format checks...
+        return new_date """
+    
+    @staticmethod
+    def format_unixtime(unixtime, tz):
+        if tz is not None:
+            from pytz import timezone
+            tz_obj = timezone(tz)
+            new_date = datetime.fromtimestamp(unixtime, tz=tz_obj).strftime("%Y/%m/%d %H:%M:%S %Z")
+        else:
+            new_date = datetime.fromtimestamp(unixtime).strftime("%Y/%m/%d %H:%M:%S UTC")
+
+        print(f"input format is unixtime. {unixtime} -> {new_date}")
+        return new_date
+
+    @staticmethod
+    def format_month_day_year(month_str, day, year, hour, minute, second):
+        months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        month = months.index(month_str[:3].capitalize()) + 1
+        new_date = f"{year}/{month:02d}/{day:02d} {hour:02d}:{minute:02d}:{second:02d}"
+        print(f"input format is MMM DD YYYY. {month_str} {day} {year} -> {new_date}")
+        return new_date
+    
+    @staticmethod
+    def format_day_month_year(day, month_str, year, hour, minute, second):
+        months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        month = months.index(month_str[:3].capitalize()) + 1
+        year = int(year)
+        if year < 100:
+            year += 2000
+        new_date = f"{year}/{month:02d}/{day:02d} {hour:02d}:{minute:02d}:{second:02d}"
+        print(f"input format is DD-MMM-YY or DD-MMM-YYYY. {day} {month_str} {year} -> {new_date}")
+        return new_date
+    
+    @staticmethod
+    def format_day_month_year_long(day, month_str, year):
+        months = month_abbr
+        month = months.index(month_str[:3].capitalize())
+        year = int(year)
+        if year < 100:
+            year += 2000
+        new_date = f"{year}/{month:02d}/{day:02d}"
+        print(f"input format is DD-MMM-YYYY. {day} {month_str} {year} -> {new_date}")
+        return new_date
+    
+    @staticmethod
+    def format_month_day_year_short(month_str, day):
+        months = month_abbr
+        month = months.index(month_str[:3].capitalize())
+        new_date = f"{datetime.now().year}/{month:02d}/{day:02d}"
+        print(f"input format is MMM-DD. {month_str} {day} -> {new_date}")
+        return new_date
+    
+    @staticmethod
+    def format_year_month_day(year, month, day):
+        new_date = f"{year}/{month:02d}/{day:02d}"
+        print(f"input format is YYYY-MM-DD. {year} {month} {day} -> {new_date}")
+        return new_date
+    
+    @staticmethod
+    def format_month_day_year_numeric(month, day, year):
+        new_date = f"{year}/{month:02d}/{day:02d}"
+        print(f"input format is M/D/YYYY. {month} {day} {year} -> {new_date}")
+        return new_date
+    
+    @staticmethod   
+    def format_date(year, month, day, hour, minute, second):
+        return f"{year}/{month:02d}/{day:02d} {hour:02d}:{minute:02d}:{second:02d}"
+    
+    @staticmethod
+    def format_date_to_yyyymmdd(date, tz=None):
+        if date is None:
+            Log.warning("WARN: date value is undefined")
+            return date
+   
+
+        patterns = [
+            (r"(\d{2})/(\d{2})/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})", lambda m: (m.group(3), m.group(2), m.group(1), m.group(4), m.group(5), m.group(6))),
+            (r"(\d{4})\D(\d{1,2})\D(\d{1,2})\D+(\d{1,2})\D(\d{1,2})\D(\d{1,2})", lambda m: (m.group(1), m.group(2), m.group(3), m.group(4), m.group(5), m.group(6))),
+            (r"(\d{1,2})\D(\d{1,2})\D(\d{4})\D+(\d{1,2})\D(\d{1,2})\D(\d{1,2})", lambda m: (m.group(3), m.group(1), m.group(2), m.group(4), m.group(5), m.group(6))),
+            (r"^\d{10}$|^\d{9}$", lambda m: format_unixtime(int(m.group(0)), tz)),
+            (r"(\w+)\s+(\d{1,2})\D+(\d{4})\D+(\d{1,2})\D(\d{1,2})\D(\d{1,2})", lambda m: format_month_day_year(m.group(1), m.group(2), m.group(3), m.group(4), m.group(5), m.group(6))),
+            (r"(\d{1,2})\D(\w{3})\D(\d{1,2})\D(\d{1,2})\D(\d{1,2})\D(\d{1,2})", lambda m: format_day_month_year(m.group(1), m.group(2), m.group(3), m.group(4), m.group(5), m.group(6))),
+            (r"(\d{1,2})\D(\w{3})\D(\d{4})\D(\d{1,2})\D(\d{1,2})\D(\d{1,2})", lambda m: format_day_month_year(m.group(1), m.group(2), m.group(3), m.group(4), m.group(5), m.group(6))),
+            (r"(\d{1,2})\D(\w{3})\D(\d{1,2})", lambda m: format_day_month_year(m.group(1), m.group(2), datetime.now().year, "00", "00", "00")),
+            (r"(\d{4})\D(\d{1,2})\D(\d{1,2})", lambda m: (m.group(1), m.group(2), m.group(3))),
+            (r"(\d{1,2})\D(\d{1,2})\D(\d{4})", lambda m: (m.group(3), m.group(1), m.group(2))),
+        ]
+
+        for pattern, formatter in patterns:
+            match = re.match(pattern, date)
+            if match:
+                return format_date(*formatter(match))
+
+        if date == 'NA':
+            print("WARN: date value is NA")
+        else:
+            print(f"Invalid date: {date}")
+
+        return None
+   
+    @staticmethod
+    def parse_date(s):
+        match = re.match(r"^\s*(\d{1,4})\W*0*(\d{1,2})\W*0*(\d{1,2})\W*0*(\d{0,2})\W*0*(\d{0,2})\W*0*(\d{0,2})", s)
+        if match:
+            year, month, day, hour, minute, second = map(int, match.groups())
+            hour = hour if hour else 0
+            minute = minute if minute else 0
+            second = second if second else 0
+
+            if year < 100:
+                year = 2000 + year if year < 70 else 1900 + year
+
+            return timegm((year, month, day, hour, minute, second))
+        
+        return -1
+
+    @staticmethod
+    def validate_out_dir(hOptions):
+        outdir = hOptions.get('out')
+        
+        if outdir is not None:
+            if not os.path.exists(outdir) or not os.path.isdir(outdir):
+                Util.exit(1, f"Output directory does not exist {outdir}")
+
+            if hOptions.get('meta') is not None and not os.path.exists(outdir + "_noMeta"):
+                os.mkdir(outdir + "_noMeta")
+
+            if hOptions.get('wmap') is not None and not os.path.exists(outdir + "_noWMap"):
+                os.mkdir(outdir + "_noWMap")
+                
+    @staticmethod
+    def formatSourceLot(sl, l):
+        sourceLot = ""
+        print(f"SourceLot=>>{sl}<<")
+        print(f"Lot=>>{l}<<")
+        
+        if sl != "" and sl != "NA" and sl != "N/A":
+            sourceLot = f"{sl}.S"
+        else:
+            if l == "":
+                print("NO LotID provided.")
+                sourceLot = "NA"
+            else:
+                sourceLot = f"{l}.S"
+        
+        Log.INFO(f"Formatted Source Lot=>>{sourceLot}<<||ORIG Source Lot = {sl}")
+        return sourceLot
+    
+    @staticmethod
+    def enclose_field_with_double_quotes(field):
+        return '"' + field + '"'
+    
+    @staticmethod
+    def convert_line_endings(file_path):
+        try:
+            subprocess.run(["dos2unix", file_path], check=True)
+            Log.INFO(f"Line endings in {file_path} successfully converted to UNIX format.")
+        except subprocess.CalledProcessError as e:
+            Log.ERROR(f"Error converting line endings: {e}")
+            Util.dp_exit(1,"Execption occured trying to issue subprocess dos2unix")
+            
+    @staticmethod
+    def load_yaml(yaml_file):
+        with open(yaml_file, 'r') as file:
+            data = yaml.safe_load(file)
+        return data
+        
+    @staticmethod
+    def is_logfile_active(logfile, minutes):
+        try:
+            # Get the current time
+            current_time = time.time()
+
+            # Get the last modification time of the file
+            last_mod_time = os.path.getmtime(logfile)
+
+            # Calculate the time difference in seconds
+            time_diff = current_time - last_mod_time
+
+            # Convert minutes to seconds
+            time_interval = minutes * 60
+
+            # Check if the file has been modified within the specified time interval
+            if time_diff <= time_interval:
+                Log.INFO(f"Log file '{logfile}' is actively being written to.")
+                return True
+            else:
+                Log.INFO(f"Log file '{logfile}' has not been written to in the past {minutes} minutes.")
+                return False
+
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return False
+   
+    @staticmethod    
+    def oldest_file_in_tree(rootfolder, extension):
+        try:
+            matching_files = []
+            oldest_file = None
+
+            if extension in ['%', 'na', 'NA']:
+                # Get a list of all files in the root folder
+                matching_files = [os.path.join(rootfolder, filename) for filename in os.listdir(rootfolder) if os.path.isfile(os.path.join(rootfolder, filename))]
+            else:
+                # Get files with the specified extension in the root folder
+                matching_files = [os.path.join(rootfolder, filename) for filename in os.listdir(rootfolder) if os.path.isfile(os.path.join(rootfolder, filename)) and filename.endswith(extension)]
+
+            if matching_files:
+                oldest_file = min(matching_files, key=os.path.getmtime)
+                # print(f"Oldest file found: {oldest_file}")
+            else:
+                # print("No matching files found.")
+                return ""
+
+            return oldest_file
+        except Exception as e:
+            return f"Error: {str(e)}"
+    
+    @staticmethod
+    def count_files_in_folder(rootfolder, extension):
+        try:
+            # Normalize the path and check if the directory exists
+            rootfolder = os.path.abspath(rootfolder)
+            if not os.path.isdir(rootfolder):
+                Log.INFO(f"Error: The specified path '{rootfolder}' is not a directory or does not exist.")
+                return 0
+
+            # List all files in the root folder
+            all_files = [filename for filename in os.listdir(rootfolder) if os.path.isfile(os.path.join(rootfolder, filename))]
+
+            # Handle special cases for extension
+            if extension in ['%', 'na', 'NA']:
+                # Count all files if the extension is in special cases
+                matching_files = all_files
+            else:
+                # Prepend a dot to the extension if not already present
+                if not extension.startswith('.'):
+                    extension = f".{extension}"
+                # Count files with the specified extension
+                matching_files = [filename for filename in all_files if filename.endswith(extension)]
+
+            file_count = len(matching_files)
+            Log.INFO(f"Number of files with extension '{extension}' in folder '{rootfolder}': {file_count}")
+
+            return file_count
+
+        except Exception as e:
+            file_count = 0
+            Log.ERROR(f"Error: {str(e)}")
+            Log.INFO(f"Number of files with extension '{extension}' in folder '{rootfolder}': {file_count}")
+            return file_count
+    
+    @staticmethod    
+    def send_mail(sender, recipient, body, subject):
+        # Set sender, receiver, and cc emails
+        sender_email = sender
+        receiver_emails = [recipient]
+        body_content = body
+        subject_content = subject
+
+        # Create MINE message
+        mail_msg = MIMEMultipart('alternative')
+        mail_msg['Subject'] = subject_content 
+        mail_msg['From'] = sender_email
+        mail_msg['To'] = recipient
+
+        part1 = MIMEText(body_content, 'html')
+        mail_msg.attach(part1)
+
+        # Send email  
+        with smtplib.SMTP(smtp_server) as server:
+            server.sendmail(sender_email, receiver_emails, mail_msg.as_string())
+    
+    @staticmethod        
+    def get_pid_from_file(pid_file):
+        """
+        Read the PID from the given file.
+        
+        Args:
+            pid_file (str): Path to the PID file.
+            
+        Returns:
+            int or None: The PID if read successfully, None otherwise.
+        """
+        try:
+            with open(pid_file, 'r') as f:
+                pid = int(f.readline().strip())
+                return pid
+        except FileNotFoundError:
+            return None
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def is_pid_running(pid):
+        """
+        Check if a process with the given PID is running.
+        
+        Args:
+            pid (int): The PID to check.
+            
+        Returns:
+            bool: True if the process is running, False otherwise.
+        """
+        if pid is None:
+            return False
+
+        try:
+            # psutil provides a cross-platform way to check if a process is running
+            p = psutil.Process(pid)
+            return p.is_running() and p.status() != psutil.STATUS_ZOMBIE
+        except psutil.NoSuchProcess:
+            return False
+    
+    @staticmethod    
+    def check_file_exists(file_path: str) -> bool:
+        """
+        Check if a file exists at the given path.
+
+        Args:
+        file_path (str): The path to the file.
+
+        Returns:
+        bool: True if the file exists, False otherwise.
+        """
+        path = Path(file_path)
+        return path.exists()
+
+    @staticmethod
+    def get_current_timestamp():
+        """Return the current timestamp in seconds."""
+        return time.time()
+    
+    @staticmethod
+    def has_five_minutes_passed(earlier_timestamp):
+        """Check if five minutes have passed since the earlier timestamp."""
+        current_timestamp = time.time()
+        time_difference = current_timestamp - earlier_timestamp
+        return time_difference >= 300  # 300 seconds is equivalent to 5 minutes
+
+
+

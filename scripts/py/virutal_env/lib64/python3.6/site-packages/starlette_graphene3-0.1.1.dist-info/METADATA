@@ -1,0 +1,83 @@
+Metadata-Version: 2.1
+Name: starlette-graphene3
+Version: 0.1.1
+Summary: Use Graphene v3 on Starlette
+Home-page: https://github.com/ciscorn/starlette-graphene3
+License: MIT
+Keywords: graphene,graphql
+Author: Taku Fukada
+Author-email: naninunenor@gmail.com
+Requires-Python: >=3.6.1,<4.0.0
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Dist: graphene (>=3.0b)
+Requires-Dist: starlette (>=0.13.3,<0.14.0)
+Project-URL: Repository, https://github.com/ciscorn/starlette-graphene3
+Description-Content-Type: text/markdown
+
+# starlette_graphene3
+
+An ASGI app for Graphene v3. This can replace `starlette.graphql.GraphQLApp` that is made for Graphene v2.
+
+[![codecov](https://codecov.io/gh/ciscorn/starlette-graphene3/branch/master/graph/badge.svg)](https://codecov.io/gh/ciscorn/starlette-graphene3)
+
+It supports:
+
+- WebSockets (Subscriptions)
+- File uploading (https://github.com/jaydenseric/graphql-multipart-request-spec)
+- GraphQL Playground
+
+```python
+import asyncio
+
+import graphene
+from graphene_file_upload.scalars import Upload
+
+from starlette_graphene3 import GraphQLApp
+
+
+class User(graphene.ObjectType):
+    id = graphene.ID()
+    name = graphene.String()
+
+
+class Query(graphene.ObjectType):
+    me = graphene.Field(User)
+
+    def resolve_me(root, info):
+        return {"id": "john", "name": "John"}
+
+
+class FileUploadMutation(graphene.Mutation):
+    class Arguments:
+        file = Upload(required=True)
+
+    ok = graphene.Boolean()
+
+    def mutate(self, info, file, **kwargs):
+        return FileUploadMutation(ok=True)
+
+
+class Mutation(graphene.ObjectType):
+    upload_file = FileUploadMutation.Field()
+
+
+class Subscription(graphene.ObjectType):
+    count = graphene.Int(upto=graphene.Int())
+
+    async def subscribe_count(root, info, upto=3):
+        for i in range(upto):
+            yield {'count': i}
+            await asyncio.sleep(1)
+
+
+app = Starlette()
+schema = graphene.Schema(query=Query, mutation=Mutation, subscription=Subscription))
+app.mount("/", GraphQLApp(schema))
+```
+

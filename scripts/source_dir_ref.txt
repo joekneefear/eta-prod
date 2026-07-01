@@ -1,0 +1,17 @@
+/archives-yms/data/szast_camstar/STAGING/PRODUCTION
+/archives-yms/data/szast_camstar/STAGING/SANDBOX
+/archives-yms/data/szpreast_camstar/STAGING/PRODUCTION
+/archives-yms/data/szpreast_camstar/STAGING/SANDBOX
+/archives-yms/data/cpast_camstar/STAGING/PRODUCTION
+/archives-yms/data/mefab_eqp_asm/STAGING/PRODUCTION
+/archives-yms/data/mefab_eqp_asm/STAGING/SANDBOX
+/archives-yms/data/bkfb8_wks/STAGING/PRODUCTION
+/archives-yms/data/bkfb8_wks/STAGING/SANDBOX
+/archives-yms/data/mtfab8_wks/STAGING/PRODUCTION
+/archives-yms/data/mtfab8_wks/STAGING/SANDBOX
+/archives-yms/data/cpast_camstar/STAGING/PRODUCTION
+/archives-yms/data/cpast_camstar/STAGING/SANDBOX
+/archives-yms/data/cpsort_camstar/STAGING/PRODUCTION
+/archives-yms/data/cpsort_camstar/STAGING/SANDBOX
+
+

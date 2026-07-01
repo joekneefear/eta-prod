@@ -1,0 +1,96 @@
+Record FileRecord  "1.8"
+{
+  Record LotRecord "IT56261.1J"
+  {
+    Record WaferRecord "W_11"
+    {
+      Field DieOrigin 2 {0, 0}
+      Field OrientationInstructions 1 {""}
+      Field ProcessEquipmentState 7 {"NONE", "", "", "", "", "", ""}
+      Field SampleCenterLocation 2 {100000000, 100000000}
+      Field SlotNumber 1 {11}
+
+      List DefectList
+      {
+        Columns 46 { int32 DEFECTID,  int32 XREL,  int32 YREL,  int32 XINDEX,  int32 YINDEX,  
+        int32 XSIZE,  int32 YSIZE,  float DEFECTAREA,  int32 DSIZE,  int32 CLASSNUMBER,  
+        int32 TEST,  int32 CLUSTERNUMBER,  int32 ROUGHBINNUMBER,  int32 FINEBINNUMBER,  int32 REVIEWSAMPLE,  
+        int32 SAMPLEBINNUMBER,  float CONTRAST,  int32 CHANNELID,  int32 MANSEMCLASS,  int32 AUTOONSEMCLASS,  
+        int32 MICROSIGCLASS,  int32 MACROSIGCLASS,  int32 ADDERFLAG,  int32 AUTOOFFSEMCLASS,  int32 AUTOOFFOPTADC,  
+        int32 FACLASS,  int32 INTENSITY,  float KILLPROB,  int32 MACROSIGID,  int32 REGIONID,  
+        int32 REPEATER,  int32 EVENTTYPE,  int32 EBRLINE,  ImageList IMAGEINFO,  
+        int32 POLARITY,  float CRITICALAREA,  int32 MANOPTCLASS,  float PHI,  int32 DBCLASS,  
+        int32 DBGROUP,  float DBCRITICALITYINDEX,  float CELLSIZE,  int32 CAREAREAGROUPCODE,  float PCI,  
+        float LINECOMPLEXITY,  float DCIRANGE  }
+        Data 1
+        {
+          1 103131000 118801000 0 0 1062000 1202000 1276520038400.0 1129830 
+            0 1 0 200 0 0 0 0.0000 0 0 0 0 0 1 0 0 0 0 0.0000 0 0 0 0 0  N 
+            0 0.0000 0 0.0 0 0 0.0000 0.000000 0 0.0000 0.0000 0.0000 ;
+        }
+      }
+      Record TestRecord "1"
+      {
+        Field AreaPerTest 1 {2.8895900000e+16}
+        Field InspectedAreaOrigin 2 {0, 0}
+        Field InspectionTest 2 {1, "1" }
+
+        List SampleTestPlanList
+        {
+          Columns 2 { int32 XINDEX, int32 YINDEX }
+          Data 1
+          {
+            0 0 ;
+          }
+        }
+      }
+      Record SummaryRecord
+      {
+
+        List FullWaferSummaryList
+        {
+          Columns 1 { float INSPAREA  }
+          Data 1
+          {
+            2.8895900000e+16   ;
+          }
+        }
+        List TestSummaryList
+        {
+          Columns 11 { int32 TESTNO,  int32 NDEFECT,  float DEFDENSITY,  int32 NDIE,  int32 NDEFDIE,  
+          float HAZEREGION,  float HAZEAVERAGE,  float HAZESTDDEV,  float HAZEMEDIAN,  float HAZEPEAK,  
+          float AREAPERTEST  }
+          Data 1
+          {
+            1  5  1.7300000414e-02  1  1  
+              -1  -1  -1  -1  -1  2.8895900000e+16   ;
+          }
+        }
+      }
+    }
+    Field DeviceID 1 {"W89XAXX"}
+    Field DiePitch 2 {200000000, 200000000}
+    Field FabID 1 {"ONSEMICZ2"}
+    Field InspectionStationID 3 {"NONE", "SFSSP1", "DASP1C01"}
+    Field OrientationMarkLocation 1 {0}
+    Field RecipeID 3 {"W89XAXX", "12-08-2025", "04:40:00"}
+    Field RecipeVersion 3 {"", "", ""}
+    Field ResultTimestamp 2 {"12-08-2025", "04:41:19"}
+    Field SampleOrientationMarkType 1 {"NOTCH"}
+    Field SampleSize 2 {200000000, 0}
+    Field SampleType 1 {"WAFER"}
+    Field StepID 1 {"W89XAXX"}
+
+    List ClassLookupList
+    {
+      Columns 3 { int32 CLASSNUMBER, string CLASSNAME, string CLASSCODE }
+      Data 1
+      {
+         0 "UNCLASSIFIED" "";
+      }
+    }
+  }
+  Field FileTimestamp 2 {"12-08-2025", "04:57:03"}
+
+}
+EndOfFile;

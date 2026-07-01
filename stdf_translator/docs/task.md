@@ -1,0 +1,34 @@
+# STDF to XML Translator Service
+
+- [x] Initialize Rust project `stdf_translator` <!-- id: 0 -->
+- [x] Create Implementation Plan <!-- id: 1 -->
+- [x] Implement Core Translation Logic <!-- id: 2 -->
+    - [x] Add dependencies (`rust-stdf`, `quick-xml`, `tokio`, `axum`, `tracing`) <!-- id: 3 -->
+    - [x] Create STDF to XML streaming converter <!-- id: 4 -->
+    - [x] Write unit tests for converter <!-- id: 5 -->
+- [x] Implement Web Service <!-- id: 6 -->
+    - [x] Create API endpoint for file upload <!-- id: 7 -->
+    - [x] Integrate streaming converter into API response <!-- id: 8 -->
+- [x] Implement CLI Support <!-- id: 12 -->
+    - [x] Add `clap` dependency <!-- id: 13 -->
+    - [x] Refactor `main` to handle CLI arguments <!-- id: 14 -->
+    - [x] Implement file-to-file conversion logic <!-- id: 15 -->
+- [x] Implement Basic Web UI <!-- id: 16 -->
+    - [x] Create `index.html` with upload form <!-- id: 17 -->
+    - [x] Serve static file from `axum` <!-- id: 18 -->
+- [x] Enhance Web UI <!-- id: 19 -->
+    - [x] Measure and return benchmark info (headers) <!-- id: 20 -->
+    - [x] Implement collapsible XML viewer in embedded JS <!-- id: 21 -->
+    - [x] Style the presentation <!-- id: 22 -->
+- [x] Implement True Streaming <!-- id: 23 -->
+    - [x] Create `StreamBodyReader` (Input Pipe) <!-- id: 24 -->
+    - [x] Create `StreamBodyWriter` (Output Pipe) <!-- id: 25 -->
+    - [x] Refactor `convert` handler to pipeline data <!-- id: 26 -->
+    - [x] Update UI to measure benchmarks client-side (since headers won't work with streaming) <!-- id: 27 -->
+- [x] Deployment Config <!-- id: 28 -->
+    - [x] Create Nginx configuration snippet <!-- id: 29 -->
+    - [x] Create Systemd Service File <!-- id: 30 -->
+    - [x] Write Linux Deployment Guide <!-- id: 31 -->
+- [/] Verify and Polish <!-- id: 9 -->
+    - [ ] Test with sample STDF files <!-- id: 10 -->
+    - [ ] Ensure error handling is robust (invalid files, corruption) <!-- id: 11 -->

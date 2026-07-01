@@ -1,0 +1,15 @@
+[Unit]
+Description=STDF to XML Translator Service
+After=network.target
+
+[Service]
+Type=simple
+# User=www-data  <-- Uncomment and set to your desired user
+WorkingDirectory=/opt/stdf_translator
+ExecStart=/opt/stdf_translator/stdf_translator --server
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

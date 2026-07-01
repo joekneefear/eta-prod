@@ -1,0 +1,18 @@
+{
+  "start_local": "2025-09-02 05:07:02",
+  "end_local": "2025-09-02 05:47:27",
+  "start_utc": "2025-09-02T12:07:02Z",
+  "end_utc": "2025-09-02T12:47:27Z",
+  "elapsed_seconds": 2424.879,
+  "elapsed_human": "40m 24s",
+  "output_file": "/apps/exensio_data/reference_data/SubconLotRefData-20250902_050702.subconLot",
+  "rowcount": 11060,
+  "log_file": "/apps/exensio_data/reference_data/jag_test/log/getSubconLotRefData_LOTGDB.log",
+  "archived_file": "/apps/exensio_data/archives-yms/reference_data/lot/SubconLotRefData-20250902_050702.subconLot.gz",
+  "pid": 21788,
+  "date_code": "20250902_050702",
+  "pipeline_name": "subcon_lotg_to_refdb_ingest",
+  "script_name": "get_subcon_lot_ref_data_LOTGDB_rc10.py",
+  "pipeline_type": "batch",
+  "environment": "prod"
+}

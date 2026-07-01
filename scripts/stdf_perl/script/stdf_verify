@@ -1,0 +1,860 @@
+#!/usr/bin/perl 
+
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+# STDF_VERIFY -
+#	This script will readin a STDF file and verify whether it meets the
+#	STDF format requirements.It primarily deals with the record structure
+#       i.e. balanced records,ordering of records and checks to see that 
+#	required fields are poplulated.
+#	On reaching the first error it displays the same and stops checking 
+#       further so that the required corrections are made before proceeding. 
+#	
+#       If you would like other records to be handled it would be added as 
+#	(XYZ_Record(.....   )) in the switch statement of the stdf_validate 
+#	function.Further in the XYZ_Record function definition the required 
+#       test conditions would have to be added.
+#
+#	
+#	USAGE     : stdf_verify stdf_inputfile
+#		  : stdf_verify -h			#displays usage
+#	HANDLES   : stdf_ver >= 104 and stdf_ver = 4
+#
+# Confidential Property of Fairchild Semiconductor Corporation
+# (c) Copyright Fairchild Semiconductor Corporation, 1999
+# All rights reserved
+#
+# MODIFICATION HISTORY:
+#
+# DATE        WHO             DESCRIPTION
+# ___________ ______________  __________________________________________________
+# 21 Aug 2002 Seetha V.Shetty  Original
+#
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+
+# Load libraries
+#
+use Carp ;  # error messages - does not work within stdf_use.pl
+# set path to executable for libraries
+use English ; # use intellegent variable names
+use FindBin ; 
+use lib "$FindBin::Bin" ; # set up path for libraries the same as script
+use lib $ENV{'STDF_PERL_LIB'} ; # look for libraries in this directory
+
+require "stdf_use.pl" ;   # libraries that are not generated
+
+#-----------------------------------------------------------------------------#
+#Global Variables
+#-----------------------------------------------------------------------------#
+
+$format    = "ascii" ;
+$rec_num   = 0 ;
+
+$lastrecord= "";
+@RECORDS   = ();
+$err       = "";
+$FileType  = "";
+
+$emircount = 0;
+$epdrcount = 0;
+$mrrcount  = 0;
+$ssumcnt   = 0;
+$ssum_cnt  = 0;
+$sswbcnt   = 0;
+$sswb_cnt  = 0;
+$shwbcnt   = 0;
+$ssyncnt   = 0;	     #for tsr/tgs record not defined yet
+$shiscnt   = 0;	     #for thr/tgs record not defined yet
+$wsumcnt   = 0;
+$wsum_cnt  = 0;
+$wswbcnt   = 0;
+$wswb_cnt  = 0;
+$whwbcnt   = 0;
+$whwb_cnt  = 0;
+$wsyncnt   = 0;	     #for wtsr/wtgs record not defined yet
+$whiscnt   = 0;	     #for wthr/wtgs record not defined yet
+$psumcnt   = 0;
+$psum_cnt  = 0;	     
+$prescnt   = 0;
+$pres_cnt  = 0;
+$frescnt   = 0;	     #for eftr record not defined yet
+$psyncnt   = 0;	     #for ptgs record not defined yet
+$phiscnt   = 0;	     #for ptgh record not defined yet
+@SBIN_NUMS = ();
+@HBIN_NUMS = ();
+
+#-----------------------------------------------------------------------------#
+#Begin Program
+#-----------------------------------------------------------------------------#
+$useage = "stdf_verify <stdf input file>\n";
+
+while (substr($ARGV[0],0,1) eq '-')
+{
+  my $arg = substr($ARGV[0],1) ;
+  if ($arg eq 'h')
+     { print $useage; exit; }
+  else
+     { confess "-$arg is not a valid argument\n" ; }
+}
+
+if ($ARGV[0] && !($ARGV[0] eq '-'))
+{
+   $in_fn = shift ;
+   open INPUT, "<$in_fn" or confess "Could not open $in_fn\n" ;
+}
+
+binmode INPUT ; # open file in binary, required for MSDOS
+
+open LOG, ">&STDERR" or confess "Could not open STDERR\n" ;
+
+#
+# read first record
+# '< fix vim
+($status, $rec_len, $rec_typ, $rec_sub, $buf) = read_first_rec( \*INPUT, $stdf_ver ) ;
+$total_bytes_read = $status ;
+
+#
+# check the version and load a specification
+# as well as custom coded routines.
+# the input specification is also used for the 
+# output specification
+#
+if ($stdf_ver==4) 
+{
+  $in_spec='stdfV4';
+  $in_gen =$in_spec;
+}
+elsif ($stdf_ver >= 104)
+{
+  $in_spec='stdfPL_current' ;
+  $in_gen='stdfPL_' . $stdf_ver ;
+}
+else
+{
+  #warn "Don't have a spec file for stdf version: $stdf_ver" ;
+  #$in_spec='' ;
+  printf "Do not have a spec file for stdf version: $stdf_ver.\n";
+  exit(0);
+}
+
+if (defined($in_spec))
+{
+  package in ;
+  use Carp ;
+  $eval_str=&::generate_all($::in_gen.".spec" ) ; # generated stdf code
+  $eval_rc = eval $eval_str ;
+
+  if (!defined($eval_rc))
+    { confess $@ ; }
+
+  require $::in_spec.'.pl' ; # custom stdf code, may over-ride.
+
+  if ( defined($::require))
+    {
+    require $::require ; # user specified custom stdf code, may over-ride 
+    }
+}
+
+#-----------------------------------------------------------------------#
+# continue processing file reading record by record...
+#-----------------------------------------------------------------------#
+
+while ( $status && ($err eq ""))
+ {
+	  # call the validation function for each record read.
+	  $rec_num++ ;
+	  stdf_validate( $total_bytes_read, $rec_len, $rec_typ, $rec_sub, $buf, \*OUTPUT, \*INPUT, $rec_num,\@RECORDS) ;
+
+	  # Read the next record.
+	  ($status, $rec_len, $rec_typ, $rec_sub, $buf) = read_rec( \*INPUT, $stdf_ver ) ;
+	  $total_bytes_read += $status ;
+ }
+
+#-----------------------------------------------------------------------#
+# Display results after evaluating the STDF file
+#-----------------------------------------------------------------------# 
+  if((length($err) == 0) && $FileType eq "TestPlan" && $epdrcount == 0)
+  {
+	 $err = "A test plan should have epdr records.\n";
+  }
+  if((length($err) == 0) && ($emircount != 1 || $mrrcount != 1))
+  {
+	$err = "There can be only one each of the EMIR and MRR records.\n";
+  }
+  if(length($err) == 0)
+  {
+	Verify_Counts(); 
+  }
+  if(length($err)== 0 && $#RECORDS == -1)
+  {
+	 
+	  printf "The STDF file is well formed.\n";
+  }
+  else
+  {	  
+	  print $err;
+  	  
+  }
+
+#-----------------------------------------------------------------------#
+#This subroutine reads an STDF file using function calls defined in 
+#the stdf_perl/lib directory,checks for records,their position 
+#and structure and determines whether the STDF file is well-formed.
+#-----------------------------------------------------------------------#
+
+sub stdf_validate
+{
+	my $total_bytes_read = shift ;
+	my $rec_len          = shift ;
+	my $rec_typ          = shift ;
+	my $rec_sub          = shift ;
+	my $buf              = shift ;
+	my $outputfile       = shift ;
+	my $inputfile        = shift ;
+	my $rec_num          = shift ;
+	my $records          = shift;
+	
+	my $fname ; # name in uppercase for function names
+	my $vname ; # name in lowercase for hash names
+
+	if (! defined($outputfile) )
+	{	
+		$outputfile = \*STDOUT ;
+	}
+
+	# get the current record name.
+	$fname = $in::get_record_name{$rec_typ.'_'.$rec_sub};
+	$vname = lc($fname);
+	
+	
+	#If such a record is not defined then dump in hex
+	if (!defined($fname) || !defined(&{'in::unpack_'.$fname}) )
+	{ 
+		$err = "Invalid or unsupported record type: $fname.\n";
+	}
+	else
+	{
+		# Unpack the current record into the in:: package structures.
+		&{'in::unpack_'.$fname}(\$buf, \%{'in::'.$vname});
+		
+		# Call relevant functions depending on record type.
+		RECORD_SWITCH:{
+		     $vname eq "emir" && do{
+			     EMIR_Record ($vname,$records);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "ewcr" && do{
+			     EWCR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+			 $vname eq "epdr" && do{
+				 EPDR_Record ($vname,$records,$rec_num);
+				 last RECORD_SWITCH;
+		     };
+			 $vname eq "ltr" && do{
+			     LTR_Record ($vname,$records);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "wir" && do{
+			     WIR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "wmr" && do{
+			     WMR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "pir" && do{
+			     PIR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "ptr" && do{
+			     PTR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "eprr" && do{
+			     EPRR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "wsbr" && do{
+			     WSBR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "whbr" && do{
+			     WHBR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "wrr" && do{
+			     WRR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "sbr" && do{
+			     SBR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+		     $vname eq "hbr" && do{
+			     HBR_Record ($vname,$records,$rec_num);
+			     last RECORD_SWITCH;
+		     };
+
+		     $vname eq "mrr" && do{
+			     MRR_Record ($vname,$records);
+			     last RECORD_SWITCH;
+		     };
+		 }
+		
+	        $lastrecord = $vname;
+		
+	}
+}
+
+ #--------------------------------------------------------------------------------------#
+ #The EMIR record is the header record which should be the first record in the STDF file.
+ #--------------------------------------------------------------------------------------#
+
+ sub EMIR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 
+	 if($#records != -1)
+	 {
+		$err = "The EMIR record has to be the standard header record.\n";
+	 }
+	 $emircount++;
+	 if($emircount > 1)
+	 {
+		 $err = "There can not be more that one EMIR record.\n";
+	 }
+	 push @$records,$varname;
+	 
+	 StoreCounts($varname);
+	 if((length(${'in::'.$varname}{"mode_cod"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required mode_cod field in the EMIR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"spec_nam"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required spec_nam field in the EMIR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"spec_rev"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required spec_rev field in the EMIR record is not populated.\n";
+	 }
+	 if((${'in::'.$varname}{"spec_rev"}) =~ /[a-z]/i)
+	 {
+		$err  = $err."The spec revision has to be a numeric value.\n";
+	 }
+	 if(${'in::'.$varname}{"mode_cod"} eq "P")
+	 {
+		 if((length(${'in::'.$varname}{"lot_id"})==0))
+		 {
+			 $err  = $err."The required 'lot_id' field is not populated in the EMIR record for this datafile.\n";
+		 }
+		$FileType = "Data";
+	 }
+	 elsif (${'in::'.$varname}{"mode_cod"} eq "C")
+	 {
+		 $FileType = "TestPlan";
+	 }
+	 else
+	 {
+		$err =$err."Invalid File Type the field mod_cod in the EMIR record is ".(${'in::'.$varname}{"mode_cod"})."\nIt has to be (P or C)\n"; 
+	 }
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The EWCR record contains the wafer information for the wafers tested by the job plan.
+ #--------------------------------------------------------------------------------------#
+
+ sub EWCR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num       = shift;
+
+	 if((length(${'in::'.$varname}{"die_ht"})==0))
+	 {
+		 $err  = "In record ".$rec_num .", the required die_ht field in the EWCR record is not populated.\n";
+	 }
+	 if(( length(${'in::'.$varname}{"die_wid"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required die_wid field in the EWCR record is not populated.\n";
+	 } 
+	 if((length(${'in::'.$varname}{"wf_units"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required wf_units field in the EWCR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"row_cnt"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required row_cnt field in the EWCR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"col_cnt"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required col_cnt field in the EWCR record is not populated.\n";
+	 }
+
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The EWCR record contains the wafer information for the wafers tested by the job plan.
+ #--------------------------------------------------------------------------------------#
+
+ sub LTR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num       = shift;
+
+	 if((length(${'in::'.$varname}{"lot_id"})==0))
+	 {
+		 $err  = "In record ".$rec_num .", the required lot_id field in the LTR record is not populated.\n";
+	 }
+	 
+ }
+ #--------------------------------------------------------------------------------------#
+ #The EPDR record describes a Parametric Test and associated bin(s).
+ #--------------------------------------------------------------------------------------#
+
+ sub EPDR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num       = shift;
+
+	$epdrcount++;
+	
+	if((length(${'in::'.$varname}{"test_num" })==0))
+	 {
+		$err  = "In record ".$rec_num .", the required test_num field in the EPDR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"test_nam"})==0))
+	 {
+		$err  = $err."In record ".$rec_num .", the required test_nam field in the EPDR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"hi_limit"})==0))
+	 {
+		$err  = $err."In record ".$rec_num .", the required hi_limit field in the EPDR record is not populated.\n";
+	 } 
+	 if((length(${'in::'.$varname}{"lo_limit"})==0))
+	 {
+		$err  = $err."In record ".$rec_num .", the required lo_limit field in the EPDR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"units"})==0))
+	 {
+		#$err  = $err."In record ".$rec_num .", the required units field in the EPDR record is not populated.\n";
+	}
+	
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The WIR record is the wafer header record .They enclose Part records or bin results
+ #and should be terminated by a WRR record.
+ #The WIR record can be preceeded by an EMIR record or an optional GDR record.
+ #--------------------------------------------------------------------------------------#
+
+ sub WIR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num       = shift;
+
+	 
+	 if($lastrecord ne "emir" && $lastrecord ne "gdr" && $lastrecord ne "wrr" && $lastrecord ne "ltr")
+	 {
+		 $err  = "In record ".$rec_num .", The STDF file is not properly structured around the WIR record.\n";
+	 }
+
+	 push @$records,$varname.":".${'in::'.$varname}{"wafer_id"};
+
+	 if(length(${'in::'.$varname}{"wafer_id"})==0)
+	 {
+		$err  = "In record ".$rec_num .", The required wafer_id field in the WIR record is not populated.\n";
+	 } 
+		
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The WMR record contains results of a probed wafer.One or a sequence of WMR's should 
+ #be enclosed by WIR and WRR records.
+ #--------------------------------------------------------------------------------------#
+
+ sub WMR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num       = shift;
+
+	 
+	 if($lastrecord ne "wir" && $lastrecord ne "wmr")
+	 {
+		 $err  = "In record ".$rec_num .", The STDF file is not properly structured around the WMR record.\n";
+	 }
+
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The PIR record is a part header record .It contains PTR records and should be 
+ #terminated by an EPRR record.
+ #The PIR record can be preceeded by a WIR record (EMIR?).
+ #--------------------------------------------------------------------------------------#
+
+ sub PIR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num       = shift;
+
+	 my $part_id ="";
+	 my $x_val = -32768;
+	 my $y_val = -32768;
+	 
+	 if($lastrecord ne "wir" && $lastrecord ne "ltr" && $lastrecord ne "emir" && $lastrecord ne "eprr")
+	 {
+		 $err  = "In record ".$rec_num .", The STDF file is not properly structured around the PIR record.\n";
+	 }
+
+	 
+	 $part_id = ${'in::'.$varname}{"part_id"};
+	 $x_val   = ${'in::'.$varname}{"x_coord"};
+	 $y_val   = ${'in::'.$varname}{"y_coord"};
+	
+	 if(length($part_id) != 0)
+	 {
+		push @$records,$varname.":p".$part_id;	     #'p'/'c' to differentiate bt the types
+	 }
+	 elsif(length($x_val)!=0 && length($y_val)!=0)
+	 {
+		push @$records,$varname.":c".$x_val.$y_val;
+	 }
+	 else
+	 {
+ 	        $err  = "In record ".$rec_num .", One or more of the required PIR record fields are not populated.\n";
+			$err  = $err."\nCheck part_id or (x_coord & y_coord)\n";
+	 }
+	 
+ }
+  
+ #--------------------------------------------------------------------------------------#
+ #The PTR records are the part result record they are enclosed between PIR records 
+ #above and EPRR records below.
+ #--------------------------------------------------------------------------------------#
+
+ sub PTR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num	   = shift;
+	 $prescnt++;
+
+	 if($lastrecord ne "pir" && $lastrecord ne "ptr")
+	 {
+		 $err  = "In record ".$rec_num .", The STDF file is not properly structured around the PTR record.\n";
+	 }
+
+	 if((length(${'in::'.$varname}{"result"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required result field in the PTR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"test_num"})==0))
+	 {
+		$err  = $err."In record ".$rec_num .", the required test_num field in the PTR record is not populated.\n";
+	 }
+ }
+ 
+ #--------------------------------------------------------------------------------------#
+ #The EPRR records represent the end-of-part results record.They enclose PRR records 
+ #between themselves and the PIR records above.
+ #--------------------------------------------------------------------------------------#
+ 
+ sub EPRR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num	   = shift;
+	 $psumcnt++;
+
+	 my $poppedvarname = "";
+	 my $part_id="";
+	 my $partid_provided =0;
+	 my $x_val = -32768;
+	 my $y_val = -32768;
+	 my $xy_coord_provided = 0;
+	 my $compareid ="";
+
+	 if($lastrecord ne "ptr" )
+	 {
+		$err  = "In record ".$rec_num .", The STDF file is not properly structured around the EPRR record.\n";
+	 }
+
+	 $part_id = ${'in::'.$varname}{"part_id"};
+	 $x_val   = ${'in::'.$varname}{"x_coord"};
+	 $y_val   = ${'in::'.$varname}{"y_coord"};
+
+	 if(length($part_id) != 0)
+	 {
+		$compareid = "p".$part_id;		    #should I quit after this using last
+	 }
+	 elsif(length($x_val)!=0 && length($y_val)!=0)
+	 {
+		$compareid = "c".$x_val.$y_val; 
+	 }
+	 else
+	 {
+		$err  = "In record ".$rec_num .", The required EPRR record fields are not populated.\n";
+		$err  = $err."\nCheck part_id or (x_coord & y_coord)\n";
+	 }
+	 $poppedvarname    = pop @$records;
+	 
+	 my ($recordtype, $matchid) = split /:/, $poppedvarname;
+	 
+	 if($recordtype ne "pir" || ($matchid ne $compareid))
+	 {
+		$err  = "In record ".$rec_num .", The PIR and EPRR records do not match/are not balanced.\n";
+	 }     
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The WSBR record stores a count of the parts associated with a particular logical bin 
+ #after testing a specific wafer.
+ #--------------------------------------------------------------------------------------#
+
+ sub WSBR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num	   = shift;
+	 $wswbcnt++;
+
+	 my $toprecord = $$records[$#records];		#peeking in to see top record type
+	 	 
+	 my ($recordtype, $partid) = split /\:/, $toprecord;
+	 
+	 if($recordtype ne "wir")
+	 {
+		 $err  = "In record ".$rec_num .", The STDF file is not properly structured around the WSBR record.\n";
+	 }
+	 
+	 if((length(${'in::'.$varname}{"sbin_num"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required sbin_num field in the WSBR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"sbin_cnt"})==0))
+	 {
+		  $err  = $err."In record ".$rec_num .", the required sbin_cnt field in the WSBR record is not populated.\n";
+	 }
+}
+
+ #--------------------------------------------------------------------------------------#
+ #The WHBR record stores a count of the parts physically placed in a particular bin 
+ #after testing a specific wafer.
+ #--------------------------------------------------------------------------------------#
+
+ sub WHBR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num	   = shift;
+	 $whwbcnt++;
+
+	 my $toprecord = pop @$records;		        #peeking in to see top record type
+	 push @$records,$toprecord;
+
+	 my ($recordtype, $partid) = split /\:/, $toprecord;
+	
+	 if($recordtype ne "wir")
+	 {
+		 $err  = "In record ".$rec_num .", The STDF file is not properly structured around the WHBR record.\n";
+	 }
+	 
+	 if((length(${'in::'.$varname}{"hbin_num"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required hbin_cnt field in the WHBR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"hbin_cnt"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required hbin_cnt field in the WHBR record is not populated.\n";
+	 }
+	 
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The WRR records represent the end-of-wafer record.They enclose Part records or bin 
+ #results between themselves and the WIR records above.
+ #--------------------------------------------------------------------------------------#
+ 
+ sub WRR_Record 
+ {	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num       = shift;
+	 my $wafer_id      = "";
+	 $wsumcnt++;
+
+	 if($lastrecord ne "eprr" && $lastrecord ne "whbr" && $lastrecord ne "wsbr" && $lastrecord ne "wtsr" && $lastrecord ne "wmr")
+	 {
+		 $err  = "In record ".$rec_num .", The STDF file is not properly structured around the WRR record.\n";
+	 }
+
+	 $wafer_id = ${'in::'.$varname}{"wafer_id"};
+		   
+	 if(length($wafer_id)==0)
+	 {
+		$err  = $err."In record ".$rec_num .", the required wafer_id field in the WRR record is not populated.\n";
+		
+	 }
+	 	
+	 $poppedvarname = pop @$records;
+	 	
+	 my ($recordtype, $waferid) = split /\:/, $poppedvarname;
+	 
+	 if($recordtype ne "wir" || $waferid ne $wafer_id)
+	 {
+		$err  = $err."In record ".$rec_num .", The WIR and WRR records do not match/are not balanced.\n";
+	 }
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The SBR record stores a count of the parts associated with a particular logical bin. 
+ #--------------------------------------------------------------------------------------#
+
+ sub SBR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num	   = shift;
+
+	 $sswbcnt++;
+	 if((length(${'in::'.$varname}{"sbin_num"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required sbin_num field in the SBR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"sbin_cnt"})==0))
+	 {
+		$err  = $err."In record ".$rec_num .", the required sbin_cnt field in the SBR record is not populated.\n";
+	 }
+	 
+	 for(my $i = 0;($i <= $#SBIN_NUMS) && (length($err)==0) ;$i++)
+	 {
+		 if(${'in::'.$varname}{"sbin_num"} eq $SBIN_NUM[$i])
+		 {
+			 $err = $err."In record ".$rec_num." found an SBR record with duplicate sbin_cnt value.\n";
+		 }
+	 }
+	 $SBIN_NUMS[$#SBIN_NUMS+1] = ${'in::'.$varname}{"sbin_num"};
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The HBR record stores a count of the parts physically placed in a particular bin.
+ #--------------------------------------------------------------------------------------#
+
+ sub HBR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $rec_num	   = shift;
+	 $shwbcnt++;
+
+	 if((length(${'in::'.$varname}{"hbin_num"})==0))
+	 {
+		 $err  = $err."In record ".$rec_num .", the required hbin_num field in the HBR record is not populated.\n";
+	 }
+	 if((length(${'in::'.$varname}{"hbin_cnt"})==0))
+	 {
+		$err  = $err."In record ".$rec_num .", the required hbin_cnt field in the HBR record is not populated.\n";
+	 }
+	 for(my $i = 0;($i <= $#HBIN_NUMS) && (length($err)==0) ;$i++)
+	 {
+		 if(${'in::'.$varname}{"hbin_num"} eq $HBIN_NUM[$i])
+		 {
+			 $err = $err."In record ".$rec_num." found an HBR record with duplicate hbin_cnt value.\n";
+		 }
+	 }
+	 $HBIN_NUMS[$#HBIN_NUMS+1] = ${'in::'.$varname}{"hbin_num"};
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #The MRR record represents the end-of-file record.There will be only one MRR record in 
+ #each file and it terminates the EMIR record. 
+ #--------------------------------------------------------------------------------------#
+
+ sub MRR_Record 
+ {
+	 my $varname       = shift;
+	 my $records       = shift;
+	 my $poppedvarname = "";
+	 
+	 $ssumcnt++;
+	 
+	 $poppedvarname    = pop @$records;
+	 
+	 $mrrcount++;
+	 if($mrrcount > 1)
+	 {
+		 $err = "There can not be more that one MRR record.\n";
+	 }
+	 
+	 if($poppedvarname ne "emir")
+	 {
+		 $err  = "Reached the MRR record but found an imbalance with the ".$poppedvarname." record.\n";
+	 }
+}
+
+ #--------------------------------------------------------------------------------------#
+ #This function stores the counts of records stated in fields of the EMIR record .
+ #--------------------------------------------------------------------------------------#
+ sub StoreCounts
+ {
+	my $varname	   = shift;
+
+	$ssum_cnt    = ${'in::'.$varname}{"ssum_cnt"};
+	$sswb_cnt    = ${'in::'.$varname}{"sswb_cnt"};
+	$shwb_cnt    = ${'in::'.$varname}{"shwb_cnt"};
+	$wsum_cnt    = ${'in::'.$varname}{"wsum_cnt"};
+	$wswb_cnt    = ${'in::'.$varname}{"wswb_cnt"};
+	$whwb_cnt    = ${'in::'.$varname}{"whwb_cnt"};
+	$psum_cnt    = ${'in::'.$varname}{"psum_cnt"};     
+	$pres_cnt    = ${'in::'.$varname}{"pres_cnt"};
+ }
+
+ #--------------------------------------------------------------------------------------#
+ #This function compares the actual counts of records with that stored in fields of the 
+ #EMIR record and checks for discrepencies.
+ #--------------------------------------------------------------------------------------#
+ sub Verify_Counts
+ {
+	 if($ssum_cnt != $ssumcnt)
+	 {
+		 $err = $err."The number of MRR records do not match with SSUM_CNT.\n";
+	 }
+	 if($sswb_cnt != $sswbcnt)
+	 {
+		 $err = $err."The number of SBR records do not match with SSWB_CNT.\n";
+	 }
+	 if($shwb_cnt != $shwbcnt)
+	 {
+		 $err = $err."The number of HBR records do not match with SHWB_CNT.\n";
+	 }
+	 if($wsum_cnt != $wsumcnt)
+	 {
+		 $err = $err."The number of WRR records do not match with WSUM_CNT.\n";
+	 }
+	 if($wswb_cnt != $wswbcnt)
+	 {
+		 $err = $err."The number of WSBR records do not match with WSWB_CNT.\n";
+	 }
+	 if($whwb_cnt != $whwbcnt)
+	 {
+		 $err = $err."The number of WHBR records do not match with WHWB_CNT.\n";
+	 }
+	 if($psum_cnt != $psumcnt)
+	 {
+		 $err = $err."The number of EPRR records do not match with PSUM_CNT.\n";
+	 }
+	 if($pres_cnt != $prescnt)
+	 {
+		 $err = $err."The number of PTR records do not match with PRES_CNT.\n";
+	 }
+  }
+ #--------------------------------------------------------------------------------------#
+        #-----------------------------------------------------------------------#
+	          #--------------------------------------------------#

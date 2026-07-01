@@ -1,0 +1,14 @@
+4.0
+12
+1	SYBCHAR	1	255	""	1	entity_id
+2	SYBCHAR	1	255	""	2	facility
+3	SYBCHAR	1	255	""	3	attribute_name
+4	SYBCHAR	1	255	""	4	date_time
+5	SYBCHAR	1	255	""	5	work_week
+6	SYBCHAR	0	1	""	6	attribute_type
+7	SYBCHAR	1	255	""	7	alpha_abbribute_value
+8	SYBCHAR	1	255	""	8	date_abbribute_value
+9	SYBCHAR	1	255	""	9	time_abbribute_value
+10	SYBCHAR	1	255	""	10	date_time_abbribute_value
+11	SYBCHAR	1	1	""	11	logic_abbribute_value
+12	SYBFLT8	1	8	""	12	numeric_abbribute_value

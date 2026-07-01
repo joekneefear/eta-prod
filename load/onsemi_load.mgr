@@ -1,0 +1,27 @@
+$DPLOAD/asmc_wat.cfg : -mtime -log $DPLOG/asmc_wat.cfg.log -sleep 60 : ASMC_WAT
+$DPLOAD/xfab_wat.cfg : -mtime -log $DPLOG/xfab_wat.cfg.log -sleep 60 : XFAB_WAT
+$DPLOAD/smic_wat.cfg : -mtime -log $DPLOG/smic_wat.cfg.log -sleep 60 : SMIC_WAT
+$DPLOAD/umc_wat.cfg : -mtime -log $DPLOG/umc_wat.cfg.log -sleep 60 : UMC_WAT
+$DPLOAD/tower_wat.cfg : -mtime -log $DPLOG/tower_wat.cfg.log -sleep 60 : TOWER_WAT
+$DPLOAD/cz2_sic_epi_ftir_pp.cfg : -mtime -log $DPLOG/cz2_sic_epi_ftir_pp.cfg.log -sleep 60 : CZ2_SIC_FTIR
+$DPLOAD/cz2_sic_epi_hgcv_pp.cfg : -mtime -log $DPLOG/cz2_sic_epi_hgcv_pp.cfg.log -sleep 60 : CZ2_SIC_HGCV
+$DPLOAD/qorvo_ft_aos_iff_pp.cfg : -mtime -log $DPLOG/qorvo_ft_aos_iff_pp.cfg.log -sleep 60 : QORVO_AOS_FT
+$DPLOAD/qorvo_dvds_hyme_iff_pp.cfg: -mtime -log $DPLOG/qorvo_dvds_hyme_iff_pp.cfg.log -sleep 60 : QORVO_HYME_DVDS
+$DPLOAD/qorvo_ft_hyme_iff_pp.cfg: -mtime -log $DPLOG/qorvo_ft_hyme_iff_pp.cfg.log -sleep 60 : QORVO_HYME_FT
+$DPLOAD/qorvo_qc_aos_iff_pp.cfg: -mtime -log $DPLOG/qorvo_qc_aos_iff_pp.cfg.log -sleep 60 : QORVO_AOS_QC
+$DPLOAD/onhd_weh_split_file.cfg: -mtime -log $DPLOG/onhd_weh_split_file.cfg.log -sleep 60 : ONHD_WEH
+$DPLOAD/qorvo_rg_hyme_iff_pp.cfg: -mtime -log $DPLOG/qorvo_rg_hyme_iff_pp.cfg.log -sleep 60 : QORVO_HYME_RG
+$DPLOAD/qorvo_uis_hyme_iff_pp.cfg: -mtime -log $DPLOG/qorvo_uis_hyme_iff_pp.cfg.log -sleep 60 : QORVO_HYME_UIS
+$DPLOAD/onhd_leh_split_file.cfg: -mtime -log $DPLOG/onhd_leh_split_file.cfg.log -sleep 60 : ONHD_LEH
+$DPLOAD/qorvo_eas_hyme_iff_pp.cfg: -mtime -log $DPLOG/qorvo_eas_hyme_iff_pp.cfg.log -sleep 60 : QORVO_HYME_EAS
+$DPLOAD/my2_leh_split_file.cfg: -mtime -log $DPLOG/my2_leh_split_file.cfg.log -sleep 60 : MY2_LEH
+$DPLOAD/cz4_leh_split_file.cfg: -mtime -log $DPLOG/cz4_leh_split_file.cfg.log -sleep 60 : CZ4_LEH
+$DPLOAD/cz4_met_replace_null_with_na.cfg: -mtime -log $DPLOG/cz4_met_replace_null_with_na.cfg.log -sleep 60 : CZ4_MET
+$DPLOAD/qorvo_aos_tr_csv_data_IFF_csv_to_xml_uncompress.cfg: -mtime -log $DPLOG/qorvo_aos_tr_csv_data_IFF_csv_to_xml_uncompress.cfg.log -sleep 60 : AOS_TR_UC
+$DPLOAD/qorvo_aos_tr_csv_data.cfg: -mtime -log $DPLOG/qorvo_aos_tr_csv_data.cfg.log -sleep 60 : AOS_TR
+$DPLOAD/my2_met_split_file.cfg: -mtime -log $DPLOG/my2_met_split_file.cfg.log -sleep 60 : MY2_MET
+$DPLOAD/sz_ft_wirebond_csv_pp.cfg : -mtime -log $DPLOG/sz_ft_wirebond_csv_pp.cfg.log -sleep 60 : SZ_WIRE_BOND
+##<now epitaxy> $DPLOAD/cz2_met_aixtrom_pp.cfg: -mtime -log $DPLOG/cz2_met_aixtrom_pp.cfg.log -sleep 60 : CZ2_MET_AIXTRON
+$DPLOAD/onhd_meyerberger_met_pp.cfg: -mtime -log $DPLOG/onhd_meyerberger_met_pp.cfg.log -sleep 60 : ONHD_MEYERBERGER
+$DPLOAD/qorvo_qc_hyme_iff_pp.cfg: -mtime -log $DPLOG/qorvo_qc_hyme_iff_pp.cfg.log -sleep 60 : QORVO_HYME_QC
+$DPLOAD/cz2_met_epitaxy_pp.cfg: -mtime -log $DPLOG/cz2_met_epitaxy_pp.cfg.log -sleep 60 : CZ2_MET_EPITAXY

@@ -1,0 +1,40 @@
+common_paths: &common_paths
+  CFG_JAVA: "/apps/exensio/java/jdk1.8.0_60/bin/java"
+  CFG_APT2XML: "/apps/exensio/scripts/aptina-datalogs-to-xml.jar"
+  
+  
+
+FT:
+  KYEC:
+    <<: *common_paths
+    CFG_DESIGNID: "/apps/exensio/cfg/DesignID.csv"
+    CFG_BININFO: "/apps/exensio/cfg/HWSWBin_FT.csv"
+
+  KINGPAK:
+    <<: *common_paths
+    CFG_DESIGNID: "/apps/exensio/cfg/DesignID.csv"
+    CFG_BININFO: "/apps/exensio/cfg/HWSWBin_FT.csv"
+
+  ASEM:
+    <<: *common_paths
+    CFG_DESIGNID: "/apps/exensio/cfg/DesignID.csv"
+    CFG_BININFO: "/apps/exensio/cfg/HWSWBin_FT.csv"
+
+  AQL:
+    <<: *common_paths
+    CFG_DESIGNID: "/apps/exensio/cfg/DesignID.csv"
+    CFG_BININFO: "/apps/exensio/cfg/HWSWBin_FT.csv"
+
+PROBE:
+  KYEC:
+    <<: *common_paths
+    CFG_BININFO: "/apps/exensio/cfg/HWSWBin.csv"
+  LFOUNDRY:
+    <<: *common_paths
+    CFG_BININFO: "/apps/exensio/cfg/HWSWBin.csv"
+  NAMPA:
+    <<: *common_paths
+    CFG_BININFO: "/apps/exensio/cfg/HWSWBin.csv"
+  CONDOR:
+    <<: *common_paths
+    CFG_BININFO: "/apps/exensio/cfg/HWSWBin.csv"

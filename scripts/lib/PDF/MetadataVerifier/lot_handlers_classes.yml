@@ -1,0 +1,6 @@
+bksort_wmap_nam: BkSortNamLotHandler
+
+dont_verify:
+  lots:
+  lots_like:
+  lots_start_with:

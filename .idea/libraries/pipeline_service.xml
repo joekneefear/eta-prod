@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="pipeline-service">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/pipeline-service.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

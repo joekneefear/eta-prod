@@ -1,0 +1,1756 @@
+#!/usr/bin/perl
+
+#
+# FSC Perl STDF Libraries
+#
+# Confidential Property of Fairchild Semiconductor Corperation
+# (c) Copyright Fairchild Semiconductor Corperation, 1999
+# All rights reserved
+#
+# MODIFICATION HISTORY:
+#
+# DATE       WHO             DESCRIPTION
+# __________ ______________  __________________________________________________
+# 11-02-1999 Steve Frampton  Original.  Contact Information:
+#                            (207) 273-3364
+#                            sframpto@fairchildsemi.com,
+#                            sframpto@midcoast.com
+#
+# 02-02-2000 Steve Frampton  Fixed a number of EMIR _CNT fields.
+# 02-09-2000 Steve Frampton  Added MRR init to fix MRR counts.
+# 02-15-2000 Steve Frampton  uppercase LOT_ID.
+#                            stripped delimiter chars from both
+#                            tsr,ptr test_nam
+#                            Changed definition of Infinity to be
+#                            MAX since SAS can't handle it.
+#                            Fixed MRR counts, as this was hosed.
+# 02-21-2000 Steve Frampton  Used update_EMIR function instead of
+#                            in-line code.
+#                            Put in check for TEST PLAN part
+# 03-20-2000 Steve Frampton  Changes made to accomodate longer test_plan_rev.
+#                            test_plan_rev is converted from real number to
+#                            integer by removing decimal point.
+# 04-11-2000 Steve Frampton  Added -log_fn option
+# 04-18-2000 Steve Frampton  Added -no_alarm option for eagle problem work
+#                            around.  Can be stripped when resolved.
+# 04-20-2000 Steve Frampton  TSR,WTSR.OPT.FLAG TEST_SDEV was invalid when 
+#                            MIN=MAX.  Fixed.
+# 05-01-2000 Steve Frampton  Added -reprobe option for eagle problem work
+#                            around.  Can be stripped when resolved.
+# 05-17-2000 Steve Frampton  Added -no_truncate_ptr option and default to
+#                            truncating ptr records
+# 10-10-2000 Steve Frampton  Set EMIR.MODE_COD to 'C' for test plans
+# 01-05-2001 Steve Frampton  EWCR is no longer output or parsed by default
+# 01-17-2001 Steve Frampton  Changed error message from WIR to MRR
+# 01-30-2001 Scott Boothby   Initialize WIR & WRR WAFER_ID fields with MRR.SBLOT_ID.
+# 01-30-2001 Steve Frampton  Add fix_bin_nam, fix_test_nam calls
+#                            Add compress_name option
+#
+
+$useage = '
+Convert an STDF V4 file to an STDF V3+ file for EDB
+
+V4_2_PL [-ptr_checks [continue]] [-force_env] [-h]
+        [-l loglevel] [-log_fn log]
+	[-no_truncate_ptr]
+	[-compress_name]
+	[-no_alarm] [-reprobe]
+        [-r record_list] [-tp ouput_test_plan_file] STDF_V4_File STDF+_File
+
+OPTIONS
+  -ptr_checks [continue]
+    Checks if default PTR information is overridden.  (not valid
+    for EDB).  If continue is specified, processing will continue
+    with warnings, otherwise problems are fatal.
+
+  -force_env
+    Environment variable values will be used to populate records
+    unconditionally (see ENVIRONMENT).
+
+  -no_alarm
+    Unconditionally set PTR.OPT_FLAG bit 0 to 0=No alarm
+    Eagle work around.
+
+  -reprobe
+    Sets EMIR/MIR.RTST_COD based on MIR.SBLOT_ID
+    Sets MRR.DISP_COD based on MIR.RTST_COD
+    Eagle work around.
+
+  -h
+    Print this help message.
+
+  -l loglevel 
+    Where loglevel is a number > 0.  Higher loglevels provide
+    more detail.
+
+  -log_fn log
+     Appends logging output to file name log.  STDERR is redefined.
+
+  -r record_list
+    Where record_list is an extended matching pattern.
+    Only STDF+ output records that match record_list will
+    be in the test data output file.  Example:  "EMIR|MRR".
+    See RECORD MAPPING.
+
+  -tp output_test_plan_file
+    Outputs test plan file to file name specified.
+    If this option is not provided, no test plan is output.
+    If - is specified, test plan output is stdout.
+
+  -compress_name
+    Compress _ out of bin or test name after converting
+    invalid characters to _.
+
+ARGUMENTS
+  STDF_V4_File
+   STDF V4 Input File Name
+
+  STDF+_File
+   STDF+_Output_File Name.  If - is specified, output file is
+   stdout.
+
+ENVIRONMENT
+  The following environment variables correspond to STDF+ EMIR output fields.
+
+  MODE_COD, STAT_NUM, PART_TYP, OPER_NAM, TSTR_TYP, PRB_CARD, LOT_ID,
+  SPEC_NAM, SPEC_REV, PKG_ID, PKG_TKPE, FACILITY
+
+  If the corresponding field is not available from the STDF V4 MIR input field,
+  then the field is populated with the ENVIRONMENT variable, except for SPEC_REV.
+
+  The EMIR.SPEC_REV takes its value from the first defined value: MIR.SPEC_REV,
+  ENV{SPEC_REV}, MIR.JOB_REV.
+  
+  will be populated with the environment variable SPEC_REV
+  if it is defined, otherwise the MIR.SPEC_REV will be used.
+
+  If the force_env command line option is set, the LOT_ID, SPEC_NAM, and
+  SPEC_REV will take on the values of the environment variables, regardless
+  of the values in the STDF V4 input file.  This is intended to be a test
+  feature.
+
+STATUS
+  The high nibble is the status for the test plan results.
+  The low order nibble is the status for the test data results.
+
+  255 Fatal.  Test Data and Test Plan are not valid because of missing data.
+  221 PTR test definition fields have changed.  Normally, this is fatal.
+      If the -ptr_checks [continue] options were set, then output is valid
+      stdf+, but data loaded into EDB will not be valid.
+   13 No EPDR records were written to the ouput test plan file.  Test 
+      plan output file is invalid.  This results if no PTR records
+      are in the input file.  This status can only be returned if the 
+      -tp option is in use.
+   12 Not able to update EMIR in test data file.
+
+RECORD MAPPING
+  The following record mapping is provided.
+  Note that V4 and STDF+ records may not have the same fields,
+  even if the record names are the same.
+  Specific fields are not listed.  Please inspect the source
+  code for this information.
+
+
+                      Optional
+Input      Output     Output
+STDF V4    STDF+      STDF+           Output
+Data File  Data File  Test Plan File  Frequency
+---------  ---------  --------------  ---------
+FAR        EMIR 1)    EMIR 1)         One per file
+MIR        EMIR 2)    EMIR 2)         
+SDR        EMIR 3)    EMIR 3)         
+WCR        WCR                        One per file
+WIR        WIR                        One per wafer
+ PIR        PIR                        One per part
+ PRR 1)     PIR                        
+  PTR        PTR      EPDR              See note below.
+ PRR 2)     EPRR                       One per part
+ SBR 3)     WSBR                       One per software bin
+ HBR 4)     WHBR                       One per hardware bin
+ TSR 5)     WTSR                       One per test
+WRR        WRR                        One per wafer
+SBR  6)    SBR                        One per software bin
+HBR  7)    HBR                        One per hardware bin
+TSR  8)    TSR                        One per test
+PCR        MRR 
+MRR        MRR        MRR             One per file
+
+Notes:
+
+PRRs labeled 1) and 2) are actually same record.   PRR 2) is shown
+in input record order, PRR 1) is not.
+
+EMIRs labeled 1), 2), and 3) are the same record.  Only one EMIR is
+written per file.
+
+SBR 3) and HBR 4) represent wafer bin information.  SBR 5) and SBR 6)
+represent session bin information.
+
+Only HBR, SBR, and TSR, and PCR records with HEAD_NUM=255 in the input
+are used for the output.
+
+Indented records denote that a record "belongs" to the bracketed types.
+Example:  The PTR freqency can be interpreted as once per test, 
+per part, per wafer (assuming wafer records exist in file).
+
+EPDR records occur once per test within a file.
+PTR records occur once per test execution.
+
+' ;
+
+# ' <- vim fix  
+
+#
+# Logging level definitions
+# Change these to suite -l option behavior
+#
+$log_cnv = 1 ;
+$log_trunc = 2 ; # text field overflows
+$log_tp_errors = 2 ;
+$log_ptr_errors = 2 ;
+$log_cnt_overflow = 3 ;
+$log_cnt_missing = 3 ;
+$log_tsr_stats_errors = 3 ;
+$log_IEEEfloat_pack_error = 3 ;
+$log_spec_id = 3 ;
+$log_trunc_bin_tests = 3 ;  # bin and test_nam field length overflow
+$log_bad_chars = 3 ;  # test name bad characters
+$log_tsr_neg_small_var_errors = 4 ;
+$log_IEEEfloat_unpack_error = 5 ;
+$log_cnt_overflow_event = 6 ;
+$log_cnt_missing_event = 6 ;
+# see V4 stdf standard for REC_TYP codes
+$log_lot_records = 6 ;
+$log_summary_records = 7 ;
+$log_wafer_records = 8 ;
+$log_part_records = 9 ;
+$log_test_records = 10 ;
+$log_generic_records = 11 ;
+
+#
+# default log level
+#
+$loglevel = 3 ;
+
+#
+# Load libraries
+#
+use Carp ;  # error messages - does not work within stdf_use.pl
+# set path to executable for libraries
+use FindBin ; 
+use lib "$FindBin::Bin" ; # set up path for libraries the same as script
+use lib $ENV{'STDF_PERL_LIB'} ; # look for libraries in this directory
+use English ;
+require "stdf_use.pl" ;  # libraries that are not generated
+
+#
+# Load Specifications
+#
+$in_spec='stdfV4.spec';
+$out_spec='stdfPL.spec' ;
+#
+# stdfV4.pl and stdfPL.pl are loaded over
+# routines from generate_all
+# stdfV4.pl and stdfPL.pl will not support
+# VMS files when not running on VMS
+#
+{
+package in ;
+use Carp ;
+if ( !eval(&::generate_all($::in_spec )))
+  { confess $@ ; }
+require 'stdfV4.pl' ;
+}
+{
+package out ;
+use Carp ;
+if ( !eval(&::generate_all($::out_spec )))
+  { confess $@ ; }
+require 'stdfPL.pl' ;
+}
+
+# Default record list
+$record_list = 
+  "EMIR|WIR|PIR|PTR|EPRR|WHBR|WSBR|WTSR|WRR|HBR|SBR|TSR|MRR" ;
+
+#
+# Parse command line arguments
+#
+$ptr_over_ride=0 ;
+$force_env=0 ;
+$truncate_ptr = 1 ;
+$compress_name = 0 ;
+$cmd = $PROGRAM_NAME." ". join(" ", @ARGV) ;  # save cmd line
+while (substr($ARGV[0],0,1) eq '-' && !($ARGV[0] eq '-'))  # parse all options
+  {
+  if ($ARGV[0] eq '-ptr_checks')
+    {
+    $ptr_checks=1; shift ;
+    if ($ARGV[0] eq 'continue')
+      {
+      $ptr_over_ride=1; shift;
+      }
+    }
+  elsif ($ARGV[0] eq '-r') { shift; $record_list = shift; }
+  elsif ($ARGV[0] eq '-force_env') { $force_env=1; shift ; }
+  elsif ($ARGV[0] eq '-no_alarm') { $no_alarm=1; shift ; }
+  elsif ($ARGV[0] eq '-reprobe') { $reprobe=1; shift ; }
+  elsif ($ARGV[0] eq '-compress_name') { $compress_name=1; shift ; }
+  elsif ($ARGV[0] eq '-no_truncate_ptr') { $truncate_ptr=0; shift ; }
+  elsif ($ARGV[0] eq '-tp')
+    {
+    shift;
+    $tp_fn = shift;
+    }
+  elsif ($ARGV[0] eq '-l') { shift; $loglevel = shift; }
+  elsif ($ARGV[0] eq '-log_fn') { shift; $log_fn = shift; }
+  elsif ($ARGV[0] eq '-h') { shift; print $useage; exit ; }
+  else { print $useage ; exit ; }
+  }
+if (defined($log_fn))
+  {
+  open_log($log_fn) ;  # redefine STDERR and LOG
+  }
+if (defined( $tp_fn ) )
+  {
+  if ($tp_fn eq '-')
+    {
+    open TPOUT, ">&STDOUT" or confess &lh, "Could not open test plan as STDOUT" ;
+    }
+  else
+    {
+    open TPOUT, ">$tp_fn" or confess &lh, "Could not open test plan for output $tp_fn\n" ;
+    }
+  binmode TPOUT ;
+  }
+
+if ($ARGV[0])
+  {
+  $in_fn = shift ;
+  if ( $in_fn eq $tp_fn )
+    { confess &lh, "Inputfilename=TestPlanfilename: $in_fn " ; }
+  open INPUT, "<$in_fn" or confess &lh, "Could not open input file name $in_fn\n" ;
+  }
+binmode INPUT ;
+if ($ARGV[0] && !($ARGV[0] eq '-'))
+  {
+  $out_fn = shift ;
+  if (($in_fn eq $out_fn) && !($out_fn eq ''))
+    { confess &lh, "Inputfilename=Outputfilename: $in_fn " ; }
+  open OUTPUT, ">$out_fn" or confess &lh, "Could not open output file name $out_fn\n" ;
+  }
+else
+  {
+  $out_fn = '-' ;
+  warn &lh, "No EMIR counts ! STDOUT should only be used for debug." ;
+  open OUTPUT, ">&STDOUT" or confess &lh, "Could not open output as STDOUT\n" ;
+  }
+binmode OUTPUT ;
+if ( $tp_fn eq $out_fn )  
+  { confess &lh, "TestPlanfilename=Outputfilename: $out_fn " ; }
+wlog($log_cnv, "start ".$cmd."\n") ;
+
+#
+# call loop to convert records
+#
+$rc = 0 ;
+convert_file(\*INPUT) ;
+$rc = $tp_rc+0xF*$rc ;   # Low Nibble is return code for test plan
+                         # High Nibble is return code for other stuff
+                         # If High Nibble is set, caller should assume
+                         # that test plan is bad too
+                         # This is the only exit point for normal processing
+                         # Note that there wont be a test plan return code
+                         # for fatal conditions
+ 
+exit($rc) ;  # return code is a global used within this file
+             # don't ever reset from non-zero to zero !
+             # in general, is a valid stdf file
+             # but not compatible with edb
+
+#
+# Mapping subroutines that get called within convert_file calling tree
+# From here to end of file
+#
+sub convert_FAR  # empty sub required to force Engine to unpack
+{
+wlog( $log_lot_records, "begin convert_FAR\n" ) ;
+%out::mrr = %{$out::init{mrr}} ;  # initialize mrr so that counts are set
+wlog( $log_lot_records, "end convert_FAR\n" ) ;
+}
+
+sub convert_MIR  # empty sub required to force Engine to unpack
+                 # see convert_SDR
+{
+wlog( $log_lot_records, "begin convert_MIR\n" ) ;
+wlog( $log_lot_records, "end convert_MIR\n") ;
+}
+
+sub convert_SDR
+{
+wlog( $log_lot_records, "begin convert_SDR\n") ;
+$convert_SDR_called = 1 ; # state variable to indicate if convert_SDR was
+                          # called.  If SDR record was not in file,
+                          # record following MIR must call convert_SDR
+#
+# SDR has the last data needed for the EMIR
+# ...except for the count records that is
+#
+$out::emir{cpu_type}=$running_cpu_type; # U*1
+$out::emir{stdf_ver}=${out::init{emir}{stdf_ver}}; # U*1
+setr($out::emir{mode_cod}, $in::mir{mode_cod}, ${out::init{emir}{mode_cod}})
+  ||($out::emir{mode_cod} = $ENV{MODE_COD})
+  ||confess &lh, 'emir{mode_cod} not defined'; # C*1, C*1
+setr($out::emir{stat_num}, $in::mir{stat_num}, ${out::init{emir}{stat_num}})
+  ||($out::emir{stat_num} = $ENV{STAT_NUM})
+  ||confess &lh, 'emir{stat_num} not defined'; # U*1, U*1
+seto($out::emir{test_cod}, $in::mir{test_cod}, ${out::init{emir}{test_cod}})||confess &lh, 'emir{test_cod} not defined'; # C*3, C*n
+seto($out::emir{prot_cod}, $in::mir{prot_cod}, ${out::init{emir}{prot_cod}})||confess &lh, 'emir{prot_cod} not defined'; # C*1, C*1
+seto($out::emir{cmod_cod}, $in::mir{cmod_cod}, ${out::init{emir}{cmod_cod}})||confess &lh, 'emir{cmod_cod} not defined'; # C*1, C*1
+seto($out::emir{setup_t}, $in::mir{setup_t}, ${out::init{emir}{setup_t}})||confess &lh, 'emir{setup_t} not defined'; # U*4, U*4
+setr($out::emir{start_t}, $in::mir{start_t}, ${out::init{emir}{start_t}})||confess &lh, 'emir{start_t} not defined'; # U*4, U*4
+seto($out::emir{temp}, $in::mir{tst_temp}, ${out::init{emir}{temp}})||confess &lh, 'emir{temp} not defined'; # R*4, C*n
+$out::emir{ssum_cnt}=${out::init{emir}{ssum_cnt}}; # I*4 
+$out::emir{sswb_cnt}=${out::init{emir}{sswb_cnt}}; # I*4
+$out::emir{shwb_cnt}=${out::init{emir}{shwb_cnt}}; # I*4
+$out::emir{ssyn_cnt}=${out::init{emir}{ssyn_cnt}}; # I*4
+$out::emir{shis_cnt}=${out::init{emir}{shis_cnt}}; # I*4
+$out::emir{wsum_cnt}=${out::init{emir}{wsum_cnt}}; # I*4
+$out::emir{wswb_cnt}=${out::init{emir}{wswb_cnt}}; # I*4
+$out::emir{whwb_cnt}=${out::init{emir}{whwb_cnt}}; # I*4
+$out::emir{wsyn_cnt}=${out::init{emir}{wsyn_cnt}}; # I*4
+$out::emir{whis_cnt}=${out::init{emir}{whis_cnt}}; # I*4
+$out::emir{psum_cnt}=${out::init{emir}{psum_cnt}}; # I*4
+$out::emir{pres_cnt}=${out::init{emir}{pres_cnt}}; # I*4
+$out::emir{fres_cnt}=${out::init{emir}{fres_cnt}}; # I*4
+$out::emir{psyn_cnt}=${out::init{emir}{psyn_cnt}}; # I*4
+$out::emir{phis_cnt}=${out::init{emir}{phis_cnt}}; # I*4
+setr($out::emir{part_typ}, $in::mir{part_typ}, ${out::init{emir}{part_typ}}) ||($out::emir{part_typ} = $ENV{PART_TYP}) ||confess &lh, 'emir{part_typ} not defined'; # C*n, C*n
+
+#
+# truncate part_typ because edb tdl chokes on it
+#
+if (length($out::emir{part_typ}) > $edb_part_typ_len )
+  {
+  wlog( $log_trunc, "emir{part_typ} length > edb max of $edb_part_typ_len, truncating\n") ;
+  $out::emir{part_typ} = substr($out::emir{part_typ},0,$edb_part_typ_len) ;
+  }
+
+#
+# job_nam is required, since it can be used for the spec_nam
+# but we trap for it at spec_nam
+#
+seto($out::emir{job_nam}, $in::mir{job_nam}, ${out::init{emir}{job_nam}})||confess &lh, 'emir{job_nam} not defined'; # C*n, C*n
+seto($out::emir{oper_nam}, $in::mir{oper_nam}, ${out::init{emir}{oper_nam}})
+  ||($out::emir{oper_nam} = $ENV{OPER_NAM})
+  ||confess &lh, 'emir{oper_nam} not defined'; # C*n, C*n
+seto($out::emir{node_nam}, $in::mir{node_nam}, ${out::init{emir}{node_nam}})||confess &lh, 'emir{node_nam} not defined'; # C*n, C*n
+setr($out::emir{tstr_typ}, $in::mir{tstr_typ}, ${out::init{emir}{tstr_typ}})
+  ||($out::emir{tstr_typ} = $ENV{TSTR_TYP})
+  ||confess &lh, 'emir{tstr_typ} not defined'; # C*n, C*n
+seto($out::emir{exec_typ}, $in::mir{exec_typ}, ${out::init{emir}{exec_typ}})||confess &lh, 'emir{exec_typ} not defined'; # C*n, C*n
+seto($out::emir{supr_nam}, $in::mir{supr_nam}, ${out::init{emir}{supr_nam}})||confess &lh, 'emir{supr_nam} not defined'; # C*n, C*n
+seto($out::emir{hand_id}, $in::sdr{hand_id}, ${out::init{emir}{hand_id}})||confess &lh, 'emir{hand_id} not defined'; # C*n, C*n
+seto($out::emir{sblot_id}, $in::mir{sblot_id}, ${out::init{emir}{sblot_id}})||confess &lh, 'emir{sblot_id} not defined'; # C*n, C*n
+#
+# Eagle work around to populate MIR.rtst_cod
+# This block of code can be stripped once the -reprobe option
+# is no longer needed
+#
+if ($reprobe
+    && ! ($in::emir{rtst_cod} =~ /(P)|(R)/)
+    && $in::mir{sblot_id} =~ /\S/ )
+  {
+  if ($in::mir{sblot_id} =~ /REPROBE/)
+    {
+    $in::mir{rtst_cod} = 'R' ;
+    $out::emir{sblot_id} = ${out::init{emir}{sblot_id}} ;
+    }
+  # bearing in mind that PROBE is part of REPROBE
+  elsif ($in::mir{sblot_id} =~ /(PROBE)|(UNKNOWN)/)
+    {
+    $in::mir{rtst_cod} = 'P' ;
+    $out::emir{sblot_id} = ${out::init{emir}{sblot_id}} ;
+    }
+  else
+    {
+    wlog(2, " -reprobe option, mir{sblot_id} not understood for emir{rtst_cod} \n") ;
+    }
+  }
+seto($out::emir{rtst_cod}, $in::mir{rtst_cod}, ${out::init{emir}{rtst_cod}})||confess &lh, 'emir{rtst_cod} not defined'; # C*1, C*1
+
+
+seto($out::emir{job_rev}, $in::mir{job_rev}, ${out::init{emir}{job_rev}})||confess &lh, 'emir{job_rev} not defined'; # C*n, C*n
+seto($out::emir{proc_id}, $in::mir{proc_id}, ${out::init{emir}{proc_id}})||confess &lh, 'emir{proc_id} not defined'; # C*n, C*n
+# hand coded
+seto($out::emir{prb_card}, $in::sdr{card_id}, ${out::init{emir}{prb_card}})
+  ||($out::emir{prb_card} = $ENV{PRB_CARD})
+  ||confess &lh, 'emir{prb_card} not defined'; # C*n, C*n
+# hand coded.  Probably not needed, significant number of nulls in db
+seto($out::emir{oper_id}, $in::mir{oper_nam}, ${out::init{emir}{oper_nam}})||confess &lh, 'emir{oper_id} not defined'; # C*n, C*n
+#
+# allow identifiers to be overridden by environment variables
+# 
+#
+if ($force_env)
+  {
+  ($out::emir{lot_id} = $ENV{LOT_ID})||confess &lh, 'emir{lot_id} not defined'; # C*n, C*n
+  ;
+  ($out::emir{spec_nam} = $ENV{SPEC_NAM})||confess &lh, 'emir{spec_nam} or emir{job_nam} not defined'; # C*n, C*n
+ ;
+  ($out::emir{spec_rev} = $ENV{SPEC_REV})||confess &lh, 'emir{spec_rev} not defined'; # C*n, C*n
+ ;
+  }
+else
+  {
+  setr($out::emir{lot_id}, $in::mir{lot_id}, ${out::init{emir}{lot_id}})
+    ||($out::emir{lot_id} = $ENV{LOT_ID})
+    ||confess &lh, 'emir{lot_id} not defined'; # C*n, C*n
+  setr($out::emir{spec_nam}, $in::mir{spec_nam}, ${out::init{emir}{spec_nam}})
+    || setr($out::emir{spec_nam}, $in::mir{job_nam}, ${out::init{emir}{job_nam}})
+    ||($out::emir{spec_nam} = $ENV{SPEC_NAM})  # We go after the environment last
+    ||confess &lh, 'emir{spec_nam} or emir{job_nam} not defined'; # C*n, C*n
+  setr($out::emir{spec_rev}, $in::mir{spec_ver}, ${out::init{emir}{spec_rev}})
+    ||($out::emir{spec_rev} = $ENV{SPEC_REV})  # Note that we try the environment second
+    ||($out::emir{spec_rev} = $in::mir{job_rev})
+    ||confess &lh, 'emir{spec_rev} not defined'; # C*n, C*n
+  }
+#
+# make lot_id upper case for ewb
+#
+$out::emir{lot_id} = uc($out::emir{lot_id}) ;
+#
+# attempt to turn spec_rev into integer
+#
+my $old_spec_rev=$out::emir{spec_rev} ;
+if ( $out::emir{spec_rev} =~ s/([0-9]+)[.]([0-9]*)/$1$2/ )
+  {
+  wlog($log_tp_errors, "emir{spec_rev} was converted from $old_spec_rev to $out::emir{spec_rev}\n") ;
+  }
+
+if (! ($out::emir{spec_rev} =~ /[0-9]+/) )
+  {
+  wlog(0, "emir{spec_rev} was converted from $old_spec_rev to $out::emir{spec_rev}\n") ;
+  confess &lh, "emir{spec_rev}=$out::emir{spec_rev} needs integer format for EDB\n" ;
+  }
+
+#
+# Check the length of critial fields
+# We will make this fatal, as it could corrupt data outside of session
+# length values live in edb_defs.pl
+#
+if ( length($out::emir{lot_id}) > $edb_lot_id_len)
+  {
+  wlog($log_trunc, "emir{lot_id} length > edb max of $edb_lot_id_len, truncating\n") ;
+  $out::emir{lot_id} = substr($out::emir{lot_id},0,$edb_lot_id_len) ;
+  }
+( length($out::emir{spec_nam}) > $edb_spec_nam_len)
+  && confess &lh, "emir{spec_nam} length > edb max of $edb_spec_nam_len\n" ;
+( length($out::emir{spec_rev}) > $edb_spec_rev_len)
+  && confess &lh, "emir{spec_rev} length > edb max of $edb_spec_rev_len\n" ;
+
+# hand coded
+seto($out::emir{load_brd}, $in::sdr{load_id}, ${out::init{emir}{load_brd}})||confess &lh, 'emir{load_brd} not defined'; # C*n, C*n
+# hand coded, correct ?
+seto($out::emir{device}, $in::mir{dsgn_rev}, ${out::init{emir}{device}})||confess &lh, 'emir{device} not defined'; # C*n, C*n
+# needed ?
+$out::emir{lot_strt}=${out::init{emir}{lot_strt}}; # C*n
+# hand coded, correct ?
+seto($out::emir{lot_type}, $in::mir{mode_cod}, ${out::init{emir}{mode_cod}})||confess &lh, 'emir{lot_type} not defined'; # C*1, C*1
+# hand coded.  Probably not needed, significant number of nulls in db
+seto($out::emir{des_rev}, $in::mir{dsgn_rev}, ${out::init{emir}{des_rev}})
+#  ||($out::emir{des_rev} = $ENV{DES_REV})
+  ||confess &lh, 'emir{des_rev} not defined'; # C*n, C*n
+# hand coded
+seto($out::emir{family}, $in::mir{family_id}, ${out::init{emir}{family}})
+#  ||($out::emir{family} = $ENV{FAMILY})
+  ||confess &lh, 'emir{family} not defined'; # C*n, C*n
+$out::emir{group}=${out::init{emir}{group}}; # C*n
+$out::emir{int_lev}=${out::init{emir}{int_lev}}; # C*n
+# hand coded
+seto($out::emir{pkg_id}, $in::mir{pkg_typ}, ${out::init{emir}{pkg_id}})
+  ||($out::emir{pkg_id} = $ENV{PKG_ID})
+  ||confess &lh, 'emir{pkg_id} not defined'; # C*n, C*n
+# hand coded, probably not needed, sig number of nulls in db
+seto($out::emir{pkg_type}, $in::mir{pkg_typ}, ${out::init{emir}{pkg_type}})
+#  ||($out::emir{pkg_type} = $ENV{PKG_TYPE})
+  ||confess &lh, 'emir{pkg_type} not defined'; # C*n, C*n
+$out::emir{customer}=${out::init{emir}{customer}}; # C*n
+$out::emir{drawing}=${out::init{emir}{drawing}}; # C*n
+$out::emir{facility}=${out::init{emir}{facility}}; # C*n
+# hand coded, environment variable
+seto($out::emir{facility}, $ENV{FACILITY}, ${out::init{emir}{facility}})||confess &lh, 'emir{facility} not defined'; # C*n, C*n
+$out::emir{gold_dev}=${out::init{emir}{gold_dev}}; # C*n
+
+$out::emir{spec_rev} = pad($out::emir{spec_rev},"\0") ; # pad with nulls to default length
+$out::emir{spec_nam} =~ s/ +$// ; # remove trailing spaces
+$out::emir{spec_nam} =~ s/ /_/g ; # change spaces to underscores ('_').
+
+if ( "EMIR" =~ /$record_list/ )
+  {
+  $emir_bin = &out::pack_EMIR(\%out::emir) ;
+  print OUTPUT $emir_bin ;
+  }
+#
+# output EMIR for tp record
+# be careful of changing EMIR fields, as EMIR is re-written
+# with the counts
+#
+if ( defined($tp_fn) )
+  {
+  my $tmp_ssum_cnt = $out::emir{ssum_cnt} ;  # save results
+  my $tmp_mode_cod = $out::emir{mode_cod} ;  # save
+  $out::emir{ssum_cnt} = 1 ;
+  # make any tp specific changes below
+  # or pass it off it tp resolver
+  $out::emir{mode_cod} = 'C' ; # configuration data
+  print TPOUT &out::pack_EMIR(\%out::emir) ;
+  $out::emir{ssum_cnt} = $tmp_ssum_cnt ;  # restore
+  $out::emir{mode_cod} = $tmp_mode_cod ;  # save
+  TPOUT->flush ;
+  }
+wlog( $log_lot_records, "end convert_SDR\n") ;
+
+}
+
+
+#
+# EWCR is not currently a requirement
+# partially coded and not well tested
+#
+sub convert_WCR
+{
+# call convert_SDR if it was not called, e.g. SDR is not in input file.
+if (! $convert_SDR_called ) { convert_SDR() ; }
+wlog( $log_lot_records, "begin convert_WCR\n") ;
+if ( "EWCR" =~ /$record_list/ )
+  {
+  setr($out::ewcr{wafr_siz}, $in::wcr{wafr_siz}, ${out::init{ewcr}{wafr_siz}})
+    ||confess &lh, 'ewcr{wafr_siz} not defined'; # R*4, R*4
+  setr($out::ewcr{die_ht}, $in::wcr{die_ht}, ${out::init{ewcr}{die_ht}})||confess &lh, 'ewcr{die_ht} not defined'; # R*4, R*4
+  setr($out::ewcr{die_wid}, $in::wcr{die_wid}, ${out::init{ewcr}{die_wid}})||confess &lh, 'ewcr{die_wid} not defined'; # R*4, R*4
+  seto($out::ewcr{wf_units}, $in::wcr{wf_units}, ${out::init{ewcr}{wf_units}})||confess &lh, 'ewcr{wf_units} not defined'; # U*1, U*1
+  seto($out::ewcr{wf_flat}, $in::wcr{wf_flat}, ${out::init{ewcr}{wf_flat}})||confess &lh, 'ewcr{wf_flat} not defined'; # C*1, C*1
+  seto($out::ewcr{center_x}, $in::wcr{center_x}, ${out::init{ewcr}{center_x}})||confess &lh, 'ewcr{center_x} not defined'; # I*2, I*2
+  seto($out::ewcr{center_y}, $in::wcr{center_y}, ${out::init{ewcr}{center_y}})||confess &lh, 'ewcr{center_y} not defined'; # I*2, I*2
+  seto($out::ewcr{pos_x}, $in::wcr{pos_x}, ${out::init{ewcr}{pos_x}})||confess &lh, 'ewcr{pos_x} not defined'; # C*1, C*1
+  seto($out::ewcr{pos_y}, $in::wcr{pos_y}, ${out::init{ewcr}{pos_y}})||confess &lh, 'ewcr{pos_y} not defined'; # C*1, C*1
+  # values below not supported by V4
+  $out::ewcr{start_x}=${out::init{ewcr}{start_x}}; # I*2
+  $out::ewcr{start_y}=${out::init{ewcr}{start_y}}; # I*2
+  # Required ? Derived ? Needs more coding
+  $out::ewcr{row_cnt}=${out::init{ewcr}{row_cnt}}; # I*2
+  # Required ? Derived ? Needs more coding
+  $out::ewcr{col_cnt}=${out::init{ewcr}{col_cnt}}; # I*2
+  $out::ewcr{origin}=${out::init{ewcr}{origin}}; # I*1
+  $out::ewcr{praxis}=${out::init{ewcr}{praxis}}; # I*1
+  $out::ewcr{refpt1_x}=${out::init{ewcr}{refpt1_x}}; # I*2
+  $out::ewcr{refpt1_y}=${out::init{ewcr}{refpt1_y}}; # I*2
+  $out::ewcr{refpt2_x}=${out::init{ewcr}{refpt2_x}}; # I*2
+  $out::ewcr{refpt2_y}=${out::init{ewcr}{refpt2_y}}; # I*2
+  $out::ewcr{refpt3_x}=${out::init{ewcr}{refpt3_x}}; # I*2
+  $out::ewcr{refpt3_y}=${out::init{ewcr}{refpt3_y}}; # I*2
+  $out::ewcr{refpt4_x}=${out::init{ewcr}{refpt4_x}}; # I*2
+  $out::ewcr{refpt4_y}=${out::init{ewcr}{refpt4_y}}; # I*2
+  $out::ewcr{def_unit}=${out::init{ewcr}{def_unit}}; # U*1
+  print OUTPUT &out::pack_EWCR(\%out::ewcr) ;
+  }
+wlog( $log_lot_records, "end convert_WCR\n") ;
+}
+
+sub convert_WIR
+{
+# call convert_SDR if it was not called, e.g. SDR is not in input file.
+if (! $convert_SDR_called ) { convert_SDR() ; }
+wlog( $log_wafer_records, "begin convert_WIR\n") ;
+$reading_wafer = 1 ;
+
+undef %out::wir ;  # initialize to undefined
+seto($out::wir{head_num}, $in::wir{head_num}, ${out::init{wir}{head_num}})||confess &lh, 'wir{head_num} not defined'; # U*1, U*1
+$out::wir{pad_byte}=${out::init{wir}{pad_byte}}; # B*1
+
+#
+# set to wir, if=default, set to mir, else die
+# mir part not tested
+#
+setr($out::wir{start_t}, $in::wir{start_t}, ${out::init{wir}{start_t}})
+  || setr($out::wir{start_t}, $in::mir{start_t}, ${out::init{wir}{start_t}})
+  || confess &lh, 'wir{start_t} not defined'; # U*4, U*4
+#setr($out::wir{wafer_id}, $in::wir{wafer_id}, ${out::init{wir}{wafer_id}})
+seto($out::wir{wafer_id}, $in::wir{wafer_id}, $out::emir{sblot_id})
+  || confess &lh, 'wir{wafer_id} not defined'; # C*n, C*n
+if ( "WIR" =~ /$record_list/ )
+  { print OUTPUT &out::pack_WIR(\%out::wir) ; }
+wlog( $log_wafer_records, "end convert_WIR\n") ;
+}
+
+sub convert_DTR
+{
+# call convert_SDR if it was not called, e.g. SDR is not in input file.
+if (! $convert_SDR_called ) { convert_SDR() ; }
+wlog( $log_generic_records, "begin convert_DTR\n") ;
+wlog( $log_generic_records, "end convert_DTR\n") ;
+}
+
+sub convert_PIR # forces record to be unpacked, see convert_PRR
+{
+# call convert_SDR if it was not called, e.g. SDR is not in input file.
+if (! $convert_SDR_called ) { convert_SDR() ; }
+wlog( $log_part_records, "begin convert_PIR\n") ;
+wlog( $log_part_records, "end convert_PIR\n") ;
+}
+
+
+#
+# PTR is used to translate to PTR and EPDR records
+# This routine has been tuned, so conventions may be different
+# compared to other convert_XXX subroutines
+# seto routine is not used for data (still used for test definitions)
+# inline code used instead of seto
+# old seto style is commented out
+# 
+sub convert_PTR
+{
+# wlog( $log_test_records, "begin convert_PTR\n") ;
+#
+#
+# convert the test results
+#
+undef %out::ptr ;  # initialize to undefined
+setr($out::ptr{test_num}, $in::ptr{test_num}, ${out::init{ptr}{test_num}})||confess &lh, 'ptr{test_num} not defined'; # U*4, U*4
+#seto($out::ptr{head_num}, $in::ptr{head_num}, ${out::init{ptr}{head_num}})||confess &lh, 'ptr{head_num} not defined'; # U*1, U*1
+defined($out::ptr{head_num}=$in::ptr{head_num}) || defined($out::ptr{head_num}=$in::ptr{head_num}=${out::init{ptr}{head_num}})||confess &lh, 'ptr{head_num} not defined'; # U*1, U*1
+#seto($out::ptr{site_num}, $in::ptr{site_num}, ${out::init{ptr}{site_num}})||confess &lh, 'ptr{site_num} not defined'; # U*1, U*1
+defined($out::ptr{site_num}=$in::ptr{site_num}) || defined($out::ptr{site_num}=${out::init{ptr}{site_num}})||confess &lh, 'ptr{site_num} not defined'; # U*1, U*1
+
+{
+my $in_tf = reverse($in::ptr{test_flg}) ;
+my $alarm ;
+if ($no_alarm)  # command line option
+  { $alarm='0'}
+else
+  { $alarm=reverse(substr($in_tf,0,1)) ; } ;  # bit 0
+#                                 bits 7-2  bit 1                  bit 0
+my $out_test_flg = reverse(substr($in_tf,2)).'0'.                  $alarm;
+#seto($out::ptr{test_flg}, $out_test_flg, ${out::init{ptr}{test_flg}})||confess &lh, 'ptr{test_flg} not defined'; # B*1, B*1
+defined($out::ptr{test_flg}=$out_test_flg) || defined($out::ptr{test_flg}=${out::init{ptr}{test_flg}})||confess &lh, 'ptr{test_flg} not defined'; # B*1, B*1
+}
+
+{
+my $in_pf = reverse($in::ptr{parm_flg}) ;
+# bits 5-7 are always 0  bits 7-5                  bits 4-0
+my $out_parm_flg =           '000'. reverse(substr($in_pf,0,5)) ;
+#seto($out::ptr{parm_flg}, $out_parm_flg, ${out::init{ptr}{parm_flg}})||confess &lh, 'ptr{parm_flg} not defined'; # B*1, B*1
+defined($out::ptr{parm_flg}=$out_parm_flg) || defined($out::ptr{parm_flg}=${out::init{ptr}{parm_flg}})||confess &lh, 'ptr{parm_flg} not defined'; # B*1, B*1
+}
+
+#seto($out::ptr{result}, $in::ptr{result}, ${out::init{ptr}{result}})||confess &lh, 'ptr{result} not defined'; # R*4, R*4
+defined($out::ptr{result}=$in::ptr{result}) || defined($out::ptr{result}=${out::init{ptr}{result}})||confess &lh, 'ptr{result} not defined'; # R*4, R*4
+
+#
+# using test_txt for test_nam seems to work for MV200 and EAGLE
+#
+#seto($out::ptr{test_nam}, $in::ptr{test_txt}, ${out::init{ptr}{test_nam}})||confess &lh, 'ptr{test_nam} not defined'; # C*n, C*n
+$out::ptr{test_txt} =~ s/ /_/g ;
+defined($out::ptr{test_nam}=$in::ptr{test_txt}) || defined($out::ptr{test_nam}=${out::init{ptr}{test_nam}})||confess &lh, 'ptr{test_nam} not defined'; # C*n, C*n
+
+
+#
+# Strip out characters used as EWB delimiters, and report.
+# each character in the pattern is excape'd \
+# This section of code is essentially duplicated for both PTR and TSR
+#
+$out::ptr{test_nam} = fix_test_nam( $out::ptr{test_num}, $out::ptr{test_nam}, $log_bad_chars, $log_trunc_bin_tests, $compress_name ) ;
+#
+# not needed, leave blank
+#
+$out::ptr{seq_name}=${out::init{ptr}{seq_name}}; # C*n
+
+#seto($out::ptr{test_txt}, $in::ptr{test_txt}, ${out::init{ptr}{test_txt}})||confess &lh, 'ptr{test_txt} not defined'; # C*n, C*n
+defined($out::ptr{test_txt}=$in::ptr{test_txt}) || defined($out::ptr{test_txt}=${out::init{ptr}{test_txt}})||confess &lh, 'ptr{test_txt} not defined'; # C*n, C*n
+
+#
+# alarm_id does not map into Plus PTR record, but might be useful
+# put into test_txt ?
+#
+
+
+#
+# first ptr record is default
+# other ptr records can use these defaults
+# create a default hash for each ptr number
+# since Plus requires all of the data within each record
+#
+#
+# is default defined
+#
+if (! defined( $out::ptr_defaults{ $out::ptr{test_num}}) )
+  {
+  #
+  # is record truncated ?
+  #
+  (defined($in::ptr{opt_flag}))
+    || confess &lh, "First PTR must contain default values after opt_flag test_num=".$out::ptr{test_num} ;
+  #
+  # assume that we must have at least one spec limit.
+  # logic follows that the lo_spec limit must always be populated
+  #
+#  if (! defined($in::ptr{lo_spec}))
+#    { confess &lh, "First PTR must contain default values between opt_flag and lo_spec test_num=".$out::ptr{res_scal} ; }
+  #
+  # translate opt_flag
+  #
+  {
+  my $in_opt_flag = reverse($in::ptr{opt_flag}) ;
+  my $u ;
+  if ($in::ptr{units} eq ${out::init{ptr}{units}} )
+    { $u = '1'; }
+  else
+    { $u = '0'; }
+  #                                 bits 7-4         bit 3  bits 2-0
+  my $out_opt_flag = reverse(substr($in_opt_flag,4))   .$u.     '000';
+  setr($out::ptr{opt_flag}, $out_opt_flag, ${out::init{ptr}{opt_flag}})||confess &lh, 'ptr{opt_flag} not defined'; # B*1, B*1
+  } # end opt_flag
+  seto($out::ptr{res_scal}, $in::ptr{res_scal}, ${out::init{ptr}{res_scal}})||confess &lh, 'ptr{res_scal} not defined'; # I*1, I*1 
+  $out::ptr{res_ldig}=${out::init{ptr}{res_ldig}}; # U*1
+  $out::ptr{res_rdig}=${out::init{ptr}{res_rdig}}; # U*1
+  # flag for output format not significant
+  # might be derivable from c_resfmt, c_llmfmt, and c_hlmfmt
+  $out::ptr{desc_flg}=${out::init{ptr}{desc_flg}}; # B*1
+  setr($out::ptr{units}, $in::ptr{units}, ${out::init{ptr}{units}})||confess &lh, 'ptr{units} not defined'; # C*7, C*n
+  seto($out::ptr{llm_scal}, $in::ptr{llm_scal}, ${out::init{ptr}{llm_scal}})||confess &lh, 'ptr{llm_scal} not defined'; # I*1, I*1
+  seto($out::ptr{hlm_scal}, $in::ptr{hlm_scal}, ${out::init{ptr}{hlm_scal}})||confess &lh, 'ptr{hlm_scal} not defined'; # I*1, I*1
+  $out::ptr{llm_ldig}=${out::init{ptr}{llm_ldig}}; # U*1
+  $out::ptr{llm_rdig}=${out::init{ptr}{llm_rdig}}; # U*1
+  $out::ptr{hlm_ldig}=${out::init{ptr}{hlm_ldig}}; # U*1
+  $out::ptr{hlm_rdig}=${out::init{ptr}{hlm_rdig}}; # U*1
+  seto($out::ptr{lo_limit}, $in::ptr{lo_limit}, ${out::init{ptr}{lo_limit}})||confess &lh, 'ptr{lo_limit} not defined'; # R*4, R*4
+
+  seto($out::ptr{hi_limit}, $in::ptr{hi_limit}, ${out::init{ptr}{hi_limit}})||confess &lh, 'ptr{hi_limit} not defined'; # R*4, R*4
+  #
+  # insert entire output ptr record into defaults hash
+  #
+  $out::ptr_defaults{$out::ptr{test_num}} = { %out::ptr } ;
+  }
+else  # default values for this ptr test_num are defined
+  {
+  #
+  # set to file default
+  # if ! defined, e.g. record truncated
+  # or as indicated by options flag
+  #
+  ( defined($in::ptr{opt_flag}) )  
+    || ($out::ptr{opt_flag} = $out::ptr_defaults{$out::ptr{test_num}}{opt_flag}) ;
+  ( (!defined($in::ptr{res_scal}))
+     || !defined($in::ptr{opt_flag})
+     || ($out::ptr{res_scal} == $out::ptr_defaults{$out::ptr{test_num}}{res_scal})
+     || (substr(reverse($in::ptr{opt_flag}),0,1) eq '1'))  # bit 0
+       && ($out::ptr{res_scal} = $out::ptr_defaults{$out::ptr{test_num}}{res_scal}) ;
+  {$out::ptr{res_ldig}=$out::ptr_defaults{$out::ptr{test_num}}{res_ldig};}
+  {$out::ptr{res_rdig}=$out::ptr_defaults{$out::ptr{test_num}}{res_rdig};}
+  ( !defined($in::ptr{desc_flg}) 
+     || ($in::ptr{desc_flg} eq ${in::init{ptr}{desc_flg}} )
+     || ($in::ptr{desc_flg} eq $out::ptr_defaults{$out::ptr{test_num}}{desc_flg}))
+      && ($out::ptr{desc_flg}=$out::ptr_defaults{$out::ptr{test_num}}{desc_flg}) ;
+
+  ( !defined($in::ptr{units}) 
+     || ($in::ptr{units} eq ${in::init{ptr}{units}} )
+     || ($in::ptr{units} eq $out::ptr_defaults{$out::ptr{test_num}}{units}))
+      && ($out::ptr{units}=$out::ptr_defaults{$out::ptr{test_num}}{units}) ;
+
+  ( !defined($in::ptr{llm_scal}) 
+     || !defined($in::ptr{opt_flag}) 
+     || (substr(reverse($in::ptr{opt_flag}),4,1) eq '1')  # bit 4
+     || ($in::ptr{llm_scal} eq $out::ptr_defaults{$out::ptr{test_num}}{llm_scal}))
+      && ($out::ptr{llm_scal} = $out::ptr_defaults{$out::ptr{test_num}}{llm_scal});
+
+  ( !defined($in::ptr{hlm_scal}) 
+     || !defined($in::ptr{opt_flag}) 
+     || (substr(reverse($in::ptr{opt_flag}),5,1) eq '1')  # bit 5
+     || ($in::ptr{hlm_scal} eq $out::ptr_defaults{$out::ptr{test_num}}{hlm_scal}))
+      && ($out::ptr{hlm_scal} = $out::ptr_defaults{$out::ptr{test_num}}{hlm_scal});
+
+   #
+   # the ldig, rdig stuff is not defined in V4
+   #
+   {$out::ptr{llm_ldig} = $out::ptr_defaults{$out::ptr{test_num}}{llm_ldig};}
+   {$out::ptr{llm_rdig} = $out::ptr_defaults{$out::ptr{test_num}}{llm_rdig};}
+   {$out::ptr{hlm_ldig} = $out::ptr_defaults{$out::ptr{test_num}}{hlm_ldig};}
+   {$out::ptr{hlm_rdig} = $out::ptr_defaults{$out::ptr{test_num}}{hlm_rdig};}
+
+  ( !defined($in::ptr{opt_flag})
+     || (substr(reverse($in::ptr{opt_flag}),4,1) eq '1')  # bit 4
+     || ($in::ptr{lo_limit} eq $out::ptr_defaults{$out::ptr{test_num}}{lo_limit}))
+      && ($out::ptr{lo_limit} = $out::ptr_defaults{$out::ptr{test_num}}{lo_limit});
+
+  ( !defined($in::ptr{hi_limit}) 
+     || !defined($in::ptr{opt_flag}) 
+     || (substr(reverse($in::ptr{opt_flag}),5,1) eq '1')  # bit 5
+     || ($in::ptr{hi_limit} eq $out::ptr_defaults{$out::ptr{test_num}}{hi_limit}))
+      && ($out::ptr{hi_limit} = $out::ptr_defaults{$out::ptr{test_num}}{hi_limit});
+#
+# assume that if test_txt is ok, test_nam is too
+#
+  if ( !defined($in::ptr{test_txt}) 
+     or ($in::ptr{test_txt} eq ${in::init{ptr}{test_txt}} )
+     or ($in::ptr{test_txt} eq $out::ptr_defaults{$out::ptr{test_num}}{test_txt}))
+       {
+       $out::ptr{test_nam}=$out::ptr_defaults{$out::ptr{test_num}}{test_nam} ;
+       $out::ptr{test_txt}=$out::ptr_defaults{$out::ptr{test_num}}{test_txt} ;
+       }
+  #
+  # check to make sure that output values have not been overridden
+  #
+  my $field ;
+  #
+  # don't check things we don't need:  res_scal, res_ldig, res_rdig, llm_scal,
+  # hlm_scal, llm_ldig. llm_rdig, hlm_ldig, hlm_rdig, seq_name
+  #
+  if ( defined($ptr_checks) )
+  {
+  foreach $field ( 'desc_flg', 'units',
+  'lo_limit', 'hi_limit', 'lo_spec', 'hi_spec', 'test_nam', 'test_txt')
+    {
+    if (! ($out::ptr{$field} eq $out::ptr_defaults{$out::ptr{test_num}}{$field}) )
+      {
+      wlog ($log_tr_errors, "PTR test_num=".$out::ptr{test_num}." parm changes not allowed out.ptr.".$field."=".$out::ptr_defaults{$out::ptr{test_num}}{$field}." changed to out.ptr.".$field."=".$out::ptr{$field} ) ;
+      $rc=0xD ;  # intentional global value, never reset back to 0
+      $tp_rc = 0xD ;
+      if ( ! $ptr_over_ride )
+        { exit 0xDD ; }  # both test plan and test data are bad
+      }
+    }
+   }
+  }
+
+
+$out::emir{pres_cnt}++ ;  # will get reset to 0 if $ptr_bin is not written
+#
+# truncate ptr record after opt_flag to reduce files by nearly 1/3
+#
+if ( $truncate_ptr )
+  {
+  $out::ptr{opt_flag} = '11111111' ;
+  $out::ptr{res_scal} = undef ;
+  }
+$ptr_bin .= &out::pack_PTR(\%out::ptr) ;
+#wlog( $log_test_records, "end convert_PTR\n") ;
+# return($rc) ;
+}
+
+sub convert_PRR
+{
+wlog( $log_part_records, "begin convert_PRR\n") ;
+#
+# much of pir is dependent on prr
+#
+undef %out::pir ; # initialize to undefined
+# setr - head_num and site_num need to be populated, but default is ok
+seto($out::pir{head_num}, $in::prr{head_num}, ${out::init{pir}{head_num}})||confess &lh, 'pir{head_num} not defined'; # U*1, U*1
+seto($out::pir{site_num}, $in::pir{site_num}, ${out::init{pir}{site_num}})||confess &lh, 'pir{site_num} not defined'; # U*1, U*1
+seto($out::pir{x_coord}, $in::prr{x_coord}, ${out::init{pir}{x_coord}})||confess &lh, 'pir{x_coord} not defined'; # I*2, I*2
+seto($out::pir{y_coord}, $in::prr{y_coord}, ${out::init{pir}{y_coord}})||confess &lh, 'pir{y_coord} not defined'; # I*2, I*2
+setr($out::pir{part_id}, $in::prr{part_id}, ${out::init{pir}{part_id}})||confess &lh, 'pir{part_id} not defined'; # C*n, C*n
+#
+# eprr
+#
+undef %out::eprr ; # initialize to undefined
+seto($out::eprr{head_num}, $in::prr{head_num}, ${out::init{eprr}{head_num}})||confess &lh, 'eprr{head_num} not defined'; # U*1, U*1
+seto($out::eprr{site_num}, $in::prr{site_num}, ${out::init{eprr}{site_num}})||confess &lh, 'eprr{site_num} not defined'; # U*1, U*1
+seto($out::eprr{num_test}, $in::prr{num_test}, ${out::init{eprr}{num_test}})||confess &lh, 'eprr{num_test} not defined'; # U*2, U*2
+seto($out::eprr{hard_bin}, $in::prr{hard_bin}, ${out::init{eprr}{hard_bin}})||confess &lh, 'eprr{hard_bin} not defined'; # U*2, U*2
+seto($out::eprr{soft_bin}, $in::prr{soft_bin}, ${out::init{eprr}{soft_bin}})||confess &lh, 'eprr{soft_bin} not defined'; # U*2, U*2
+#
+# V4 Bits 0 and 1 have different meaning when compared to V4 PL
+# Supersedes previous sequence of part with same part_id
+# Where V3 would only apply to this part.
+# Bits 0 and 1  are set to 0
+#
+seto($out::eprr{part_flg}, substr($in::prr{part_flg},0,6).'00', ${out::init{eprr}{part_flg}})||confess &lh, 'eprr{part_flg} not defined'; # B*1, B*1
+#
+# rtst_flg determined by summarizer, per STDF PL Spec ?
+#
+$out::eprr{rtst_flg}=${out::init{eprr}{rtst_flg}}; # B*1
+seto($out::eprr{x_coord}, $in::prr{x_coord}, ${out::init{eprr}{x_coord}})||confess &lh, 'eprr{x_coord} not defined'; # I*2, I*2
+seto($out::eprr{y_coord}, $in::prr{y_coord}, ${out::init{eprr}{y_coord}})||confess &lh, 'eprr{y_coord} not defined'; # I*2, I*2
+#
+# hard bin and soft bin names don't exist with V4
+# loader should be able to resolve
+#
+$out::eprr{hbin_nam}=${out::init{eprr}{hbin_nam}}; # C*n
+# seto($out::eprr{hbin_nam}, $in::hbr{hbin_nam}, ${out::init{eprr}{hbin_nam}})||confess &lh, 'eprr{hbin_nam} not defined'; # C*n, C*n
+$out::eprr{sbin_nam}=${out::init{eprr}{sbin_nam}}; # C*n
+# seto($out::eprr{sbin_nam}, $in::sbr{sbin_nam}, ${out::init{eprr}{sbin_nam}})||confess &lh, 'eprr{sbin_nam} not defined'; # C*n, C*n
+
+setr($out::eprr{part_id}, $in::prr{part_id}, ${out::init{eprr}{part_id}})||confess &lh, 'eprr{part_id} not defined'; # C*n, C*n
+seto($out::eprr{part_txt}, $in::prr{part_txt}, ${out::init{eprr}{part_txt}})||confess &lh, 'eprr{part_txt} not defined'; # C*n, C*n
+seto($out::eprr{part_fix}, $in::prr{part_fix}, ${out::init{eprr}{part_fix}})||confess &lh, 'eprr{part_fix} not defined'; # C*n, B*n
+#
+# If this is not a test plan part
+#
+if (! (uc($in::prr{part_id}) =~ /TEST.*PLAN/))
+  {
+  if ( "PIR" =~ /$record_list/ )
+    { print OUTPUT &out::pack_PIR(\%out::pir) ; }
+  if ( "PTR" =~ /$record_list/ )
+    { print OUTPUT $ptr_bin ; $ptr_bin = '' ; }
+  else
+    { $out::emir{pres_cnt}=${out::init{emir}{pres_cnt}} ; }  # if we are not writting out records, reset to 0
+  if ( "EPRR" =~ /$record_list/ )
+    { print OUTPUT &out::pack_EPRR(\%out::eprr) ; $out::emir{psum_cnt}++; }
+  }
+wlog( $log_part_records, "end convert_PRR\n") ;
+}
+
+sub convert_SBR
+{
+$in::sbr{sbin_nam} = fix_bin_nam( $in::sbr{sbin_num}, $in::sbr{sbin_nam}, $log_bad_chars, $log_trunc_bin_tests, $compress_name ) ;
+# call convert_SDR if it was not called, e.g. SDR is not in input file.
+if (! $convert_SDR_called ) { convert_SDR() ; }
+
+if ($in::sbr{head_num} == 255)
+  {
+  wlog( $log_lot_records, "begin convert_SBR\n") ;
+  #
+  # change ' ' to _ within sbin_nam
+  #
+  if ($reading_wafer == 0)
+    {
+    #
+    # convert sbr records
+    #
+    undef %out::sbr ;  # initialize to undefined
+    setr($out::sbr{sbin_num}, $in::sbr{sbin_num}, ${out::init{sbr}{sbin_num}})||confess &lh, 'sbr{sbin_num} not defined'; # U*2, U*2 
+    seto($out::sbr{sbin_cnt}, $in::sbr{sbin_cnt}, ${out::init{sbr}{sbin_cnt}})||confess &lh, 'sbr{sbin_cnt} not defined'; # U*4, U*4 
+    # nam is required for lot
+    seto($out::sbr{sbin_nam}, $in::sbr{sbin_nam}, ${out::init{sbr}{sbin_nam}})||confess &lh, 'sbr{sbin_nam} not defined'; # C*n, C*n
+    if ( "SBR" =~ /$record_list/ )
+      { print OUTPUT &out::pack_SBR(\%out::sbr) ; $out::emir{sswb_cnt}++; }
+    }
+  else
+    {
+    undef %out::wsbr ;  # initialize to undefined
+    setr($out::wsbr{sbin_num}, $in::sbr{sbin_num}, ${out::init{wsbr}{sbin_num}})||confess &lh, 'wsbr{sbin_num} not defined'; # U*2, U*2
+    seto($out::wsbr{sbin_cnt}, $in::sbr{sbin_cnt}, ${out::init{wsbr}{sbin_cnt}})||confess &lh, 'wsbr{sbin_cnt} not defined'; # U*4, U*4
+    # nam is optional in within wafer
+    seto($out::wsbr{sbin_nam}, $in::sbr{sbin_nam}, ${out::init{wsbr}{sbin_nam}})||confess &lh, 'wsbr{sbin_nam} not defined'; # C*n, C*n
+    if ( "WSBR" =~ /$record_list/ )
+      { print OUTPUT &out::pack_WSBR(\%out::wsbr) ; $out::emir{wswb_cnt}++ ; }
+    };
+  wlog( $log_lot_records, "end convert_SBR\n") ;
+  }
+else
+  {
+  wlog( $log_lot_records, "convert_SBR - record skipped, head_num != 255\n") ;
+  }
+}
+
+sub convert_HBR
+{
+$in::hbr{hbin_nam} = fix_bin_nam( $in::hbr{hbin_num}, $in::hbr{hbin_nam}, $log_bad_chars, $log_trunc_bin_tests, $compress_name ) ;
+# call convert_SDR if it was not called, e.g. SDR is not in input file.
+if (! $convert_SDR_called ) { convert_SDR() ; }
+
+if ($in::hbr{head_num} == 255)
+  {
+  wlog( $log_lot_records, "begin convert_HBR\n") ;
+  if ($reading_wafer == 0)
+    {
+    #
+    # convert the HBR record
+    #
+    undef %out::hbr ;  # initialize to undefined
+    setr($out::hbr{hbin_num}, $in::hbr{hbin_num}, ${out::init{hbr}{hbin_num}})||confess &lh, 'hbr{hbin_num} not defined'; # U*2, U*2 
+    seto($out::hbr{hbin_cnt}, $in::hbr{hbin_cnt}, ${out::init{hbr}{hbin_cnt}})||confess &lh, 'hbr{hbin_cnt} not defined'; # U*4, U*4 
+    # name is required for lot
+    seto($out::hbr{hbin_nam}, $in::hbr{hbin_nam}, ${out::init{hbr}{hbin_nam}})||confess &lh, 'hbr{hbin_nam} not defined'; # C*n, C*n
+    #
+    # Length is critical in EDB, so we check it
+    #
+    if ( "HBR" =~ /$record_list/ )
+      { print OUTPUT &out::pack_HBR(\%out::hbr) ; $out::emir{shwb_cnt}++ ; }
+    }
+  else
+    {
+    undef %out::whbr ;  # initialize to undefined
+    setr($out::whbr{hbin_num}, $in::hbr{hbin_num}, ${out::init{whbr}{hbin_num}})||confess &lh, 'whbr{hbin_num} not defined'; # U*2, U*2
+    seto($out::whbr{hbin_cnt}, $in::hbr{hbin_cnt}, ${out::init{whbr}{hbin_cnt}})||confess &lh, 'whbr{hbin_cnt} not defined'; # U*4, U*4
+    # nam is optional in within wafer
+    seto($out::whbr{hbin_nam}, $in::hbr{hbin_nam}, ${out::init{whbr}{hbin_nam}})||confess &lh, 'whbr{hbin_nam} not defined'; # C*n, C*n
+    if ( "WHBR" =~ /$record_list/ )
+      { print OUTPUT &out::pack_WHBR(\%out::whbr) ; $out::emir{whwb_cnt}++ ; }
+    };
+  wlog( $log_lot_records, "end convert_HBR\n") ;
+  }
+else
+  {
+  wlog( $log_lot_records, "convert_HBR - record skipped, head_num != 255\n") ;
+  }
+}
+
+sub convert_WRR
+{
+wlog( $log_wafer_records, "begin convert_WRR\n") ;
+
+undef %out::wrr ;  # initialize to undefined
+#
+# set to wrr, if=default, set to wir, else die
+# out::wir part not tested, note use out, which could be from mrr
+#
+setr($out::wrr{finish_t}, $in::wrr{finish_t}, ${out::init{wrr}{finish_t}})
+  || setr($out::wrr{finish_t}, $out::wir{start_t}, ${out::init{wrr}{finish_t}})
+  || confess &lh, 'wrr{start_t} not defined'; # U*4, U*4
+seto($out::wrr{head_num}, $in::wrr{head_num}, ${out::init{wrr}{head_num}})||confess &lh, 'wrr{head_num} not defined'; # U*1, U*1
+$out::wrr{pad_byte}=${out::init{wrr}{pad_byte}}; # B*1
+seto($out::wrr{part_cnt}, $in::wrr{part_cnt}, ${out::init{wrr}{part_cnt}})||confess &lh, 'wrr{part_cnt} not defined'; # U*4, U*4
+#
+# For cnt fields
+# Trap STDF V4 U*4 default values, as this will overflow an VPL I*4
+# Assume we won't have underflows.  Stdf_pack would trap this,
+# but it would be hard to track down
+#
+if ( $in::wrr{rtst_cnt} == ${in::init{wrr}{rtst_cnt}} )
+  { ($out::wrr{rtst_cnt}=${out::init{wrr}{rtst_cnt}}) ; }
+elsif ( $in::wrr{rtst_cnt} > 0xFFFFFFFF/2 )
+  {
+  $out::wrr{rtst_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+  wlog( $log_cnt_overflow, "Warning wrr{rtst_cnt} overflow\n");
+  }
+else
+  { setr($out::wrr{rtst_cnt}, $in::wrr{rtst_cnt}, ${out::init{wrr}{rtst_cnt}})
+    ||confess &lh, 'wrr{rtst_cnt} not defined'; } # I*4, U*4
+
+if ( $in::wrr{abrt_cnt} == ${in::init{wrr}{abrt_cnt}} )
+  { ($out::wrr{abrt_cnt}=${out::init{wrr}{abrt_cnt}}) ; }
+elsif ( $in::wrr{abrt_cnt} > 0xFFFFFFFF/2 )
+  {
+  $out::wrr{abrt_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+  wlog( $log_cnt_overflow, "Warning wrr{abrt_cnt} overflow\n");
+  }
+else
+  { setr($out::wrr{abrt_cnt}, $in::wrr{abrt_cnt}, ${out::init{wrr}{abrt_cnt}})
+    ||confess &lh, 'wrr{abrt_cnt} not defined'; } # I*4, U*4
+
+if ( $in::wrr{good_cnt} == ${in::init{wrr}{good_cnt}} )
+  { ($out::wrr{good_cnt}=${out::init{wrr}{good_cnt}}) ; }
+elsif ( $in::wrr{good_cnt} > 0xFFFFFFFF/2 )
+  {
+  $out::wrr{good_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+  wlog( $log_cnt_overflow, "Warning wrr{good_cnt} overflow\n");
+  }
+else
+  { setr($out::wrr{good_cnt}, $in::wrr{good_cnt}, ${out::init{wrr}{good_cnt}})
+    ||confess &lh, 'wrr{good_cnt} not defined'; } # I*4, U*4
+
+if ( $in::wrr{func_cnt} == ${in::init{wrr}{func_cnt}} )
+  { ($out::wrr{func_cnt}=${out::init{wrr}{func_cnt}}) ; }
+elsif ( $in::wrr{func_cnt} > 0xFFFFFFFF/2 )
+  {
+  $out::wrr{func_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+  wlog( $log_cnt_overflow, "Warning wrr{func_cnt} overflow\n");
+  confess &lh, 'wrr{func_cnt} overflow'; 
+  }
+else
+  { setr($out::wrr{func_cnt}, $in::wrr{func_cnt}, ${out::init{wrr}{func_cnt}})
+    ||confess &lh, 'wrr{func_cnt} not defined'; } # I*4, U*4
+
+#seto($out::wrr{wafer_id}, $in::wrr{wafer_id}, ${out::init{wrr}{wafer_id}})||confess &lh, 'wrr{wafer_id} not defined'; # C*n, C*n
+#setr($out::wir{wafer_id}, $in::wir{wafer_id}, $in::mir{sblot_id})
+seto($out::wrr{wafer_id}, $in::wrr{wafer_id}, $out::emir{sblot_id})
+  ||confess &lh, 'wrr{wafer_id} not defined'; # C*n, C*n
+# hand coded, sdr hand_id not yet implimented in stdf library
+seto($out::wrr{hand_id}, $in::sdr{hand_id}, ${out::init{wrr}{hand_id}})||confess &lh, 'wrr{hand_id} not defined'; # C*n, C*n
+# hand coded, not tested, no example
+seto($out::wrr{prb_card}, $in::sdr{card_id}, ${out::init{wrr}{prb_card}})
+  ||confess &lh, 'wrr{prb_card} not defined'; # C*n, C*n
+# desc not tested, no example
+seto($out::wrr{usr_desc}, $in::wrr{usr_desc}, ${out::init{wrr}{usr_desc}})||confess &lh, 'wrr{usr_desc} not defined'; # C*n, C*n
+seto($out::wrr{exc_desc}, $in::wrr{exc_desc}, ${out::init{wrr}{exc_desc}})||confess &lh, 'wrr{usr_desc} not defined'; # C*n, C*n
+if ( "WRR" =~ /$record_list/ )
+  { print OUTPUT &out::pack_WRR(\%out::wrr) ; $out::emir{wsum_cnt}++ ; }
+
+$reading_wafer = 0 ;
+wlog( $log_wafer_records, "end convert_WRR\n") ;
+}
+
+sub convert_TSR
+{
+# call convert_SDR if it was not called, e.g. SDR is not in input file.
+if (! $convert_SDR_called ) { convert_SDR() ; }
+
+if ( $in::tsr{head_num} == 255 # for all sites
+    && ("TSR" =~ /$record_list/ || "WTSR" =~ /$record_list/) ) # record list performance enhancement
+  {
+  wlog( $log_summary_records, "begin convert_TSR\n") ;
+  #
+  # since V4 can have TSRs broken out by test sites, and V3+ cannot,
+  # multiple TSRs for a single test are ignored.
+  # This implies that we require TSRs that represent all head_nums
+  # and site_nums.
+  # We don't attempt to summarize such records.
+  #
+
+  #
+  # since TSR and WTSR records are essentially the same,
+  # start out by assuming a TSR record
+  # if it is a WTSR record, we just pack the TSR
+  # up as a WTSR
+  #
+
+  #
+  # convert the option flags into something more workable
+  #
+  my $flag = reverse($in::tsr{opt_flag}) ;
+  my $test_min_flg = substr($flag,0,1) ;
+  my $test_max_flg = substr($flag,1,1) ;
+  my $test_mean_flg = '0';  # assume ok
+  my $test_sdev_flg = '0';  # assume ok
+  my $test_sums_flg = substr($flag,4,1) ;
+  my $test_sqrs_flg = substr($flag,5,1) ;
+  my $test_exec_cnt_flg = 0 ;  # not part of stdf flag
+
+
+  seto($out::tsr{test_num}, $in::tsr{test_num}, ${out::init{tsr}{test_num}})||confess 'tsr{test_num} not defined'; # U*4, U*4
+  #
+  # convert count fields from I*4 to U*4
+  #
+  if ( $in::tsr{exec_cnt} == ${in::init{tsr}{exec_cnt}} )
+    { ($out::tsr{exec_cnt}=${out::init{tsr}{exec_cnt}}) ; }
+  elsif ( $in::tsr{exec_cnt} > 0xFFFFFFFF/2 )
+    {
+    $out::tsr{exec_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+    $test_exec_cnt_flg = 1 ;  # not part of stdf flag  
+    wlog( $log_cnt_overflow, "Warning tsr{exec_cnt} overflow\n");
+    }
+  else
+    { setr($out::tsr{exec_cnt}, $in::tsr{exec_cnt}, ${out::init{tsr}{exec_cnt}})
+      ||confess &lh, 'tsr{exec_cnt} not defined'; } # I*4, U*4
+
+  if ( $in::tsr{fail_cnt} == ${in::init{tsr}{fail_cnt}} )
+    { ($out::tsr{fail_cnt}=${out::init{tsr}{fail_cnt}}) ; }
+  elsif ( $in::tsr{fail_cnt} > 0xFFFFFFFF/2 )
+    {
+    $out::tsr{fail_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+    wlog( $log_cnt_overflow, "Warning tsr{fail_cnt} overflow\n");
+    }
+  else
+    { setr($out::tsr{fail_cnt}, $in::tsr{fail_cnt}, ${out::init{tsr}{fail_cnt}})
+      ||confess &lh, 'tsr{fail_cnt} not defined'; } # I*4, U*4
+
+  if ( $in::tsr{alrm_cnt} == ${in::init{tsr}{alrm_cnt}} )
+    { ($out::tsr{alrm_cnt}=${out::init{tsr}{alrm_cnt}}) ; }
+  elsif ( $in::tsr{alrm_cnt} > 0xFFFFFFFF/2 )
+    {
+    $out::tsr{alrm_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+    wlog( $log_cnt_overflow, "Warning tsr{alrm_cnt} overflow\n");
+    }
+  else
+    { setr($out::tsr{alrm_cnt}, $in::tsr{alrm_cnt}, ${out::init{tsr}{alrm_cnt}})
+      ||confess &lh, 'tsr{alrm_cnt} not defined'; } # I*4, U*4
+
+  $out::tsr{pad_byte}=${out::init{tsr}{pad_byte}}; # B*1
+  seto($out::tsr{test_min}, $in::tsr{test_min}, ${out::init{tsr}{test_min}})||confess 'tsr{test_min} not defined'; # R*4, R*4
+  seto($out::tsr{test_max}, $in::tsr{test_max}, ${out::init{tsr}{test_max}})||confess 'tsr{test_max} not defined'; # R*4, R*4
+  seto($out::tsr{tst_sums}, $in::tsr{tst_sums}, ${out::init{tsr}{tst_sums}})||confess 'tsr{tst_sums} not defined'; # R*4, R*4
+  seto($out::tsr{tst_sqrs}, $in::tsr{tst_sqrs}, ${out::init{tsr}{tst_sqrs}})||confess 'tsr{tst_sqrs} not defined'; # R*4, R*4
+  #
+  # Calculate Mean and sdev, since V4 does not support
+  #
+  if ( ($in::tsr{exec_cnt} <= 0)
+       || ($test_exec_cnt_flg eq '1')  # not part of stdf flag
+       || ($in::tsr{exec_cnt} == ${in::init{tsr}{exec_cnt}})
+       || ($test_sums_flg eq '1' ) )
+    {
+    # if count or sums is bad, mean and sdev is bad
+    wlog( $log_tsr_stats_errors, "Warning tsr{exec_cnt} or tsr{tst_sums} is invalid, test_num=$out::tsr{test_num}\n");
+    $test_exec_cnt_flg = '1' ;
+    $test_mean_flg = '1' ;
+    $test_sdev_flg = '1' ;
+    $out::tsr{tst_mean}=0 ;
+    $out::tsr{tst_sdev}=0 ;
+    }
+  if ($in::tsr{tst_sqrs} > $FLT_MAX_POS_CHECK)
+    {
+    wlog( $log_tsr_stats_errors, "Warning tsr{tst_sqrs} is Infinity test_num=$out::tsr{test_num}\n");
+    $test_sqrs_flg = '1' ;
+    $test_sdev_flg = '1' ;
+    $out::tsr{tst_sdev}=0 ;
+    }
+  elsif ($in::tsr{tst_sqrs} < $FLT_MAX_NEG_CHECK)
+    {
+    # if tst_sqrs is bad, sdev is bad
+    wlog( $log_tsr_stats_errors, "Warning tsr{tst_sqrs} is -Infinity test_num=$out::tsr{test_num}\n");
+    $test_sqrs_flg = '1' ;
+    $test_sdev_flg = '1' ;
+    $out::tsr{tst_sdev}=0 ;
+    }
+  if ($in::tsr{tst_sqrs} <=0)
+    {
+    # if tst_sqrs is bad, sdev is bad
+    wlog( $log_tsr_stats_errors, "Warning tsr{tst_sqrs} is invalid, test_num=$out::tsr{test_num}\n");
+    $test_sqrs_flg = '1' ;
+    $test_sdev_flg = '1' ;
+    $out::tsr{tst_sdev}=0 ;
+    }
+  if ( ($test_exec_cnt_flg eq '0') && ($test_sums_flg eq '0') )
+    {
+    $test_mean_flg = '0' ;
+    $out::tsr{tst_mean}=$in::tsr{tst_sums}/$in::tsr{exec_cnt} ;
+    if ($out::tsr{tst_mean} > $out::tsr{test_max} && $test_max_flg eq '0')
+      {
+      wlog( $log_tsr_stats_errors, "Warning tsr{tst_mean}=$out::tsr{tst_mean} > tsr{test_max}=$out::tsr{test_max}, No option flags set !; test_num=$out::tsr{test_num}\n");
+      }
+    if ($out::tsr{tst_mean} < $out::tsr{test_min} && $test_min_flg eq '0')
+      {
+      wlog( $log_tsr_stats_errors, "Warning tsr{tst_mean}=$out::tsr{tst_mean} < tsr{test_min}=$out::tsr{test_min}, No option flags set !; test_num=$out::tsr{test_num}\n");
+      }
+    if ($test_sqrs_flg eq '0')
+      {
+      my $tst_var ;
+      if ($out::tsr{exec_cnt} == 1)
+        {
+        # no variance if sample size is 1
+        $tst_var = 0 ;
+        $test_sdev_flg = '1' ;
+        $out::tsr{tst_sdev} = 0 ;
+        }
+      else
+        {
+        $tst_var = 
+          ($out::tsr{tst_sqrs}-(($out::tsr{tst_sums}**2.0)/$out::tsr{exec_cnt}))/
+          ($out::tsr{exec_cnt} - 1.0) ;
+        }
+      if ($tst_var < 0)
+        {
+        #
+        # found cases where test_min=tst_max
+        # where numberic precision caused tst_var to be less than
+        # 0.  If min and max are within .1 %, don't report an error
+        # sdev= 0
+        #
+        #
+        if (((($out::tsr{tst_max}-$out::tsr{tst_min})<($out::tsr{tst_mean}*0.0001))
+           && ($test_min_flg eq '0') && ($test_max_flg eq '0')))
+           {
+           wlog( $log_tsr_neg_small_var_errors, "Warning cannot take sqrt(tsr variance=$tst_var), probably due to rounding error TSR.MIN ~= TSR.MAX; test_num=$out::tsr{test_num}\n");
+           }
+         else
+           {
+           wlog( $log_tsr_stats_errors, "Warning cannot take sqrt(tsr variance=$tst_var); test_num=$out::tsr{test_num}\n");
+           }
+        $test_sdev_flg = '0' ;
+        $out::tsr{tst_sdev} = 0 ;
+        }
+      else
+        {
+        $out::tsr{tst_sdev} = sqrt($tst_var) ;
+        if ($out::tsr{tst_sdev} == $MAX_FLT)
+          {
+          wlog( $log_tsr_stats_errors, "Warning tsr{tst_sdev} is Infinity, test_num=$out::tsr{test_num}\n");
+          $test_sdev_flg = '1' ;
+          $out::tsr{tst_sdev}=0 ;
+          }
+        elsif ($out::tsr{tst_sdev} == -$MAX_FLT)
+          {
+          wlog( $log_tsr_stats_errors, "Warning tsr{tst_sdev} is -Infinity, test_num=$out::tsr{test_num}\n");
+          $test_sdev_flg = '1' ;
+          $out::tsr{tst_sdev}=0 ;
+          }
+        else
+          { $test_sdev_flg = '0' ; }
+        }
+      }
+    }
+  $out::tsr{opt_flag} = '00'.$test_sqrs_flg.$test_sums_flg
+                            .$test_sdev_flg.$test_mean_flg
+                            .$test_max_flg.$test_min_flg ;
+  # $test_exec_cnt_flg is not part of opt_flag
+  # if invalid because of overflow exec_cnt is set to max, not missing value
+  seto($out::tsr{test_nam}, $in::tsr{test_nam}, ${out::init{tsr}{test_nam}})||confess 'tsr{test_nam} not defined'; # C*n, C*n
+#
+# Strip out characters used as EWB delimiters, and report.
+# each character in the pattern is excape'd \
+# This section of code is essentially duplicated for both PTR and TSR
+#
+  $out::tsr{test_nam} = fix_test_nam( $out::tsr{test_num}, $out::tsr{test_nam}, $log_bad_chars, $log_trunc_bin_tests, $compress_name ) ;
+  seto($out::tsr{seq_name}, $in::tsr{seq_name}, ${out::init{tsr}{seq_name}})||confess 'tsr{seq_name} not defined'; # C*n, C*n
+  if ($reading_wafer == 0 )
+    {
+    if ("TSR" =~ /$record_list/)
+      {
+      #
+      # write out a tsr record
+      #
+      print OUTPUT &out::pack_TSR(\%out::tsr) ; 
+      $out::emir{ssyn_cnt}++ ;
+      }
+    }
+  else
+    {
+    if ("WTSR" =~ /$record_list/)
+      {
+      #
+      # write out a wtsr record
+      # since record structures are the same
+      # we can pack the tsr as a wtsr
+      #
+      print OUTPUT &out::pack_WTSR(\%out::tsr) ; 
+      $out::emir{wsyn_cnt}++ ;
+      }
+    }
+  wlog( $log_summary_records, "end convert_TSR\n") ;
+  }
+else
+  {
+  wlog( $log_summary_records, "convert_TSR - record skipped, head_num != 255\n") ;
+  }
+}
+
+
+sub convert_PCR 
+{
+wlog( $log_lot_records, "begin convert_PCR\n") ;
+# call convert_SDR if it was not called, e.g. SDR is not in input file.
+if (! $convert_SDR_called ) { convert_SDR() ; }
+
+#
+# Use PCR sum for the MRR record
+# Assumes that there is only one PCR with head_num=255 !
+# otherwise, counts will be off
+#
+if ($in::pcr{head_num} == 255)
+  {
+  #
+  # Don't sum defaults and warn
+  #
+  if ( $in::pcr{part_cnt} == $in::init{pcr}{part_cnt} )
+    {
+    $out::mrr{part_cnt} = $out::init{mrr}{part_cnt} ;
+    wlog( $log_cnt_missing_event, "Warning pcr{part_cnt} missing\n");
+    }
+  else
+    {
+    $out::mrr{part_cnt} = $in::pcr{part_cnt} ; 
+    }
+
+  if ( $in::pcr{rtst_cnt} == $in::init{pcr}{rtst_cnt} )
+    {
+    $out::mrr{rtst_cnt} = $out::init{mrr}{rtst_cnt} ;
+    wlog( $log_cnt_missing_event, "Warning pcr{rtst_cnt} missing\n");
+    }
+  else
+    {
+    $out::mrr{rtst_cnt} = $in::pcr{rtst_cnt} ; 
+    }
+
+  if ( $in::pcr{abrt_cnt} == $in::init{pcr}{abrt_cnt} )
+    {
+    $out::mrr{abrt_cnt} = $out::init{mrr}{abrt_cnt} ;
+    wlog( $log_cnt_missing_event, "Warning pcr{abrt_cnt} missing\n");
+    }
+  else
+    {
+    $out::mrr{abrt_cnt} = $in::pcr{abrt_cnt} ; 
+    }
+  if ( $in::pcr{good_cnt} == $in::init{pcr}{good_cnt} )
+    {
+    $out::mrr{good_cnt} = $out::init{mrr}{good_cnt} ;
+    wlog( $log_cnt_missing_event, "Warning pcr{good_cnt} missing\n");
+    }
+  else
+    {
+    $out::mrr{good_cnt} = $in::pcr{good_cnt} ; 
+    }
+  if ( $in::pcr{func_cnt} == $in::init{pcr}{func_cnt} )
+    {
+    $out::mrr{func_cnt} = $out::init{mrr}{func_cnt} ;
+    wlog( $log_cnt_missing_event, "Warning pcr{func_cnt} missing\n");
+    }
+  else
+    {
+    $out::mrr{func_cnt} = $in::pcr{func_cnt} ; 
+    }
+  
+  #
+  # Check for overflows
+  # Set to largest value in case of overflow
+  #
+  if ( $out::mrr{part_cnt} > 0xFFFFFFFF)
+    {
+    $out::mrr{part_cnt} = 0xFFFFFFFF ; # as large as can be
+    wlog( $log_cnt_overflow_event, "Warning mrr{part_cnt} overflow\n");
+    }
+  if ( $out::mrr{rtst_cnt} > 0xFFFFFFFF/2 )
+    {
+    $out::mrr{part_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+    wlog( $log_cnt_overflow_event, "Warning mrr{rtst_cnt} overflow\n");
+    }
+  if ( $out::mrr{abrt_cnt} > 0xFFFFFFFF/2 )
+    {
+    $out::mrr{part_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+    wlog( $log_cnt_overflow_event, "Warning mrr{abrt_cnt} overflow\n");
+    }
+  if ( $out::mrr{good_cnt} > 0xFFFFFFFF/2 )
+    {
+    $out::mrr{part_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+    wlog( $log_cnt_overflow_event, "Warning mrr{good_cnt} overflow\n");
+    }
+  if ( $out::mrr{func_cnt} > 0xFFFFFFFF/2 )
+    {
+    $out::mrr{part_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+    wlog( $log_cnt_overflow_event, "Warning mrr{func_cnt} overflow\n");
+    }
+  wlog( $log_lot_records, "end convert_PCR\n") ;
+  }
+else
+  {
+  wlog( $log_lot_records, "convert_PCR - record skipped, head_num != 255\n") ;
+  }
+}
+
+sub convert_MRR
+{
+wlog( $log_lot_records, "begin convert_MRR\n") ;
+# call convert_SDR if it was not called, e.g. SDR is not in input file.
+if (! $convert_SDR_called ) { convert_SDR() ; }
+
+if ( defined($tp_fn) )
+  {
+  TPOUT->flush ;
+  }
+
+#
+# convert epdr records
+# and print
+# epdr records based on ptr_defaults
+#
+ my $test_num ;
+ # sort numerically, see O'Reilly Cammel Book
+ foreach $test_num (sort {$a <=> $b} keys(%out::ptr_defaults))
+  {
+  undef %out::epdr ;  # initialize to undefined
+  $out::epdr{test_num} = $out::ptr_defaults{$test_num}{test_num};
+  $out::epdr{desc_flg} = $out::ptr_defaults{$test_num}{desc_flg};
+    {
+    #
+    # note that bit 5 indicates test results in a failed part
+    # no way of knowing, set to indicate unknown
+    #
+    my $ptr_of = reverse($out::ptr_defaults{$test_num}{opt_flag}) ;
+    $out::epdr{opt_flg} = 
+    #765                         43                  2                          10
+    '001'.reverse(substr($ptr_of,4,2)).substr($ptr_of,1,1).reverse(substr($ptr_of,4,2)) ;
+    }
+  $out::epdr{res_scal} = $out::ptr_defaults{$test_num}{res_scal};
+  $out::epdr{units}    = $out::ptr_defaults{$test_num}{units};
+  $out::epdr{res_ldig} = $out::ptr_defaults{$test_num}{res_ldig};
+  $out::epdr{res_rdig} = $out::ptr_defaults{$test_num}{res_rdig};
+  $out::epdr{llm_scal} = $out::ptr_defaults{$test_num}{llm_scal};
+  $out::epdr{hlm_scal} = $out::ptr_defaults{$test_num}{hlm_scal};
+  $out::epdr{llm_ldig} = $out::ptr_defaults{$test_num}{llm_ldig};
+  $out::epdr{llm_rdig} = $out::ptr_defaults{$test_num}{llm_rdig};
+  $out::epdr{hlm_ldig} = $out::ptr_defaults{$test_num}{hlm_ldig};
+  $out::epdr{hlm_rdig} = $out::ptr_defaults{$test_num}{hlm_rdig};
+  #
+  # Eagle and LTX seem to populate the lo_limit/hi_limit
+  # with what is actually the lo_spec/hi_spec
+  #
+  $out::epdr{lo_limit} = $out::ptr_defaults{$test_num}{lo_limit};
+  $out::epdr{hi_limit} = $out::ptr_defaults{$test_num}{hi_limit};
+  # $out::epdr{lo_censr}=${out::init{epdr}{lo_censr}}; # R*4
+  # $out::epdr{hi_censr}=${out::init{epdr}{hi_censr}}; # R*4
+  #
+  # Derive the lo_censr and hi_censr limits
+  #
+  # Note that a change here implies a test plan revision
+  # for existing data within edb
+  #
+  if ( 0 ) # commented out
+    {
+    my $range = abs(($out::epdr{hi_limit} - $out::epdr{lo_limit})/2.0) ;
+    my $median = ($out::epdr{hi_limit} + $out::epdr{lo_limit})/2.0 ;
+    my $multiplier = 100 ;
+    $out::epdr{lo_censr} = $median - $multiplier * $range ;
+    $out::epdr{hi_censr} = $median + $multiplier * $range ;
+    }
+  else
+    {
+    #
+    # both Eagle and LTX don't supply lo_spec/hi_spec
+    # It seems to me that they are actually populating the lo_limit/hi_limit
+    # with the lo_spec/hi_spec
+    #
+    seto($out::epdr{lo_censr}, $out::ptr_defaults{$test_num}{lo_spec}, -$FLT_MAX) ; # pack unpack definitions
+    seto($out::epdr{hi_censr}, $out::ptr_defaults{$test_num}{hi_spec}, $FLT_MAX) ; # pack unpack definitions
+    }
+  $out::epdr{pin_1}=${out::init{epdr}{pin_1}}; # I*2
+  $out::epdr{pin_2}=${out::init{epdr}{pin_2}}; # I*2
+  $out::epdr{pin_3}=${out::init{epdr}{pin_3}}; # I*2
+  $out::epdr{sbin_num}=${out::init{epdr}{sbin_num}}; # U*2
+  $out::epdr{hbin_num}=${out::init{epdr}{hbin_num}}; # U*2
+  $out::epdr{vcc}=${out::init{epdr}{vcc}}; # R*4
+  $out::epdr{vee}=${out::init{epdr}{vee}}; # R*4
+#  $out::epdr{temp}=${out::init{epdr}{temp}}; # R*4
+  seto($out::epdr{temp}, $in::mir{tst_temp}, ${out::init{epdr}{temp}})||confess &lh, 'epdr{temp} not defined'; # R*4, C*n
+  $out::epdr{freq}=${out::init{epdr}{freq}}; # R*4
+  $out::epdr{parmtyp}=${out::init{epdr}{parmtyp}}; # C*1
+  $out::epdr{test_nam} = $out::ptr_defaults{$test_num}{test_nam} ;
+  $out::epdr{seq_name}=${out::init{epdr}{seq_name}}; # C*n
+  $out::epdr{tconds}=${out::init{epdr}{tconds}}; # C*n
+  $out::epdr{sbin_nam}=${out::init{epdr}{sbin_nam}}; # C*n
+  $out::epdr{hbin_nam}=${out::init{epdr}{hbin_nam}}; # C*n
+  $out::epdr{test_txt} = $out::ptr_defaults{$test_num}{test_txt} ;
+  #
+  # If EPDR is to be in test data file or test plan file
+  #
+  if ( ("EPDR" =~ /$record_list/) || defined($tp_fn) )
+    {
+    $epdr_bin = &out::pack_EPDR(\%out::epdr) ;
+    }
+  #
+  # test data file output
+  #
+  if ( "EPDR" =~ /$record_list/ )
+    {
+    print OUTPUT $epdr_bin ;
+    }
+  #
+  # test plan file output
+  #
+  if ( defined($tp_fn) )
+    {
+    print TPOUT $epdr_bin ;
+    }
+  } # for end of converting epdr
+
+seto($out::mrr{finish_t}, $in::mrr{finish_t}, ${out::init{mrr}{finish_t}})||confess &lh, 'mrr{finish_t} not defined'; # U*4, U*4
+#
+# set to mrr, if=default, set to mir, else die
+# mir part not tested
+#
+setr($out::mrr{start_t}, $in::mrr{start_t}, ${out::init{mrr}{start_t}})
+  || setr($out::mrr{start_t}, $in::mir{start_t}, ${out::init{mrr}{start_t}})
+  || confess &lh, 'mir{start_t} not defined'; # U*4, U*4
+
+#
+# Count records done within convert_PCR
+#
+
+#
+# Check for valid counts
+#
+
+if ( $out::mrr{rtst_cnt} == $out::init{mrr}{rtst_cnt} )
+  {
+  wlog( $log_cnt_missing, "Warning mrr{rtst_cnt} missing\n");
+  }
+if ( $out::mrr{abrt_cnt} == $out::init{mrr}{abrt_cnt} )
+  {
+  wlog( $log_cnt_missing, "Warning mrr{abrt_cnt} missing\n");
+  }
+if ( $out::mrr{good_cnt} == $out::init{mrr}{good_cnt} )
+  {
+  wlog( $log_cnt_missing, "Warning mrr{good_cnt} missing\n");
+  }
+if ( $out::mrr{func_cnt} == $out::init{mrr}{func_cnt} )
+  {
+  wlog( $log_cnt_missing, "Warning mrr{func_cnt} missing\n");
+  }
+
+#
+# Check for overflows
+# Set to largest value in case of overflow
+#
+if ( $out::mrr{part_cnt} > 0xFFFFFFFF)
+  {
+  $out::mrr{part_cnt} = 0xFFFFFFFF ; # as large as can be
+  wlog( $log_cnt_overflow, "Warning mrr{part_cnt} overflow\n");
+  }
+if ( $out::mrr{rtst_cnt} > 0xFFFFFFFF/2 )
+  {
+  $out::mrr{part_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+  wlog( $log_cnt_overflow, "Warning mrr{rtst_cnt} overflow\n");
+  }
+if ( $out::mrr{abrt_cnt} > 0xFFFFFFFF/2 )
+  {
+  $out::mrr{part_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+  wlog( $log_cnt_overflow, "Warning mrr{abrt_cnt} overflow\n");
+  }
+if ( $out::mrr{good_cnt} > 0xFFFFFFFF/2 )
+  {
+  $out::mrr{part_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+  wlog( $log_cnt_overflow, "Warning mrr{good_cnt} overflow\n");
+  }
+if ( $out::mrr{func_cnt} > 0xFFFFFFFF/2 )
+  {
+  $out::mrr{part_cnt} = 0xFFFFFFFF/2 ; # as large as can be
+  wlog( $log_cnt_overflow, "Warning mrr{func_cnt} overflow\n");
+  }
+
+
+seto($out::mrr{disp_cod}, $in::mrr{disp_cod}, ${out::init{mrr}{disp_cod}})||confess &lh, 'mrr{disp_cod} not defined'; # C*1, C*1
+seto($out::mrr{usr_desc}, $in::mrr{usr_desc}, ${out::init{mrr}{usr_desc}})||confess &lh, 'mrr{usr_desc} not defined'; # C*n, C*n
+seto($out::mrr{exc_desc}, $in::mrr{exc_desc}, ${out::init{mrr}{exc_desc}})||confess &lh, 'mrr{exc_desc} not defined'; # C*n, C*n
+
+
+#
+# It is an edb requirement to populate the mrr.disp_cod from
+# mir.rtst_cod.
+# Characters are translated as well.
+# Originally coded for eagle
+#
+if ($reprobe)
+  {
+  seto($out::mrr{disp_cod}, $in::mir{rtst_cod}, ${out::init{mrr}{disp_cod}})||confess &lh, 'mrr{disp_cod} not defined'; # C*1, C*1
+  $out::mrr{disp_cod} =~ tr/PR/LS/ ;
+  if (! $out::mrr{disp_cod} =~/^[LS]$/)
+    {
+    wlog(2, " -reprobe option, mir{rtst_cod} not understood for mrr{disp_cod} \n") ;
+    }
+  }
+
+if ( "MRR" =~ /$record_list/ )
+  { print OUTPUT &out::pack_MRR(\%out::mrr) ; $out::emir{ssum_cnt}++ ; }
+
+#
+# if we are not writting to STDOUT, rewrite the EMIR record to correct the counts
+# STDOUT should only be used for debug
+# Through no fault of my own, if the EMIR record length changed, we will have a corrupt file.
+#
+close INPUT ;
+close OUTPUT ; 
+if ( ("EMIR" =~ /$record_list/) && $out_fn && $out_fn ne '-')
+  {
+  if (&out::update_EMIR(\%out::emir, $out_fn))
+    {
+    # update_EMIR logs message
+    $rc = 0xC ;
+    }
+  }
+#
+# output MRR Record for test plan
+# OUTPUT must be closed, as test plan resolver
+# will need to write to output
+# MRR record considered to be the end of the test plan
+#
+if ( defined($tp_fn) )
+  {
+  if ( ! defined($epdr_bin) )
+    {
+    wlog( $log_tp_errors, "Warning, test plan file has no PTR records\n") ;
+    $tp_rc = 0xD ;
+    }
+  $out::mrr{part_cnt}=${out::init{mrr}{part_cnt}}; # U*4
+  $out::mrr{rtst_cnt}=${out::init{mrr}{rtst_cnt}}; # I*4
+  $out::mrr{abrt_cnt}=${out::init{mrr}{abrt_cnt}}; # I*4
+  $out::mrr{good_cnt}=${out::init{mrr}{good_cnt}}; # I*4
+  $out::mrr{func_cnt}=${out::init{mrr}{func_cnt}}; # I*4
+  $out::mrr{disp_cod}=${out::init{mrr}{disp_cod}}; # C*1
+  print TPOUT &out::pack_MRR(\%out::mrr) ;
+  }
+close TPOUT ;
+wlog( $log_lot_records, "end convert_MRR\n") ;
+wlog($log_cnv, "done\n") ;
+}
+
+

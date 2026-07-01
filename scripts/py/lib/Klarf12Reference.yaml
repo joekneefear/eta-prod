@@ -1,0 +1,23 @@
+OSV_Klarf12:
+  device_ids:
+    - id: CM1607X28BM-D6XSW
+      orientation_mark_location: RIGHT
+    - id: CM1607X28BM-D6XS
+      orientation_mark_location: RIGHT
+  enrichments:
+    - update_orientation_mark_location
+    - enrich_remove_defect_list_XY_not_in_sample_test_plan
+    - enrich_defect_columns
+    - remove_tiffFilename_and_DefectList_lines
+
+SZ_Klarf12:
+  enrichments:
+    - enrich_remove_defect_list_XY_not_in_sample_test_plan
+    - enrich_defect_columns
+    - remove_tiffFilename_and_DefectList_lines
+  
+EPI_WORLD_Klarf12:
+  enrichments:
+    - enrich_remove_defect_list_XY_not_in_sample_test_plan
+    - enrich_defect_columns
+    - remove_tiffFilename_and_DefectList_lines

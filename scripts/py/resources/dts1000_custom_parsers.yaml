@@ -1,0 +1,117 @@
+# DTS1000/DTS2000 Custom Parser Configuration
+#
+# This file defines site-specific custom parsing rules for the DTS1000/DTS2000 parser.
+# Rules can be modified without changing code.
+
+# Site-specific configurations
+sites:
+  # Phoenix Final Test
+  PHXFT:
+    # Enable/disable custom parsers
+    custom_parsers:
+      lot_parser: true
+      program_parser: true
+      time_parser: true
+    
+    # Lot ID parsing rules
+    lot_id:
+      # Regex pattern to match lot ID format
+      # Pattern: PROCESS-DEVICE-CONTROL-LOT
+      # Example: FT-FCPF250N65S3L1-F154-HVPFT160003
+      pattern: '^([A-Z]+)-([A-Z0-9]+)-([A-Z0-9]+)-([A-Z0-9]+)$'
+      
+      # Map regex groups to metadata fields
+      groups:
+        1: PROCESS          # FT (Final Test)
+        2: PRODUCT          # FCPF250N65S3L1
+        3: INTERNAL_CONTROL # F154
+        4: LOT              # HVPFT160003
+      
+      # Fallback field if pattern doesn't match
+      fallback_field: 'LOT'
+    
+    # Test program parsing rules
+    program:
+      # Extract revision from filename (last character)
+      extract_revision: true
+      revision_position: -1  # -1 = last char, -2 = second to last, etc.
+      
+      # Strip file extension before parsing
+      strip_extension: true
+      
+      # Fallback if parsing fails
+      fallback_program: 'UNKNOWN'
+    
+    # Timestamp parsing rules
+    timestamp:
+      # Source: 'file_modified', 'excel_date', or 'current'
+      source: 'file_modified'
+      
+      # Output format
+      format: '%Y/%m/%d %H:%M:%S'
+      
+      # Apply to both START_TIME and END_TIME
+      apply_to:
+        - START_TIME
+        - END_TIME
+  
+  # Example: Another site with different rules
+  SITE2:
+    custom_parsers:
+      lot_parser: false      # Use default parsing
+      program_parser: true   # Use custom program parsing
+      time_parser: false     # Use default time parsing
+    
+    program:
+      extract_revision: false
+      strip_extension: true
+  
+  # Example: Site with custom lot pattern
+  GRESHAM:
+    custom_parsers:
+      lot_parser: true
+      program_parser: false
+      time_parser: true
+    
+    lot_id:
+      # Different pattern for GRESHAM
+      pattern: '^([A-Z0-9]+)_([A-Z0-9]+)_([A-Z0-9]+)$'
+      groups:
+        1: PRODUCT
+        2: LOT
+        3: WAFER
+      fallback_field: 'LOT'
+    
+    timestamp:
+      source: 'excel_date'  # Use date from Excel file
+      format: '%Y/%m/%d %H:%M:%S'
+
+# Global defaults (used when site not found or custom_parsers disabled)
+defaults:
+  custom_parsers:
+    lot_parser: false
+    program_parser: false
+    time_parser: false
+  
+  lot_id:
+    pattern: null  # No pattern matching
+    groups: {}
+    fallback_field: 'LOT'
+  
+  program:
+    extract_revision: false
+    strip_extension: true
+    fallback_program: 'UNKNOWN'
+  
+  timestamp:
+    source: 'excel_date'
+    format: '%Y/%m/%d %H:%M:%S'
+    apply_to:
+      - START_TIME
+      - END_TIME
+
+# Configuration metadata
+metadata:
+  version: '1.0'
+  last_updated: '2026-01-29'
+  description: 'DTS1000/DTS2000 custom parser configuration'

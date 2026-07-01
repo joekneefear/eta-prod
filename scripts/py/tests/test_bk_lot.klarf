@@ -1,0 +1,24 @@
+FileRecord 1.8;
+/* Sample Klarf for BK Rework testing */
+LotRecord "KG46Z1PA" {
+    WaferRecord "W_01" {
+        InspectionStationID "KLA-Tencor" "3200" "SICA88";
+        SlotNumber 1;
+        SampleCenterLocation 0 0;
+        ClassLookup 1 {
+            1 "Defect"
+        }
+        DefectList {
+            1 0 0 0 0 1 1 0 0 0 1.0 1.0 0 0;
+        }
+    }
+}
+SamplePlan {
+    SampleSize 152 1;
+}
+DeviceID "CR1299XXXXA-WDX";
+StepID "EPI_REWORK";
+RecipeID "EPI_REWORK_RECIPE";
+FabID "BK";
+FileTimestamp 03-27-2026 01:52:49;
+ResultTimestamp 03-27_2026 01:52:49;

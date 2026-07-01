@@ -1,0 +1,65 @@
+# Custom Parser Configuration for DTS1k2k (Juno)
+# SHEDCL Site-Specific Configuration
+
+defaults:
+  custom_parsers:
+    lot_parser: true
+    program_parser: true  # Use TestFileName from file content, NOT filename
+    time_parser: true
+    device_parser: false
+
+  # Lot ID parsing from Lot field in CSV file content
+  # Supports two formats:
+  #   3-part: FT-<Device>-<Lot>
+  #   4-part: FT-<Device>-<Control>-<Lot>
+  #
+  # Examples:
+  #   FT-HUF75652G3-HVPFT150037                    → Device=HUF75652G3, Lot=HVPFT150037
+  #   FT-FCPF250N65S3L1-F154-HVPFT160003           → Device=FCPF250N65S3L1, Control=F154, Lot=HVPFT160003
+  #
+  # Mapping:
+  #   FT → Final Test process (implicit, not captured)
+  #   2nd part → Device name (PRODUCT)
+  #   3rd part → Control (OPERATOR) if 4-part, or Lot (LOT) if 3-part
+  #   4th part → Lot (LOT) if 4-part
+  lot_id:
+    # Regex with optional control field
+    # Matches: FT-<Device>-<Lot> OR FT-<Device>-<Control>-<Lot>
+    pattern: '^FT-([^-]+)-([^-]+)(?:-([^-]+))?$'
+    groups:
+      1: 'PRODUCT'    # Device Name (always 2nd part)
+      2: 'OPERATOR'   # Control/Operator (3rd part) - might be Lot if no 4th part
+      3: 'LOT'        # Lot ID (4th part) - only if present
+    fallback_field: 'LOT'
+    source: 'content'  # Extract from Lot field in file content
+
+  # Test Program parsing from TestFileName field in file content
+  # The last character is the revision
+  program:
+    extract_revision: true
+    revision_position: -1  # Last character is revision
+    strip_extension: true
+    fallback_program: 'UNKNOWN'
+
+  # Timestamp parsing
+  # Use the "file modified" data from dataport as Start_time and End_time
+  timestamp:
+    source: 'file_modified'
+    format: '%Y/%m/%d %H:%M:%S'
+    apply_to: 
+      - 'START_TIME'
+      - 'END_TIME'
+
+  # Device Name Parser (not used - extracted from lot_id)
+  device:
+    pattern: '.*'
+    groups: 
+      0: 'PRODUCT'
+
+sites:
+  SHEDCL:
+    # SHEDCL uses default configuration
+    custom_parsers:
+      lot_parser: true
+      program_parser: true  # Use TestFileName from file content
+      time_parser: true

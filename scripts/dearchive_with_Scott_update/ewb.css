@@ -1,0 +1,106 @@
+*
+{
+    FONT-SIZE   : 11px;
+    FONT-FAMILY : Tahoma
+}
+H1
+{
+    PADDING-RIGHT   : 2px;
+    PADDING-LEFT    : 2px;
+    PADDING-BOTTOM  : 2px;
+    PADDING-TOP     : 2px; 
+    MARGIN          : 0px 0px 0px 0px; 
+    FONT-WEIGHT     : bold;
+    FONT-SIZE       : 14px;
+    MARGIN          : 1px 0px 10px;    
+    FONT-FAMILY     : Tahoma;
+    BACKGROUND-COLOR: gold;
+    TEXT-ALIGN      : center
+}
+BODY
+{
+    FONT-SIZE  : 11px;
+    FONT-FAMILY: Tahoma
+}
+TH
+{
+    PADDING-LEFT    : 10px;   
+    PADDING-BOTTOM  : 3px;
+    PADDING-RIGHT   : 10px;
+    PADDING-TOP     : 3px;
+    FONT-SIZE       : 11px;
+    COLOR           : white;
+    FONT-FAMILY     : Tahoma; 
+    FONT-WEIGHT     : bold;
+    TEXT-TRANSFORM  : uppercase; 
+    BACKGROUND-COLOR: #003366;
+}
+TD
+{   
+    PADDING-LEFT  : 10px;   
+    PADDING-BOTTOM: 2px;
+    PADDING-RIGHT : 10px;
+    PADDING-TOP   : 5px;
+    MARGIN        : 0px;
+    VERTICAL-ALIGN: middle;
+    TEXT-TRANSFORM: uppercase;
+    COLOR         : black;
+    FONT-SIZE     : 11px;
+    FONT-FAMILY   : Tahoma;
+}
+SELECT
+{
+    FONT-SIZE: 11px;
+    FONT-FAMILY: Tahoma
+}
+INPUT
+{
+    FONT-SIZE   : 11px;
+    FONT-FAMILY: Tahoma
+}
+FORM
+{
+    PADDING-RIGHT: 0px;
+    PADDING-LEFT: 0px;
+    PADDING-BOTTOM: 0px;
+    MARGIN: 0px;
+    PADDING-TOP: 0px
+}
+A
+{
+    PADDING-RIGHT: 0px;
+    PADDING-LEFT: 0px;
+    PADDING-BOTTOM: 0px;
+    MARGIN: 0px;
+    CURSOR: hand;
+    PADDING-TOP: 0px;
+    TEXT-ALIGN: center
+}
+label
+{
+    PADDING-TOP     : 0px;
+    FONT-SIZE       : 10px;
+    FONT-WEIGHT     : normal;
+    FONT-FAMILY     : Tahoma;
+}
+.btn
+{
+    PADDING      : 3px 5px 3px 5px;
+    TEXT-ALIGN   : center;
+    CURSOR       : hand;
+    FONT-WEIGHT  : bold;
+    FONT-SIZE    : 11px;
+}
+.step
+{
+    PADDING-RIGHT   : 2px;
+    PADDING-LEFT    : 2px;
+    PADDING-BOTTOM  : 2px;
+    PADDING-TOP     : 2px; 
+    MARGIN          : 0px 0px 0px 0px;    
+    FONT-SIZE       : 12px;
+    FONT-WEIGHT     : normal;
+    FONT-FAMILY     : Tahoma;
+    BACKGROUND-COLOR: gold;
+    TEXT-ALIGN      : center
+}

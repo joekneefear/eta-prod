@@ -1,0 +1,9 @@
+4.0
+7
+1	SYBCHAR	1	255	""	1	entity_id
+2	SYBCHAR	1	255	""	2	facility
+3	SYBCHAR	1	255	""	3	event
+4	SYBCHAR	1	255	""	4	date_time
+5	SYBCHAR	1	255	""	5	work_week
+6	SYBCHAR	1	255	""	6	comment_code
+7	SYBCHAR	1	255	""	7	comment

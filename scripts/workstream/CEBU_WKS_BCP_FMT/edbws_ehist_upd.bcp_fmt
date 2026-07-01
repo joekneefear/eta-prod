@@ -1,0 +1,31 @@
+4.0
+29
+1	SYBCHAR	1	255	""	1	entity_id
+2	SYBCHAR	1	255	""	2	facility
+3	SYBCHAR	1	255	""	3	date_time
+4	SYBCHAR	1	255	""	4	work_week
+5	SYBCHAR	1	255	""	5	event
+6	SYBCHAR	1	255	""	6	standard_status
+7	SYBCHAR	1	255	""	7	status_1
+8	SYBCHAR	1	255	""	8	status_2
+9	SYBCHAR	1	255	""	9	status_3
+10	SYBCHAR	1	255	""	10	status_4
+11	SYBCHAR	1	255	""	11	status_5
+12	SYBCHAR	1	255	""	12	status_6
+13	SYBCHAR	1	255	""	13	status_7
+14	SYBCHAR	1	255	""	14	status_8
+15	SYBCHAR	1	255	""	15	status_9
+16	SYBCHAR	1	255	""	16	operator_id
+17	SYBCHAR	1	255	""	17	parameter_set_id
+18	SYBCHAR	1	255	""	18	parameter_set_version
+19	SYBCHAR	1	255	""	19	comment
+20	SYBCHAR	0	1	""	20	new_availability
+21	SYBCHAR	0	1	""	21	oosi_flag
+22	SYBCHAR	0	1	""	22	fail_flag
+23	SYBCHAR	0	1	""	23	frdt_flag
+24	SYBCHAR	0	1	""	24	dt_flag
+25	SYBINT4	0	4	""	25	time_in_status
+26	SYBCHAR	1	255	""	26	transaction_date_time
+27	SYBCHAR	1	255	""	27	old_standard_status
+28	SYBCHAR	1	255	""	28	old_status
+29	SYBCHAR	1	255	""	29	old_status_index

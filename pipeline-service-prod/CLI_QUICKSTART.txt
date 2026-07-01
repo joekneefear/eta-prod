@@ -1,0 +1,136 @@
+================================================================================
+  Pipeline Service - Command-Line Interface Quick Start
+================================================================================
+
+NEW FEATURE: Enhanced run_with_args.py with run.sh features!
+- Colored output for better readability
+- Dependency checking and validation
+- Auto-creation of sample JSONL data
+- NGINX-ready configuration
+- Improved error messages
+
+SIMPLEST USAGE (All Defaults):
+-------------------------------
+python run_with_args.py --backend oracle --oracle-user
+
+This automatically uses:
+  DSN:      exnqa-db.onsemi.com:1740/EXNQA.onsemi.com (QA database)
+  Username: refdb
+  Password: br#^gox66312sdAB
+  JSONL:    /apps/exensio_data/reference_data/benchmark/benchmark.jsonl
+
+QUICK START SCRIPT:
+-------------------
+./start_with_defaults.sh
+
+Or with custom DSN:
+./start_with_defaults.sh DWPRD 8001
+
+COMMAND-LINE OPTIONS:
+---------------------
+--backend {jsonl,oracle}        Storage backend
+--oracle-dsn DSN                Oracle DSN (default: exnqa-db.onsemi.com:1740/EXNQA.onsemi.com)
+--oracle-user [USERNAME]        Username (optional value for defaults)
+--oracle-password [PASSWORD]    Password (optional value for defaults)
+--oracle-table TABLE            Table name (default: pipeline_runs)
+--jsonl-path PATH               JSONL file path (default: /apps/exensio_data/reference_data/benchmark/benchmark.jsonl)
+--host HOST                     Host to bind (default: 127.0.0.1)
+-p, --port PORT                 Port to bind (default: 8001)
+--reload                        Enable auto-reload for development
+--dev                           Alias for --reload (development mode)
+--cors-origins ORIGINS          Comma-separated CORS origins
+--cors-allow-all                Allow all CORS origins (dev only)
+
+NEW FEATURES:
+-------------
+✓ Colored output (green=info, yellow=warn, red=error)
+✓ Dependency validation before startup
+✓ Auto-creates sample JSONL data if missing
+✓ NGINX proxy headers support (X-Forwarded-*)
+✓ Better error messages and troubleshooting
+✓ Environment variable defaults for all options
+✓ --dev flag for quick development mode
+
+USAGE EXAMPLES:
+---------------
+
+1. Development with all defaults (QA database):
+   python run_with_args.py --backend oracle --oracle-user --dev
+
+2. Production with custom DSN and credentials:
+   python run_with_args.py --backend oracle --oracle-dsn DWPRD \
+     --oracle-user "pipeline_prod" --oracle-password "secure_pass" \
+     --host 0.0.0.0 -p 8001
+
+3. Using environment variables with default DSN:
+   export ORACLE_USER="myuser"
+   export ORACLE_PASSWORD="mypass"
+   python run_with_args.py --backend oracle
+
+4. JSONL backend with custom path:
+   python run_with_args.py --backend jsonl \
+     --jsonl-path /custom/path/pipeline.jsonl --dev
+
+5. Quick development mode:
+   python run_with_args.py --backend oracle --oracle-user --dev
+
+CREDENTIAL RESOLUTION ORDER:
+----------------------------
+1. Command-line explicit values (highest priority)
+2. Environment variables
+3. Default credentials and DSN (when flags present but empty)
+4. Error (when no credentials available)
+
+DEFAULT VALUES:
+---------------
+DSN:      exnqa-db.onsemi.com:1740/EXNQA.onsemi.com (QA database)
+Username: refdb
+Password: br#^gox66312sdAB
+Table:    pipeline_runs
+
+COMPARISON WITH PERL SCRIPT:
+-----------------------------
+Feature                 Perl Script                     Python Service
+----------------------  ------------------------------  ------------------------------
+Default creds flag      --benchmark_db_user             --oracle-user
+Default username        refdb                           refdb
+Default password        br#^gox66312sdAB                br#^gox66312sdAB
+Custom credentials      --benchmark_db_user "user"      --oracle-user "user"
+                        --benchmark_db_pass "pass"      --oracle-password "pass"
+Environment vars        BENCHMARK_DB_USER               ORACLE_USER
+                        BENCHMARK_DB_PASS               ORACLE_PASSWORD
+DSN parameter           --benchmark_db_dsn              --oracle-dsn
+
+BACKWARD COMPATIBILITY:
+-----------------------
+Existing environment variable configuration still works:
+
+  export PIPELINE_BACKEND=oracle
+  export ORACLE_DSN=DWPRD
+  export ORACLE_USER=refdb
+  export ORACLE_PASSWORD="br#^gox66312sdAB"
+  uvicorn main:main_app --port 8001
+
+SECURITY RECOMMENDATIONS:
+--------------------------
+✓ Use default credentials for dev/QA environments
+✓ Use custom credentials for production
+✓ Use environment variables for sensitive credentials
+✓ Avoid command-line passwords in production (visible in ps)
+✓ Restrict password file permissions: chmod 600
+
+API DOCUMENTATION:
+------------------
+Once running, access API docs at:
+  http://localhost:8001/docs
+
+HEALTH CHECK:
+-------------
+curl http://localhost:8001/health
+
+MORE INFORMATION:
+-----------------
+See CLI_USAGE.md for complete documentation
+See README.md for service overview
+
+================================================================================

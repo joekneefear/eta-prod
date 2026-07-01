@@ -1,0 +1,22 @@
+hosts:
+  - name: ewb-dl-ap2
+    port: 22
+    username: edbmgr
+    password: milkshak3
+    threshold_gb: 5
+
+  - name: ewb-dl-ap3
+    port: 22
+    username: edbmgr
+    password: milkshak3
+    threshold_gb: 5
+
+  - name: ewb-dl-us
+    port: 22
+    username: edbmgr
+    password: milkshak3
+    threshold_gb: 5
+
+
+
+

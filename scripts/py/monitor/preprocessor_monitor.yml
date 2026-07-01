@@ -1,0 +1,11 @@
+mgr_file: /export/home/dpower/project/load/fcs_all_load.mgr
+DPLOAD: /export/home/dpower/project/load
+DPLOG: /export/home/dpower/project/log
+DPDATA: /apps/exensio_data
+REFERENCE_DATA_DIR: /apps/exensio_data/reference_data
+log_file: /export/home/dpower/project/log/monitor_fcs_pp.log
+dp_load_mgr: /export/home/dpower/project/load/DpLoadMgr.pl
+monitor_sleep_time: 10
+auto_restart: True
+auto_restart_threshold: 15
+logfile_inactive_time_threshold: 2

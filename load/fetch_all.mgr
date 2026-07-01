@@ -1,0 +1,121 @@
+### ME ###
+$DPLOAD/fetch_script/fetch_mesort_wmap_sep.cfg : -sleep 60 -log $DPLOG/fetch_mesort_wmap_sep.cfg.log : MESORT_WMAP_SEP_FETCH
+$DPLOAD/fetch_script/fetch_mesort_eagle.cfg : -sleep 60 -log $DPLOG/fetch_mesort_eagle.cfg.log : MESORT_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_mesort_fet.cfg : -sleep 60 -log $DPLOG/fetch_mesort_fet.cfg.log : MESORT_FET_FETCH
+$DPLOAD/fetch_script/fetch_mesort_mct.cfg : -sleep 60 -log $DPLOG/fetch_mesort_mct.cfg.log : MESORT_MCT_FETCH
+$DPLOAD/fetch_script/fetch_mesort_advan.cfg : -sleep 60 -log $DPLOG/fetch_mesort_advan.cfg.log : MESORT_ADVAN_FETCH
+
+### MT ###
+$DPLOAD/fetch_script/fetch_mtsort_sz.cfg : -sleep 60 -log $DPLOG/fetch_mtsort_sz.cfg.log : MTSORT_SZ_FETCH
+
+
+### BK SORT ###
+$DPLOAD/fetch_script/fetch_bksort_tmt.cfg : -sleep 60 -log $DPLOG/fcs_pp_bk_sort_tmt.cfg.log : BKSORT_TMT_FETCH
+$DPLOAD/fetch_script/fetch_bksort_bstdf.cfg : -sleep 60 -log $DPLOG/fcs_pp_bk_sort_bstdf.cfg.log : BKSORT_BSTDF_FETCH
+$DPLOAD/fetch_script/fetch_bksort_eagle.cfg : -sleep 60 -log $DPLOG/fcs_pp_bk_sort_eagle.cfg.log : BKSORT_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_bksort_itclcr.cfg : -sleep 60 -log $DPLOG/fcs_pp_bk_sort_itclr.cfg.log : BKSORT_ITCLR_FETCH
+
+### BK ET ###
+$DPLOAD/fetch_script/fetch_bket_hp.cfg : -sleep 30 -log $DPLOG/fcs_pp_bk_hp_et.cfg.log : BKET_HP_FETCH
+$DPLOAD/fetch_script/fetch_bket_ams.cfg : -sleep 30 -log $DPLOG/fcs_pp_bk_ams_et.cfg.log : BKET_AMS_FETCH
+
+### CP SORT WMAP SEP ###
+$DPLOAD/fetch_script/fetch_cpsort_wmap_sep.cfg : -sleep 60 -log $DPLOG/fetch_cpsort_wmap_sep.cfg.log : CPSORT_WMAP_SEP_FETCH
+
+### CP FT ###
+$DPLOAD/fetch_script/fetch_cpft_eagle.cfg : -sleep 30 -log $DPLOG/fetch_cpft_eagle.cfg.log : CPFT_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_cpft_icos.cfg : -sleep 30 -log $DPLOG/fetch_cpft_icos.cfg.log : CPFT_ICOS_FETCH
+$DPLOAD/fetch_script/fetch_cpft_mct.cfg : -sleep 30 -log $DPLOG/fetch_cpft_mct.cfg.log : CPFT_MCT_FETCH
+$DPLOAD/fetch_script/fetch_cpft_ptech.cfg : -sleep 30 -log $DPLOG/fetch_cpft_petch.cfg.log : CPFT_PTECH_FETCH
+$DPLOAD/fetch_script/fetch_cpft_statec.cfg : -sleep 30 -log $DPLOG/fetch_cpft_statec.cfg.log : CPFT_STATEC_FETCH
+$DPLOAD/fetch_script/fetch_cpft_tmt.cfg : -sleep 30 -log $DPLOG/fetch_cpft_tmt.cfg.log : CPFT_TMT_FETCH
+
+### CP AST ###
+$DPLOAD/fetch_script/fetch_cpast_autovis.cfg : -sleep 30 -log $DPLOG/fetch_cpast_autovis.cfg.log : CPAST_AUTOVIS_FETCH
+$DPLOAD/fetch_script/fetch_cpast_pbf_douyee.cfg : -sleep 30 -log $DPLOG/fetch_cpast_pbf_douyee.cfg.log : CPAST_PBF_DOUYEE_FETCH
+$DPLOAD/fetch_script/fetch_cpast_tar_srm.cfg : -sleep 30 -log $DPLOG/fetch_cpast_tar_srm.cfg.log : CPAST_TAR_SRM_FETCH
+
+### CP SORT ###
+$DPLOAD/fetch_script/fetch_cpcsp_wmap_nam.cfg : -sleep 30 -log $DPLOG/fetch_cpcsp_wmap_nam.cfg.log : CPCSP_WMAP_NAM_FETCH
+$DPLOAD/fetch_script/fetch_cpsort_eagle.cfg : -sleep 60 -log $DPLOG/fetch_cpsort_eagle.cfg.log : CPSORT_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_cpsort_fet.cfg : -sleep 60 -log $DPLOG/fetch_cpsort_fet.cfg.log : CPSORT_FET_FETCH
+$DPLOAD/fetch_script/fetch_cpsort_fet_quad.cfg : -sleep 60 -log $DPLOG/fetch_cpsort_fet_quad.cfg.log : CPSORT_FET_QUAD_FETCH
+$DPLOAD/fetch_script/fetch_cpsort_tmt.cfg : -sleep 60 -log $DPLOG/fetch_cpsort_tmt.cfg.log : CPSORT_TMT_FETCH
+
+### SZ FT ###
+$DPLOAD/fetch_script/fetch_szft_eagle.cfg : -sleep 30 -log $DPLOG/fetch_szft_eagle.cfg.log : SZFT_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_szft_iso.cfg : -sleep 30 -log $DPLOG/fetch_szft_iso.cfg.log : SZFT_ISO_FETCH
+$DPLOAD/fetch_script/fetch_szft_mostrak.cfg : -sleep 30 -log $DPLOG/fetch_szft_mostrak.cfg.log : SZFT_MOSTRAK_FETCH
+$DPLOAD/fetch_script/fetch_szft_ptech.cfg : -sleep 30 -log $DPLOG/fetch_szft_ptech.cfg.log : SZFT_PTECH_FETCH
+$DPLOAD/fetch_script/fetch_szft_shiba.cfg : -sleep 30 -log $DPLOG/fetch_szft_shiba.cfg.log : SZFT_SHIBA_FETCH
+$DPLOAD/fetch_script/fetch_szft_spm.cfg : -sleep 30 -log $DPLOG/fetch_szft_spm.cfg.log : SZFT_SPM_FETCH
+$DPLOAD/fetch_script/fetch_szft_tesec.cfg : -sleep 30 -log $DPLOG/fetch_szft_tesec.cfg.log : SZFT_TESEC_FETCH
+$DPLOAD/fetch_script/fetch_szft_tmt.cfg : -sleep 30 -log $DPLOG/fetch_szft_tmt.cfg.log : SZFT_TMT_FETCH
+
+### SZ AST ###
+$DPLOAD/fetch_script/fetch_szast_autovis.cfg : -sleep 30 -log $DPLOG/fetch_szast_autovis.cfg.log : SZAST_AUTOVIS_FETCH
+
+### SZ REL ###
+$DPLOAD/fetch_script/fetch_szrel_eagle.cfg : -sleep 30 -log $DPLOG/fetch_szrel_eagle.cfg.log : SZREL_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_szrel_spm.cfg : -sleep 30 -log $DPLOG/fetch_szrel_spm.cfg.log : SZREL_SPM_FETCH
+
+### AMKOR TW AWW ###
+$DPLOAD/fetch_script/fetch_amkor_tw_wmap_aww.cfg : -sleep 30 -log $DPLOG/fetch_amkor_tw_wmap_aww.cfg.log : AMKOR_TW_AWW_FETCH
+
+### AMKOR TW CSP ###
+$DPLOAD/fetch_script/fetch_amkor_tw_csp_eagle.cfg : -sleep 30 -log $DPLOG/fetch_amkor_tw_csp_eagle.cfg.log : AMKOR_TW_CSP_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_amkor_tw_csp_advan.cfg : -sleep 30 -log $DPLOG/fetch_amkor_tw_csp_advan.cfg.log : AMKOR_TW_CSP_ADVAN_FETCH
+
+### OUTSOURCE FT ###
+$DPLOAD/fetch_script/fetch_asent_tw_ft_bstdf.cfg : -sleep 30 -log $DPLOG/fetch_asent_tw_ft_bstdf.cfg.log : ASENT_TW_FT_BSTDF_FETCH
+$DPLOAD/fetch_script/fetch_atec_ph_ft_mct.cfg : -sleep 30 -log $DPLOG/fetch_atec_ph_ft_mct.cfg.log : ATEC_PH_FT_MCT_FETCH
+$DPLOAD/fetch_script/fetch_atec_ph_ft_statec.cfg : -sleep 30 -log $DPLOG/fetch_atec_ph_ft_statec.cfg.log : ATEC_PH_FT_STATEC_FETCH
+$DPLOAD/fetch_script/fetch_atec_ph_ft_tmt.cfg : -sleep 30 -log $DPLOG/fetch_atec_ph_ft_tmt.cfg.log : ATEC_PH_FT_TMT_FETCH
+$DPLOAD/fetch_script/fetch_atec_ph_ft_eagle.cfg : -sleep 30 -log $DPLOG/fetch_atec_ph_ft_eagle.cfg.log : ATEC_PH_FT_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_ase_my_ft_eagle.cfg : -sleep 30 -log $DPLOG/fetch_ase_my_ft_eagle.cfg.log : ASE_MY_FT_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_hana_th_ft_eagle.cfg : -sleep 30 -log $DPLOG/fetch_hana_th_ft_eagle.cfg.log : HANA_TH_FT_EAGLE_FETCH
+$DPLOAD/fetch_script/fetch_hana_th_ft_advan.cfg : -sleep 30 -log $DPLOG/fetch_hana_th_ft_advan.cfg.log : HANA_TH_FT_ADVAN_FETCH
+$DPLOAD/fetch_script/fetch_hana_th_ft_mct.cfg : -sleep 30 -log $DPLOG/fetch_hana_th_ft_mct.cfg.log : HANA_TH_FT_MCT_FETCH
+$DPLOAD/fetch_script/fetch_hana_th_ft_tmt.cfg : -sleep 30 -log $DPLOG/fetch_hana_th_ft_tmt.cfg.log : HANA_TH_FT_TMT_FETCH
+$DPLOAD/fetch_script/fetch_gtk_tw_ft_mct.cfg : -sleep 30 -log $DPLOG/fetch_gtk_tw_ft_mct.cfg.log : GTK_TW_FT_MCT_FETCH
+$DPLOAD/fetch_script/fetch_gtk_tw_ft_tmt.cfg : -sleep 30 -log $DPLOG/fetch_gtk_tw_ft_tmt.cfg.log : GTK_TW_FT_TMT_FETCH
+$DPLOAD/fetch_script/fetch_gem_cn_ft_qtec.cfg : -sleep 30 -log $DPLOG/fetch_gem_cn_ft_qtec.cfg.log : GEM_CN_FT_QTEC_FETCH
+$DPLOAD/fetch_script/fetch_jcet_cn_ft_itec.cfg : -sleep 30 -log $DPLOG/fetch_jcet_cn_ft_itec.cfg.log : JCET_CN_FT_ITEC_FETCH
+$DPLOAD/fetch_script/fetch_jcet_cn_ft_juno.cfg : -sleep 30 -log $DPLOG/fetch_jcet_cn_ft_juno.cfg.log : JCET_CN_FT_JUNO_FETCH
+
+### ISTI TW ASC###
+$DPLOAD/fetch_script/fetch_isti_tw_csp_wmap_asc.cfg : -sleep 30 -log $DPLOG/fetch_isti_tw_csp_wmap_asc.cfg.log : ISTI_TW_ASC_FETCH
+
+### ISTI TW CSP EAGLE###
+$DPLOAD/fetch_script/fetch_isti_tw_csp_eagle.cfg : -sleep 30 -log $DPLOG/fetch_isti_tw_csp_eagle.cfg.log : ISTI_TW_CSP_EAGLE_FETCH
+
+### OUTSOURCE SORT###
+$DPLOAD/fetch_script/fetch_isti_tw_sort_tmt.cfg : -sleep 60 -log $DPLOG/fetch_isti_tw_sort_tmt.cfg.log : ISTI_TW_SORT_TMT_FETCH
+$DPLOAD/fetch_script/fetch_silan_cn_sort_wmap_nam.cfg : -sleep 60 -log $DPLOG/fetch_silan_cn_sort_wmap_nam.cfg.log : SILAN_CN_SORT_WMAP_NAM_FETCH
+$DPLOAD/fetch_script/fetch_silan_cn_sort_bstdf.cfg : -sleep 60 -log $DPLOG/fetch_silan_cn_sort_bstdf.cfg.log : SILAN_CN_SORT_BSTDF_FETCH
+$DPLOAD/fetch_script/fetch_silan_cn_sort_dpat_nam.cfg : -sleep 60 -log $DPLOG/fetch_silan_cn_sort_dpat_nam.cfg.log : SILAN_CN_SORT_DPAT_NAM_FETCH
+$DPLOAD/fetch_script/fetch_phenitec_jp_sort_tesec.cfg : -sleep 60 -log $DPLOG/fetch_phenitec_jp_sort_tesec.cfg.log : PHENITEC_JP_SORT_TESEC_FETCH
+$DPLOAD/fetch_script/fetch_huatian_cn_sort_wmap_nam.cfg : -sleep 60 -log $DPLOG/fetch_huatian_cn_sort_wmap_nam.cfg.log : HUATIAN_CN_SORT_WMAP_NAM_FETCH
+$DPLOAD/fetch_script/fetch_huatian_cn_sort_t2k.cfg : -sleep 60 -log $DPLOG/fetch_huatian_cn_sort_t2k.cfg.log : HUATIAN_CN_SORT_T2K_FETCH
+$DPLOAD/fetch_script/fetch_gtk_tw_sort_wmap_aww.cfg : -sleep 60 -log $DPLOG/fetch_gtk_tw_sort_wmap_aww.cfg.log : GTK_TW_SORT_AWW_FETCH
+$DPLOAD/fetch_script/fetch_gtk_tw_sort_wmap_nam.cfg : -sleep 60 -log $DPLOG/fetch_gtk_tw_sort_wmap_nam.cfg.log : GTK_TW_SORT_NAM_FETCH
+
+### GTK TW AST AUTOVIS ###
+$DPLOAD/fetch_script/fetch_gtk_tw_ast_autovis.cfg : -sleep 30 -log $DPLOG/fetch_gtk_tw_ast_autovis.cfg.log : GTK_TW_AST_AUTOVIS_FETCH
+
+### OUTSOURCE SUB ###
+$DPLOAD/fetch_script/fetch_epiworld_us_sub.cfg : -sleep 30 -log $DPLOG/fetch_epiworld_us_sub.cfg.log : EPIWORLD_US_SUB_FETCH
+$DPLOAD/fetch_script/fetch_cree_us_sub.cfg : -sleep 30 -log $DPLOG/fetch_cree_us_sub.cfg.log : CREE_US_SUB_FETCH
+$DPLOAD/fetch_script/fetch_globalwfrs_jp_sub.cfg : -sleep 30 -log $DPLOG/fetch_globalwfrs_jp_sub.cfg.log : GLOBALWFRS_JP_SUB_FETCH
+$DPLOAD/fetch_script/fetch_globitech_us_sub.cfg : -sleep 30 -log $DPLOG/fetch_globitech_us_sub.cfg.log : GLOBITECH_US_SUB_FETCH
+$DPLOAD/fetch_script/fetch_sumco_us_sub.cfg : -sleep 30 -log $DPLOG/fetch_sumco_us_sub.cfg.log : SUMCO_US_SUB_FETCH
+$DPLOAD/fetch_script/fetch_sunedison_us_sub.cfg : -sleep 30 -log $DPLOG/fetch_sunedison_us_sub.cfg.log : SUNEDISON_US_SUB_FETCH
+$DPLOAD/fetch_script/fetch_lgsiltron_kr_sub.cfg : -sleep 30 -log $DPLOG/fetch_lgsiltron_kr_sub.cfg.log : LGSILTRON_KR_SUB_FETCH
+$DPLOAD/fetch_script/fetch_silt_us_sub.cfg : -sleep 30 -log $DPLOG/fetch_silt_us_sub.cfg.log : SILT_US_SUB_FETCH
+
+### OUTSOURCE ET ###
+$DPLOAD/fetch_script/fetch_mxic_tw_et_hp.cfg : -sleep 30 -log $DPLOG/fetch_mxic_tw_et_hp.cfg.log : MXIC_TW_ET_HP_FETCH
+$DPLOAD/fetch_script/fetch_tsmc_tw_et_hp.cfg : -sleep 30 -log $DPLOG/fetch_tsmc_tw_et_hp.cfg.log : TSMC_TW_ET_HP_FETCH
+$DPLOAD/fetch_script/fetch_vgrd_tw_et_eagle.cfg : -sleep 30 -log $DPLOG/fetch_vgrd_tw_et_eagle.cfg.log : VGRD_TW_ET_EAGLE_FETCH
+
+

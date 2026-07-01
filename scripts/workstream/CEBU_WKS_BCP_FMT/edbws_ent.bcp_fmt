@@ -1,0 +1,33 @@
+4.0
+31
+1	SYBCHAR	1	255	""	1	entity_id
+2	SYBCHAR	1	255	""	2	facility
+3	SYBCHAR	1	255	""	3	entity_description
+4	SYBCHAR	1	255	""	4	entity_type
+5	SYBCHAR	1	255	""	5	entity_group_1
+6	SYBCHAR	1	255	""	6	entity_group_2
+7	SYBCHAR	1	255	""	7	entity_group_3
+8	SYBCHAR	1	255	""	8	entity_group_4
+9	SYBCHAR	1	255	""	9	entity_group_5
+10	SYBCHAR	1	255	""	10	dispatch_station
+11	SYBCHAR	1	255	""	11	c_user_def_big_1
+12	SYBFLT8	1	8	""	12	d_user_def_big_1
+13	SYBCHAR	1	255	""	13	c_user_def_big_2
+14	SYBFLT8	1	8	""	14	d_user_def_big_2
+15	SYBCHAR	1	255	""	15	c_user_def_big_3
+16	SYBFLT8	1	8	""	16	d_user_def_big_3
+17	SYBCHAR	1	255	""	17	c_user_def_big_4
+18	SYBFLT8	1	8	""	18	d_user_def_big_4
+19	SYBCHAR	1	255	""	19	c_user_def_big_5
+20	SYBFLT8	1	8	""	20	d_user_def_big_5
+21	SYBCHAR	1	255	""	21	c_user_def_small_1
+22	SYBFLT8	1	8	""	22	d_user_def_small_1
+23	SYBCHAR	1	255	""	23	c_user_def_small_2
+24	SYBFLT8	1	8	""	24	d_user_def_small_2
+25	SYBCHAR	1	255	""	25	c_user_def_small_3
+26	SYBFLT8	1	8	""	26	d_user_def_small_3
+27	SYBCHAR	1	255	""	27	c_user_def_small_4
+28	SYBFLT8	1	8	""	28	d_user_def_small_4
+29	SYBCHAR	1	255	""	29	c_user_def_small_5
+30	SYBFLT8	1	8	""	30	d_user_def_small_5
+31	SYBCHAR	1	255	""	31	entity_location

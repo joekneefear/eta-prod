@@ -1,0 +1,1533 @@
+#! /usr/bin/perl
+#
+#
+# DATE	     WHO		    COMMENTS
+# ---------- -------------- -------------------------------------------------------
+# 04/23/2012 Ben Rommel Kho Author. Cloned SZTESEC. Master converter
+# 07/23/2012 Ben Rommel Kho Added new variables and fixed char2float routine for Linux
+#			    Removed routine that retrieves latest tp_rev from db
+# 08/16/2012 Ben Rommel Kho Adjusted to handle YLD & TFC files and multiple wafers
+# 08/23/2012 Ben Rommel Kho Trapped blank part number. Added "data_type" to better capture 
+#      	     		    Sort vs F/T data
+# 08/31/2012 Rodney Cyr     Changed exit status -1 & -100 to 1 & 100 (neg status not valid in unix).
+# 09/05/2012 Ben Rommel Kho Capture LOTNAME field as lotid. Also, capture data only if CONT flag is zero
+# 10/11/2012 Ben Rommel Kho Added $ENV{ENV_DB_SCRIPT} path to env_mod
+# 10/12/2012 Baris Sener    
+# 10/22/2012 Reuben Capio   Changed $ENV{DATABASE};host=$ENV{DATABASE_SERVER} to $ENV{EDB_DATABASE};host=$ENV{EDB_SERVER}. 
+# 10/22/2012 Reuben Capio   Output TD file will be renamed to DTA.TD if file is YLD or TFC.
+# 02-Nov-12  Scott Boothby  Increased test_plan length to 35 from 20.
+# 07-Nov-12  Scott Boothby  Renamed mft_flag variable to mft_flag.
+# 07-Nov-12  Rodney Cyr     Fixed a bug causing all files to fail to bad/ungrouped.
+# 16-Nov-12  Rodney Cyr     Script was parsing the file for datalog data before checking the input file status.
+# 12-Feb-13  Gilbert Miole  Added LTR record.
+# 03/14/2013 Ben Rommel Kho Changed SAME spec limits pairing logic. Pair LSL & USL if SAME is pointing to the prev
+#			    param and test result falls within the spec limit range.
+# 03/19/2013 Ben Rommel Kho For SAME param, compare prev and current PF(Pass/Fail) flag. If either of the flag is Fail,
+#			    then consider the reading as Fail.
+# 03/22/2013 Reuben Capio   Added EMIR test_cod.
+# 03/25/2013 Reuben Capio   Force value of wafer_num to 0 if data_type is equal to FT.
+# 05/22/2013 Rodney Cyr     Was using variables before &pre_parse_mod() is called to set them.  Fixed incorrect use of 
+#                            "==" on a string value.
+# 08/12/2013 Jun Garcia     Added EMIR sb_lot, assign product_id as part_typ, 
+# 09/12/2013 Jun Garcia     Modified assingment of source lot statement (back to original statement).
+# 17-Apr-2014 Rodney Cyr    Added option to use file's creation date as the start/end times (Atlas OS outputs corrupt datetime).
+# 07-Aug-2014 Jun Garcia    Added X and Y Coordinates for each die tested.
+# 10/10/2014 JA Garcia      Declare global var=> lot_type and initialize it to "". Assign it to EMIR lot_type.
+# 12/28/2015 Eric Alfanta   use DpLoad.pm, modified TFC and YLD file directories.
+# 01-Jan-2016 Eric Alfanta  Generate xy coordinates in eprr derived from pir	    
+# 26-Jan-2016 Eric	    remove use of DpLoad.pm;
+
+# FUNCTION: Reads TESEC's .DTA File and generates TD & TP STDFv+ equivalent Files
+#
+#
+#
+
+
+#################
+# LOAD LIBRARIES
+#################
+use Carp                      ; # error messages - does not work within stdf_use.pl
+use FindBin                   ;
+use English                   ;
+use lib "$FindBin::Bin"       ; # set up path for libraries the same as script
+use lib $ENV{'STDF_PERL_LIB'} ; # look for libraries in this directory
+require "stdf_use.pl"         ; # libraries that are not generated
+#use EDBUtil                   ;
+use Getopt::Long              ;
+use DBI			      ;
+use File::Basename	      ;
+#use PDF::DpLoad;
+
+
+###################### 
+# LOAD SPECIFICATIONS
+######################
+{
+        package out ;
+        if ( !eval(&::generate_all('stdfPL.spec')))
+        { confess $@ ; }
+        require 'stdfPL.pl' ;
+}
+
+
+###################
+# GLOBAL VARIABLES
+###################
+our $file          = "";
+our $lotid         = "";
+our $testplan      = "";
+our $testplan_rev  = 1;
+our $comment       = "";
+our $device        = "";
+our $eqpt_id       = "";
+our $operator      = "";
+our $lot_disp      = "T";			### T=FIRST TEST; R=RETEST
+our $data_type	   = "WS";			### WS=WAFER SORT; FT=FINAL TEST
+our $test_num_mod  = 1000;
+our $use_dta_bin   = "N";			### Y=COUNT DTA BIN AS HBR; N=NO
+our $req_yld_file  = "N";			### REQUIRE YLD FILE
+our $req_tfc_file  = "N";			### REQUIRE TFC FILE
+our $byte_8_or_32  = 8;				### READ IN 8 OR 32-BYTES FOR THE FILENAME FIELD
+our $good_hbin_num = 1;				### DEFAULT GOOD HBIN_NUM.
+our $session_datetime = "";
+our %tp 	   = ();
+our $glob_sub_lotid = "";
+our $glob_src_lot   = "";
+our $glob_part_type = "";
+our $get_tp_rev_from_db_flag = "N";		### Y=WILL ATTEMPT TO GET THE LATEST TP_REV FROM THE DB
+my  %wd		   = ();
+my  %td            = ();
+my  %pf		   = ();
+my  $td_filename   = "";
+my  $tp_filename   = "";
+my  $station       = "";
+my  %station       = ("A"=>"1", "B"=>"2", "C"=>"3", "D"=>"4");
+my  $corr_unit     = "";
+my  $set_qty       = 0;
+my  $log_rate      = 0;
+my  $logged_qty    = 0;
+my  $test_max      = 0;
+my  $file_datetime = "";
+my  $mft_flag      = ($^O=~/linux/i) ? 1 : 0;	### SET 0=OTHERS; 1=LINUX
+my  $skip_tests    = "SCAN|DELAY|SAME|XLOC|YLOC";
+my  %dta_hbin      = ();
+my  %dta_whbin     = ();
+my  %hbin          = ();			### LOT-LEVEL   H/W BIN
+my  %whbin         = ();			### WAFER-LEVEL H/W BIN
+my  %sbin          = ();			### LOT-LEVEL   S/W BIN
+my  %wsbin         = ();			### WAFER-LEVEL S/W BIN
+my  $wsbin_cnt     = 0;
+my  $wafer_cnt     = 0;
+my  $plant         = uc($ENV{ENV_FACILITY}); 	### MFT ENV VAR
+my  $yld_max_hbin_num   = 0;
+my  $dta_max_hbin_num   = 0;
+my  %die_cnt_per_wafer  = ();
+my  $yld_total_part_cnt = 0;
+my  $tfc_file           = "";
+my  $yld_file           = "";
+my  $mftFile            = "";
+our $testrun            = 0;
+our  $use_file_date     = "N";
+my $XYLocFlag           = "Off";
+our $lot_type = "";
+
+######################
+# RETRIEVE PARAMETERS
+######################
+$result = GetOptions ("infile=s"      => \$file,
+                      "plant=s"       => \$plant,
+		      "use_dta_bin=s" => \$use_dta_bin,
+                      "env_mod=s"     => \$env_mod);
+require "$ENV{ENV_DB_SCRIPT}/$env_mod" if $env_mod ne "";               ### LOAD OPTIONAL MODULE
+
+
+#################
+# DISPLAY SYNTAX
+#################
+if ($file eq "")
+{
+        print "syntax\n";
+        print "\tscript -infile=<datalog file> -plant=<plant(opt)> -use_dta_bin=<Y/N(default)> -env_mod=<env_mod.pm(opt)\n";
+        exit 1;
+}
+else{
+	&pre_parse_module()  if defined $env_mod ne "";     ### CALL FUNCTION FROM OPTIONAL MODULE
+
+	$mftFile = $file;
+	$fn      = substr($file, rindex($file,"/") + 1);
+	@env	 = split /\//, $file;
+	$fn =~ /(\w+)\.(\w+)/;
+	$fileName = $1;
+	$ext = $2;
+	if($ext =~ /DTA/i){ 
+		$yld_file = "/data/${env[2]}/TFC_YLD/".$fileName.".YLD" if $req_yld_file eq "Y";
+		$tfc_file = "/data/${env[2]}/TFC_YLD/".$fileName.".TFC" if $req_tfc_file eq "Y";
+	}
+	elsif($ext =~ /TFC/i){
+		$tfc_file = $file;
+		$file = "/data/${env[2]}/TFC_YLD/".$fileName.".DTA";
+		$yld_file = "/data/${env[2]}/TFC_YLD/".$fileName.".YLD";
+	}
+	elsif($ext =~ /YLD/i){
+		$yld_file = $file;
+		$file = "/data/${env[2]}/TFC_YLD/".$fileName.".DTA";
+		$tfc_file = "/data/${env[2]}/TFC_YLD/".$fileName.".TFC";
+	}
+	
+	if( !-e $tfc_file && $req_tfc_file eq "Y" ) {
+		print "\ndir=ungrouped"; 
+		#dpExit (1, "ungrouped");
+		exit  100;
+	}                            
+	if( !-e $yld_file && $req_yld_file eq "Y" ) {
+		print "\ndir=ungrouped";
+		#dpExit (1, "ungrouped");
+		exit  100;
+	}
+	if( !-e $file ) {
+		print "\ndir=ungrouped";
+		#dpExit (1, "ungrouped");
+		exit  100;
+	}
+	
+}
+
+################
+# PARSE DATALOG
+################
+&parse_datalog();
+&parse_yld() 	     if $req_yld_file eq "Y";
+&parse_tfc() 	     if $req_tfc_file eq "Y";
+&post_parse_module() if $env_mod ne "";     ### CALL FUNCTION FROM OPTIONAL MODULE
+&error_trapping();
+
+
+	#########################
+	# FOR DEBUGGING PURPOSES
+	#########################
+	&display_parsed_data();
+
+
+###################
+# CREATE TESTPLAN
+###################
+&create_tp();
+
+
+#################
+# CREATE DATALOG
+#################
+&create_td;
+
+
+########################
+# DELETE NON MFT FILES
+########################
+#&clean_up;
+
+
+########################
+# RETURN CONVERTED FILE
+########################
+print "$td_filename,$tp_filename"          if $mft_flag==0;
+print "\ntd=$td_filename tp=$tp_filename"  if $mft_flag==1;
+
+
+exit 0;
+
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SUBROUTINES >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+########################
+# DELETE NON MFT FILES
+########################
+sub clean_up
+{
+	unlink($yld_file) if ($yld_file ne $mftFile);
+	unlink($tfc_file) if ($tfc_file ne $mftFile);
+	unlink($file)     if ($file     ne $mftFile);
+}
+
+
+################
+# PARSE DATALOG
+################
+sub parse_datalog
+{
+	##################
+	# LOCAL VARIABLES
+	##################
+	my $in = "";
+
+	###############
+	# FILE PARSING
+	###############
+	open FH, $file or die "can't open $file\n";
+
+
+		#########################################	
+		# 1) Read Label Area (Length: 128 bytes) 
+		#########################################	
+		
+		### FILE CREATION DATE & TIME ###
+		read FH, $in, 1;
+			$year  = unpack "c", $in;
+		(@dummy) = split //, $year;
+		$year  = $dummy[$#dummy-1].$dummy[$#dummy];	
+
+			read FH, $in, 1;
+			$month = unpack "c", $in;
+			$month = $month + 1;			#<-- Value is 0-11
+		$month = "0".$month if $month < 10;
+
+			read FH, $in, 1;
+			$day   = unpack "c", $in;
+		$day   = "0".$day if $day < 10;
+
+			read FH, $in, 1;
+			$hour  = unpack "c", $in;
+		$hour  = "0".$hour if $hour < 10;
+
+			read FH, $in, 1;
+			$minute = unpack "c", $in;
+		$minute = "0".$minute if $minute < 10;
+
+			read FH, $in, 1;
+			$second = unpack "c", $in;
+		$second = "0".$second if $second < 10;
+
+		if ($use_file_date eq "Y") 
+		{
+			$session_datetime  = (stat($file))[9]||&stdf_time();
+		}
+		else
+		{
+			### CONVERT DATE & TIME TO UNIX ###
+			$file_datetime = "$month\/$day\/$year $hour\:$minute\:$second";
+			$session_datetime = timegm($second, $minute, $hour, $day, $month-1, $year);
+			#print "file_datetime=$file_datetime\n";
+		}
+		### READ FILENAME, DEVICE, & OPERATOR FIELDS AS ONE(CONTAINS TESTPLAN NAME)### 
+		if ($byte_8_or_32 == 8)
+		{
+			read FH, $in, 8;
+                	$testplan    = unpack "A8", $in;
+		}
+		elsif ($byte_8_or_32 == 32)
+		{
+			read FH, $in, 32;
+			$testplan    = unpack "A32", $in;
+		}
+		$testplan    =~ s/[^a-zA-Z0-9]//g;
+		$testplan    = substr($testplan, 0, 35);
+		#print "Test plan is:$testplan\n";
+
+
+			### TRAP MISSING TP NAME ###
+                        if ($testplan eq "")
+                        {
+                                print "No testplan name.\ndir=missing_testplan";
+				&move_file_to_bad_dir($file, "$ENV{ENV_CONV_BAD}/missing_testplan") if $mft_flag==0;
+                                exit 100;
+				#dpExit (1, "missing test program");
+                        }
+		
+		### DEVICE ###
+		read FH, $in, 10;
+		$device = unpack "a10", $in;
+		$device =~ s/[\W\-_]//g;
+		#print "device = \"$device\"\n";
+	
+		### OPERATOR ###
+                read FH, $in, 10;
+		$operator = unpack "A10", $in;
+		#print "operator=$operator\n";
+
+		### TESTING MODE ###
+		read FH, $in, 1;
+
+		### STATION NAME ###
+		read FH, $in, 1;
+		$station =  unpack "A", $in;
+		#print "station=$station\n";
+				
+		### LOT NAME (NOT USED)###
+		read FH, $in, 10;
+		$lotid = unpack "A10", $in;
+
+		### COMMENT ###
+		if ($byte_8_or_32 == 8)
+                {
+			read FH, $in, 50;
+			$comment = unpack "A50", $in;
+		}
+		elsif ($byte_8_or_32 == 32)
+		{
+			read FH, $in, 26;
+			$comment = unpack "A26", $in;
+		}
+		#print "comment=$comment\n";
+
+		### TIME POINT ??? ###
+		read FH, $in, 2;
+		$time_point = unpack "v2", $in;
+
+		### SET QUANTITY ###
+		read FH, $in, 2;
+		$set_qty = unpack "v2", $in;	
+		#print "set_qty=$set_qty\n";
+
+		### LOGGING RATE ??? ###
+		read FH, $in, 2;
+		$log_rate = unpack "v2", $in;
+	
+		### TEST MAX ###
+		read FH, $in, 2;
+		$test_max = unpack "v2", $in;
+		#print "test_max=$test_max\n";
+	
+		### DATE BLOCK NUMBER (NOT USED) ###
+		read FH, $in, 2;
+
+		### LOGGED QTY ###
+		read FH, $in, 2;
+		$logged_qty = unpack "v2", $in;
+		#print "logged_qty=$logged_qty\n";
+
+			#############################
+			# EXIT IF LOGGED QTY IS ZERO 
+			#############################
+			if ($logged_qty == 0)
+			{
+				print "file doesn't contain test data.\ndir=no_part_data";
+				&move_file_to_bad_dir($file, "$ENV{ENV_CONV_BAD}/no_part_data") if $mft_flag==0;
+				exit 100;
+				#dpExit (1, "no part data");
+			}
+
+		### INDEX MAX ??? ###
+		read FH, $in, 2;
+		$index_max = unpack "v2", $in;
+		#print "index_max=$index_max\n";
+
+		### RESERVED/NO DATA ###
+		read FH, $in, 18;
+
+	
+	#####################################################
+	# 2) READ TEST ITEM AREA (Size: 64 x Test Max Bytes)
+	#####################################################
+	for(my $i=0; $i < $test_max; $i++)
+	{
+	        ### TEST NUMBER ###
+                read FH, $in, 1;
+                $test_num  = unpack "C", $in;
+                $test_num  =~ s/[^A-Za-z0-9]*//g;
+		$test_num += $test_num_mod;
+
+		### ITEM GROUP CODE ###
+                read FH, $in, 1;
+                $group_code = unpack "C", $in;
+		$tp{$test_num}{GROUP_CODE} = $group_code;
+
+		### ITEM CODE ###
+                read FH, $in, 2;
+                $item_code = uc(unpack "H2", $in); 
+		$tp{$test_num}{ITEM_CODE} = $item_code;
+
+		### BE CONDITION & FLAGS ###
+                read FH, $in, 1;
+                $be_cond    = unpack "B8", $in;
+                #@limit_sign = (split //,$be_cond);
+		$tp{$test_num}{BE_COND} = $be_cond;
+
+		### RESULT AS BIAS FLAGS ###
+                read FH, $in, 1;
+                $result = unpack "B8", $in;
+		$tp{$test_num}{RESULT} = $result;
+
+		### LIMIT ITEM NAME  ###
+                read FH, $in, 6;
+                $limit_item = unpack "a6", $in;
+                $limit_item =~ s/[^A-Za-z0-9]*//g;
+		$tp{$test_num}{LIMIT_ITEM_NAME} = uc($limit_item);
+		if(uc($limit_item) =~ /XLOC|YLOC/i && $XLocFlag ne "On") {
+			$XYLocFlag = "On";
+		}
+
+		### LIMIT UNIT ###
+                read FH, $in, 2;
+                $limit_unit = unpack "a", $in;
+		$tp{$test_num}{LIMIT_UNIT} = $limit_unit;
+
+		###  LIMIT VALUE ###
+                read FH, $in, 4;
+                $limit_value = char2float($in);
+		$tp{$test_num}{LIMIT_VALUE} = $limit_value;
+
+
+
+		#print "$limit_item\n";
+		#$val = unpack "d", $in;
+		#print "\td=$val\n";
+		#$val = unpack "f", $in;
+                #print "\tf=$val\n";
+
+		### MIN LOGGED VALUE ###
+                read FH, $in, 4;
+		$lolim = char2float($in);
+
+		### MAX LOGGED VALUE ###
+                read FH, $in, 4;
+		$hilim = char2float($in);
+
+
+		### BIAS 1 NAME ###
+                read FH, $in, 4;
+                my $bias1_name = unpack "a4", $in;
+                   $bias1_name =~ s/[^A-Za-z0-9]*//g;
+
+		### BIAS 1 UNIT ###
+                read FH, $in, 2;
+                my $bias1_unit = unpack "a", $in;
+
+		### BIAS 1 VALUE ###
+                read FH, $in, 4;
+                my $bias1_value = char2float($in);
+		$tp{$test_num}{BIAS1} = $bias1_value;
+		
+		### BIAS 2 NAME ###
+                read FH, $in, 4;
+                my $bias2_name = unpack "a4", $in;
+		   $bias2_name =~ s/[^A-Za-z0-9]*//g;
+
+		### BIAS 2 UNIT ###
+                read FH, $in, 2;
+                my $bias2_unit = unpack "a", $in;
+
+		### BIAS 2 VALUE ###
+                read FH, $in, 4;
+                my $bias2_value = char2float($in);
+
+
+			### CONCATENATE BIAS INFO ###
+			$tp{$test_num}{BIAS} = "";
+			if ($bias1_value != 0)
+			{
+				my $short_bias1_val  = &shorten_bias_value($bias1_value);
+				$tp{$test_num}{BIAS} = $bias1_name."=".$short_bias1_val.$bias1_unit;
+			}
+			if ($bias2_value != 0)
+                        {
+				my $short_bias2_val  = &shorten_bias_value($bias2_value);
+				$tp{$test_num}{BIAS}.= "_".$bias2_name."=".$short_bias2_val.$bias2_unit;
+			}
+
+
+			### SET LOWER & UPPER SPEC LIMITS TO BLANK ###
+			$tp{$test_num}{LOW_SPEC_LIM} = "";
+			$tp{$test_num}{HI_SPEC_LIM}  = "";
+
+
+			############################
+			# CAPTURE TP_REV FROM "DEF" 
+			############################
+			if ($limit_item eq "DEF" && ($test_num==1 || $test_num==$test_max))
+			{
+                        	$testplan_rev 		     = $limit_value;
+				$tp{$test_num}{HI_SPEC_LIM}  =  1e20;
+				$tp{$test_num}{LOW_SPEC_LIM} = -1e20;
+				#print "test plan rev is:$testplan_rev\n";
+			}
+
+
+			########################
+			# RECOMPUTE LIMIT VALUE
+			########################
+			# LIMIT UNIT IS "R" OR LIMIT_ITEM=RDON 
+			if ($tp{$test_num}{LIMIT_UNIT} eq "R" || $tp{$test_num}{LIMIT_ITEM_NAME} eq "RDON")
+			{
+				$tp{$test_num}{LIMIT_VALUE} = $limit_value / $bias1_value;
+			}
+			# HFE & GMP TESTS
+			if ($tp{$test_num}{LIMIT_ITEM_NAME}=~/\b(HFE|HHFE|GMP)\b/)
+                	{
+                        	$tp{$test_num}{LIMIT_VALUE} = $bias2_value / $limit_value;
+                	}
+                	# RIV TEST 
+                	if ($tp{$test_num}{LIMIT_ITEM_NAME} eq 'RIV')
+                	{
+                        	$tp{$test_num}{LIMIT_VALUE} = $bias1_value / $limit_value;
+
+                	}
+			# CONT
+			if ($tp{$test_num}{LIMIT_ITEM_NAME} eq 'CONT')
+			{
+				$tp{$test_num}{HI_SPEC_LIM} =1;
+				$tp{$test_num}{LOW_SPEC_LIM}=1;
+			}
+
+
+		### TIME CONDITION NAME ###
+                read FH, $in, 4;
+                $time_cond = unpack "a4", $in;
+		$tp{$test_num}{TIME_COND} = $time_cond;	
+		
+		### TIME UNIT ###
+                read FH, $in, 2;
+                $time_unit = unpack "a2", $in;
+		$tp{$test_num}{TIME_UNIT} = $time_unit;
+
+		### TIME VALUE ###
+                read FH, $in, 4;
+                $time_value = char2float($in);
+		$tp{$test_num}{TIME_VALUE} = $time_value;
+
+		### RESERVED ###
+                read FH, $in, 8;
+	}
+
+
+
+	###############################################################
+        # 3) TEST DATA AREA (Size: 6 x Qty x (6 + 6 + Test Max) Bytes)
+        ###############################################################
+	my $w 	      = "";
+	my $wafer_num = "";
+	do
+	{
+        	### ALWAYS W ###
+        	read FH, $in, 1;
+		$w = unpack "a", $in;
+
+        	### WAFER NUMBER ###
+        	read FH, $in, 1;
+        	$wafer_num = unpack "C", $in;
+
+
+		$wafer_num = 0 if $data_type eq "FT"; #FORCE ZERO VALUE AS SOME FILES HAVE WAFER_NUM VALUE OF ONE EVEN IF DATA_TYPE IS FT.
+
+        	### NUMBER OF DEVICES/NO. OF UNITS TESTED ###
+        	read FH, $in, 2;
+        	$num_devices = unpack "v2", $in;
+
+
+			### SOMETIMES, THE DEVICE COUNT IN F/T IS ZERO. HENCE, USE LOGGED QTY  ###
+			$num_devices = $logged_qty if $num_devices==0 && $data_type eq "FT";
+
+			
+        	### RESERVED  ###
+        	read FH, $in, 2;
+
+		for(my $i=0; $i < $num_devices; $i++)
+		{
+			### ALWAYS D ###
+                	read FH, $in, 1;
+
+                	### ALWAYS 00 ###
+                	read FH, $in, 1;
+
+                	### SERIAL NUMBER ###
+                	read FH, $in, 2;
+                	$serial_num = unpack "v2", $in;
+
+                	### BIN NUMBER ###
+                	read FH, $in, 2;
+                	$bin_num = unpack "C2", $in;
+			#print "bin: $bin_num\n";
+
+
+			my %readings = ();
+			for(my $j=0; $j<$test_max; $j++)
+			{	
+				### TEST NUMBER ###
+				read FH, $in, 1;
+				$test_no = unpack "c", $in;
+				$test_no += $test_num_mod;
+		
+				### TEST FLAG ###
+				read FH, $in, 1;
+				$flag = unpack "B8", $in;
+				(@flag) = split //, $flag;
+
+				### TEST READING (ALREADY IN BASE UNIT) ###
+				read FH, $in, 4;
+				next if $test_no == 0;	  # TEST_NUM=0 MEANS UNTESTED 
+	
+				### NO_DATA_BIT(3): 0=WITH DATA; 1=NONE. CONT FLAG(5) MUST BE ZERO ###
+				if ($flag[3] == 0 && $flag[5] == 0)
+				{
+					$readings{$test_no} = char2float($in);
+	
+					### STORE RESULT TO DETERMINE UPPER/LOWER SPEC LIMITS ###
+					if (! exists($pf{$test_no}) && $readings{$test_no}!=$tp{$test_no}{LIMIT_VALUE})
+					{
+						$pf{$test_no} = 
+						{
+							READING => $readings{$test_no},
+							PF      => $flag[0],
+						};
+					}
+				}
+				### CONT DATA: 0=NO DATA; 1=WITH DATA ###
+				elsif ($flag[5] == 1)
+				{
+					### SET PASS=1/FAIL=0 ###
+					$readings{$test_no} = ($flag[0]==0) ? 1 : 0;
+				}
+
+			}
+
+			################################
+			# STORE TEST READINGS TO A HASH
+			################################
+			if ( (($wafer_num > 0 && $data_type eq "WS") 
+			   || ($wafer_num ==0 && $data_type eq "FT")) 
+			   && $serial_num > 0)
+			{
+				$td{$wafer_num}{$serial_num} = 
+				{
+					BIN      => $bin_num,
+					READINGS => {%readings},
+				};
+			}
+
+
+			##################################
+			# CREATE BIN SUMMARY(WAFER LEVEL)
+			##################################
+			if ($dta_whbin{wafer_num}{$bin_num} eq "")
+			{ 
+				$dta_whbin{$wafer_num}{$bin_num} = 1;
+			}
+			else
+			{
+				$dta_whbin{$wafer_num}{$bin_num}++;
+			}
+	
+			################################
+                        # CREATE BIN SUMMARY(LOT LEVEL)
+                        ################################
+			if ($dta_hbin{$bin_num} eq "")
+                        {
+                                $dta_hbin{$bin_num} = 1;
+				$dta_max_hbin_num   = $bin_num if $dta_max_hbin_num < $bin_num;
+                        }
+                        else
+                        {
+                                $dta_hbin{$bin_num}++;
+                        }
+        	}
+		
+		###############
+		# COUNT WAFERS
+		###############
+		$wafer_cnt++ if $wafer_num >= 1 && $num_devices > 0;
+
+	} 
+	while($w eq "W" && $wafer_num >= 1);
+	close(FH);
+
+
+
+	##############################################
+	# ASSIGN AND DETERMINE HIGH & LOW SPEC LIMITS
+	##############################################
+	&apply_spec_limits();
+
+
+	##########################
+	# GET LAST TP_REV FROM DB
+	##########################
+	if ($testplan_rev == 1 && $get_tp_rev_from_db_flag eq "Y")
+	{
+		&get_last_tp_rev_from_db($testplan);
+	}
+
+
+
+}
+
+
+################
+# READ YLD DATA
+################
+sub parse_yld
+{
+      
+                my $hbin_flag = 0;
+                my @header    = ();
+                open YLD, $yld_file or die "Failed to open $yld_file. $!\n";
+                while(my $line=<YLD>)
+                {
+                        $line =~ s/^\s+|\s+$//g;
+
+                        my (@dummy) = split /\s+/, $line;
+
+                        ### STOP COLLECTING BIN INFO ###
+                        if ($line=~/eof/i)
+                        {
+                                $hbin_flag = 0;
+                                last;
+                        }
+                        ### KEEP HEADER AND SET START FLAG ###
+                        elsif ($line=~/Lot\s+Wafer\s+Bin/i)
+                        {
+                                @header = @dummy;
+                                $hbin_flag = 1;
+                                next;
+                        }
+                        ### COLLECT HBIN SUMMARY DATA ###
+                        elsif ($hbin_flag==1 && $line=~/[A-Z]+\s+\d+\s+\d+\s+\d+\s+\d+/i)
+                        {
+                                my $wid                  = $dummy[1];            ### GET WAFER ID
+                                $die_cnt_per_wafer{$wid} = $dummy[$#dummy];      ### GET DIE COUNT PER WAFER
+				$yld_total_part_cnt     += $dummy[$#dummy];	 ### GET TOTAL PART/DIE COUNT
+                                for(my $i=2; $i<$#dummy; $i++)
+                                {
+                                        next if $header[$i] !~ /Bin/i;
+
+                                        my $hbin_num            = $header[$i];
+                                           $hbin_num            =~ s/[A-Z]//ig; ### GET BIN NUM ONLY
+                                        $whbin{$wid}{$hbin_num} = $dummy[$i];
+					$hbin{$hbin_num}       += $dummy[$i];	
+
+					### GET MAX HBIN NUMBER ###
+					$yld_max_hbin_num = $hbin_num if $yld_max_hbin_num < $hbin_num;
+                                }
+                        }
+                }
+                close(YLD);
+        
+
+}
+
+
+################
+# READ TFC DATA
+################
+sub parse_tfc
+{
+
+                open TFC, $tfc_file or die "Failed to open $tfc_file. $!\n";
+                while(my $line=<TFC>)
+                {
+                        $line =~ s/^\s+|\s+$//g;
+
+                        my (@dummy) = split /\s+/, $line;
+                        if ($#dummy==4 && $dummy[1]=~/\d+/ && $dummy[2]=~/\d+/ && $dummy[4]=~/\d+/ )
+                        {
+                                $wsbin{$dummy[1]}{$dummy[2]}  = $dummy[4];
+                                $sbin{$dummy[2]}	     += $dummy[4];
+			
+				### COUNT WHBIN RECS ###
+				$wsbin_cnt++;
+                        }
+                }
+                close(TFC);
+        
+
+}
+
+
+#########################
+# ERROR TRAPPING ROUTINE
+#########################
+sub error_trapping
+{
+
+	#####################
+        # TRAP MISSING LOTID 
+	#####################
+        if ($lotid eq "" )
+        {
+                print "\ndir=no_lotid\n";
+                &move_file_to_bad_dir($file, "$ENV{ENV_CONV_BAD}/no_lotid") if $mft_flag==0;
+                exit 100;
+		#dpExit (1, "no lotid");
+        }
+
+	##########################
+        # TRAPPED EMPTY DATA FILE
+        ##########################
+        if (keys(%td) < 1)
+        {
+                print "data file doesn't contain test data.\ndir=no_part_data";
+		&move_file_to_bad_dir($file, "$ENV{ENV_CONV_BAD}/no_part_data") if $mft_flag==0;
+                exit 100;
+		#dpExit (1, "no part data");
+        }
+
+}
+
+#######################
+# MOVE FILE TO BAD DIR
+# (FOR SOLARIS ONLY)
+#######################
+sub move_file_to_bad_dir
+{
+	my $loc_file = shift;
+	my $loc_dir  = shift;
+	my $fn       = ($loc_file=~/\//) ? substr($loc_file, rindex($loc_file,"/")+1) : $loc_file;
+	system "mkdir $loc_dir" if ! -e $loc_dir;
+	system "mv $file $loc_dir";
+	if (! -e "${loc_dir}/${fn}")
+	{
+		print "Failed to move $loc_file to $loc_dir dir. $!\n";
+		exit 1;
+	}
+}
+
+
+#############################
+# CONVERT CHAR DATA TO FLOAT
+#############################
+sub char2float
+{
+        my ($IN) = @_;
+        @b = unpack "c" x 4, $IN;
+        $ret = unpack "f", (pack "cccc", $b[3], $b[2], $b[1], $b[0]) if $mft_flag==0;
+	$ret = unpack "f", (pack "cccc", $b[0], $b[1], $b[2], $b[3]) if $mft_flag==1;
+        return $ret;
+}
+
+
+#######################
+# CUT SHORT BIAS VALUE
+#######################
+sub shorten_bias_value
+{
+	my $val    = shift;
+	my $prefix = "";
+
+	if ($val < 1)
+	{
+        	if ($val > 1e-3)
+        	{
+                	$val *= 1e3;
+                	$prefix = "m";
+        	}
+        	elsif ($val > 1e-6)
+        	{
+                	$val *= 1e6;
+                	$prefix = "u";
+        	}
+        	elsif ($val > 1e-9)
+        	{
+                	$val *= 1e9;
+                	$prefix = "n";
+        	}
+        	elsif ($val > 1e-12)
+        	{
+                	$val *= 1e12;
+                	$prefix = "p";
+        	}
+        	else
+        	{
+                	$val *= 1e15;
+                	$prefix = "f";
+        	}
+		$val = sprintf("%.0f",$val);	### ROUND OFF VALUE
+	}
+	elsif( $val >=1000)
+	{
+        	if ($val < 1e6)
+        	{
+                	$val *= 1e-3;
+                	$prefix = "K";
+        	}
+        	elsif ($val < 1e9)
+        	{
+                	$val *= 1e-6;
+                	$prefix = "M";
+        	}
+        	elsif ($val < 1e12)
+        	{
+                	$val *= 1e-9;
+                	$prefix = "G";
+        	}
+        	else
+        	{
+                	$val *= 1e-12;
+                	$prefix = "T";
+        	}
+	}
+	return($val . $prefix);
+}
+
+
+##################################
+# APPLY UPPER & LOWER SPEC LIMITS
+##################################
+sub apply_spec_limits
+{
+
+	##################################
+	# WORK ON "SAME" PARAMETERS FIRST
+	##################################
+	for my $no(sort {$a<=>$b} keys %tp)
+	{
+		if ($tp{$no}{LIMIT_ITEM_NAME} =~ /same/i)
+		{
+			### CHECK IF IT'S POINTING TO THE PREV PARAM ###
+			my $prev_no           = $no - 1;
+			my $tp_num_from_bias1 = $test_num_mod + $tp{$no}{BIAS1};
+			if ( $prev_no == $tp_num_from_bias1)
+			{
+				### DETERMINE LSL AND USL ###
+				my $lowlim = "";
+				my $hilim  = "";
+				if ($tp{$no}{LIMIT_VALUE} > $tp{$prev_no}{LIMIT_VALUE})
+				{
+					$hilim  = $tp{$no}{LIMIT_VALUE};
+					$lowlim = $tp{$prev_no}{LIMIT_VALUE};
+				}
+				else
+				{
+					$hilim  = $tp{$prev_no}{LIMIT_VALUE};
+					$lowlim = $tp{$no}{LIMIT_VALUE};
+				}
+
+				
+				################################################################################################
+				# CHANGED ON MAR 14, 2013 BY Ben Rommel kho
+				# PAIR PREV & CURRENT SPEC LIMITS IF EITHER OF THE CONDITIONS IS TRUE: 
+				# 1) UNIT PASSED AND TEST READING WITHIN THE SPEC LIMIT RANGE
+				# 2) EITHER THE PREV OR CURRENT UNIT IS FAILED AND TEST READING IS OUTSIDE THE SPEC LIMIT RANGE
+				################################################################################################
+				if (($pf{$no}{READING} >= $lowlim && $pf{$no}{READING} <= $hilim &&  $pf{$no}{PF}==0) ||
+				   (($pf{$no}{READING} < $lowlim  || $pf{$no}{READING} > $hilim) && ($pf{$prev_no}{PF}==1||$pf{$no}{PF}==1)))
+				{
+					$tp{$prev_no}{LOW_SPEC_LIM} = $lowlim;
+                                	$tp{$prev_no}{HI_SPEC_LIM}  = $hilim;
+                                	$tp{$no}{LOW_SPEC_LIM}      = $lowlim;
+                                	$tp{$no}{HI_SPEC_LIM}       = $hilim;			
+				}
+			}
+
+			### COPY PREV PARAM NAME AND BIAS ###
+			$tp{$no}{LIMIT_ITEM_NAME} = $tp{$tp_num_from_bias1}{LIMIT_ITEM_NAME};
+			$tp{$no}{BIAS} 		  = $tp{$tp_num_from_bias1}{BIAS};
+			$tp{$no}{LIMIT_UNIT}	  = $tp{$tp_num_from_bias1}{LIMIT_UNIT};
+		}
+	}
+
+	##################################################
+	# DETERMINE SPEC LIMITS FOR INDIVIDUAL PARAMETERS
+	##################################################
+	foreach my $no(sort {$a<=>$b} keys %tp)
+        {
+                if ($tp{$no}{HI_SPEC_LIM} eq "" && $tp{$no}{LOW_SPEC_LIM} eq "")
+		{
+			if ($pf{$no}{READING} < $tp{$no}{LIMIT_VALUE} && $pf{$no}{PF} == 0)
+			{
+				$tp{$no}{LOW_SPEC_LIM} = -1e20;
+				$tp{$no}{HI_SPEC_LIM}   = $tp{$no}{LIMIT_VALUE};
+			}
+			elsif ($pf{$no}{READING} > $tp{$no}{LIMIT_VALUE} && $pf{$no}{PF} == 0)
+			{
+				$tp{$no}{LOW_SPEC_LIM}  = $tp{$no}{LIMIT_VALUE};
+                                $tp{$no}{HI_SPEC_LIM}   = 1e20;
+			}
+			elsif ($pf{$no}{READING} < $tp{$no}{LIMIT_VALUE} && $pf{$no}{PF} == 1)
+			{
+				$tp{$no}{LOW_SPEC_LIM}  = $tp{$no}{LIMIT_VALUE};
+                                $tp{$no}{HI_SPEC_LIM}   = 1e20;
+			}
+			elsif ($pf{$no}{READING} > $tp{$no}{LIMIT_VALUE} && $pf{$no}{PF} == 1)
+			{
+				$tp{$no}{LOW_SPEC_LIM} = -1e20;
+                                $tp{$no}{HI_SPEC_LIM}   = $tp{$no}{LIMIT_VALUE};
+			}
+		}
+	}
+}
+
+
+##########################
+# GET LATEST TESTPLAN REV
+# (NOT BEING USED)
+##########################
+sub get_last_tp_rev_from_db
+{
+	my $tp_name  = shift;
+  	my $dsn      = "DBI:Sybase:database=$ENV{EDB_DATABASE};host=$ENV{EDB_SERVER}";
+  	my $userid   = "EDB_GUEST";
+  	my $password = "dryheave";
+  	my $dbh      = DBI->connect($dsn, $userid, $password ) or die $DBI::errstr;
+	my $sql      = "select top 1 test_plan_rev from test_plan where test_plan=\"${tp_name}\" order by convert(float,test_plan_rev) desc";
+	my $sth      = $dbh->prepare($sql);
+	   $sth->execute() or die $DBI::errstr;
+	my @row = $sth->fetchrow_array();
+	if ($#row > -1)
+	{
+		$tp_rev=int($row[0]);
+	}
+	$sth->finish();
+	return($tp_rev);	
+}
+
+
+
+###############################################
+# DISPLAY PARSED DATA (FOR DEBUGGING PURPOSES)
+###############################################
+sub display_parsed_data()
+{
+	my $label_area = 0; 
+	my $test_item  = 0; 
+	my $test_data  = 0;
+		
+	if ($label_area == 1)
+	{
+		print "LABEL AREA:\n";
+		print "date    : $file_datetime\n";
+		print "station : $station\n";
+		print "lotid   : $lotid \n";
+		print "testplan: $testplan\n";
+		print "tp_rev  : $testplan_rev\n";
+		print "comment : $comment\n";
+		print "set_qty : $set_qty\n";
+		print "logd_qty: $logged_qty\n";
+		print "log_rate: $log_rate\n";
+		print "test_max: $test_max\n";	
+	}
+
+	if ($test_item == 1)
+	{
+		foreach my $no(sort {$a<=>$b} keys %tp)
+		{
+			print "TEST NUMBER: $no\n";
+			print "\tGROUP_CODE: $tp{$no}{GROUP_CODE}\n";
+			print "\tITEM_CODE : $tp{$no}{ITEM_CODE}\n";
+			print "\tBE_COND   : $tp{$no}{BE_COND}\n";
+			print "\tRESULT    : $tp{$no}{RESULT}\n";
+			print "\tLIMIT_ITEM_NAME: $tp{$no}{LIMIT_ITEM_NAME}\n";
+			print "\tLIMIT_UNIT : $tp{$no}{LIMIT_UNIT}\n";
+			print "\tLIMIT_VALRW: $tp{$no}{LIMIT_VALUE_RAW}\n";
+			print "\tLIMIT_VALUE: $tp{$no}{LIMIT_VALUE}\n";
+			print "\tLOW_LIMIT  : $tp{$no}{LOW_SPEC_LIM}\n";
+			print "\tHI_LIMIT   : $tp{$no}{HI_SPEC_LIM}\n";
+			print "\tBIAS       : $tp{$no}{BIAS}\n";
+			print "\tTIME_COND  : $tp{$no}{TIME_COND}\n";
+			print "\tTIME_UNIT  : $tp{$no}{TIME_UNIT}\n";
+			print "\tTIME_VALUE : $tp{$no}{TIME_VALUE}\n";
+			print "\tSBIN_NUM   : $tp{$no}{SBIN_NUM}\n";
+			print "\tSBIN_NAME  : $tp{$no}{SBIN_NAM}\n\n";
+			
+		}
+	}
+
+	if ($test_data == 1)
+	{
+		foreach $unit(sort {$a<=>$b} keys %td)
+		{
+			print "unitno=$unit\t";
+			print "bin=$td{$unit}{BIN}\n";
+			$addr = $td{$unit}{READINGS};
+			foreach $testno(sort {$a<=>$b} keys %{$addr})
+			{
+				print "\t$testno\t$$addr{$testno}\n";	
+			}
+		}
+
+	}
+}
+
+##################
+# CREATE TESTPLAN 
+##################
+sub create_tp
+{
+        my $DateTime      = `date '+%m%d%y%H%M%S'`;
+        chomp($DateTime);
+        $tp_filename  =$mftFile . ".TP";
+        $tp_filename  =~ s/YLD|TFC/DTA/i; 
+        open FH, ">$tp_filename" or die "error msg: $!";
+
+        #############
+        # EMIR RECORD
+        #############
+        %out::emir              = %{$out::init{emir}};
+        $out::emir{mode_cod}    = "C";
+        $out::emir{setup_t}     = stdf_time();
+        $out::emir{job_nam}     = $testplan;
+        $out::emir{job_rev}     = $testplan_rev;
+        $out::emir{spec_nam}    = $testplan;
+        $out::emir{spec_rev}    = $testplan_rev;
+	$out::emir{spec_rev}    = pad($out::emir{spec_rev},"\0");
+        print FH &out::pack_EMIR(\%out::emir);
+
+        ##############
+        # EPDR RECORD
+        ##############
+        foreach (sort {$a<=>$b} keys %tp)
+        {
+		next if $tp{$_}{LIMIT_ITEM_NAME} =~ /$skip_tests/i;
+		next if $tp{$_}{LIMIT_ITEM_NAME} eq "" || $tp{$_}{LOW_SPEC_LIM} eq "" || $tp{$_}{HI_SPEC_LIM} eq "";
+                %out::epdr           = %{$out::init{epdr}};
+                $out::epdr{test_num} = $_;
+                $out::epdr{units}    = $tp{$_}{LIMIT_UNIT};
+                $out::epdr{lo_limit} = $tp{$_}{LOW_SPEC_LIM};
+                $out::epdr{hi_limit} = $tp{$_}{HI_SPEC_LIM};
+		$out::epdr{lo_censr} = $tp{$_}{LOW_CENSOR}||-1e20;
+		$out::epdr{hi_censr} = $tp{$_}{HI_CENSOR}||1e20;
+                $out::epdr{test_nam} = $tp{$_}{LIMIT_ITEM_NAME};
+                $out::epdr{test_txt} = $tp{$_}{BIAS};
+		$out::epdr{sbin_num} = $tp{$_}{SBIN_NUM} if exists($tp{$_}{SBIN_NUM});
+		$out::epdr{sbin_nam} = $tp{$_}{SBIN_NAM} if exists($tp{$_}{SBIN_NAM});
+                $out::epdr{opt_flg}  = ($_==1 && $tp{$_}{LIMIT_ITEM_NAME} eq "DEF") ? "00100000" : "00000000";
+                print FH &out::pack_EPDR(\%out::epdr);
+        }
+
+        #############
+        # MRR RECORD
+        #############
+        %out::mrr = %{$out::init{mrr}};
+        $out::mrr{finish_t} = stdf_time();
+        print FH &out::pack_MRR(\%out::mrr);
+
+	close(FH);
+}
+
+
+#######################
+# CREATE STDF DATAFILE
+#######################
+sub create_td
+{
+	##################
+	# COUNT VARIABLES
+	##################
+	my $pir_count    = 0;
+	my $ptr_count    = 0;
+	my $good_units   = 0;
+	my $max_hbin_num = 0;
+	   $max_hbin_num = $dta_max_hbin_num if $use_dta_bin  eq "Y"; ### USE DTA HBIN SUMM DATA
+	   $max_hbin_num = $yld_max_hbin_num if $req_yld_file eq "Y"; ### USE YLD HBIN SUMM DATA
+
+
+	##############
+	# TD FILENAME
+	##############
+        $td_filename  =$mftFile . ".TD";
+        $td_filename  =~ s/YLD|TFC/DTA/i;    
+        open OUTFILE, ">$td_filename" or die "Could not open file: $!";
+
+        ##############
+        # EMIR RECORD
+        ##############
+        %out::emir           = %{$out::init{emir}} ;
+        $out::emir{lot_type} = $lot_type; ###"P";
+        $out::emir{mode_cod} = "P";
+        $out::emir{setup_t}  = $session_datetime;
+        $out::emir{start_t}  = $session_datetime;
+        $out::emir{lot_id}   = $lotid;
+        $out::emir{job_nam}  = $testplan;
+        $out::emir{job_rev}  = $testplan_rev;
+	$out::emir{device}   = $device||$testplan;
+	$out::emir{part_typ} = $glob_part_type if $glob_part_type ne "" || $device || $testplan;
+	#$out::emir{part_typ} = $glob_part_type if $glob_part_type ne "";
+        $out::emir{spec_nam} = $testplan;
+        $out::emir{spec_rev} = $testplan_rev;
+	$out::emir{spec_rev} = pad($out::emir{spec_rev},"\0");
+	$out::emir{oper_nam} = $operator  if $operator  ne "";
+	$out::emir{node_nam} = $eqpt_id   if $eqpt_id   ne "";
+        $out::emir{tstr_typ} = "TESEC";			
+	$out::emir{stat_num} = $station{$station}||0;
+	$out::emir{shwb_cnt} = keys %dta_bin||$max_hbin_num||0;
+	$out::emir{sswb_cnt} = keys %sbin||0;
+	$out::emir{wswb_cnt} = $wsbin_cnt;
+	$out::emir{whwb_cnt} = $wafer_cnt * $max_hbin_num if $wafer_cnt > 0;
+        $out::emir{facility} = $plant	  if $plant     ne "";				
+	$out::emir{test_cod} = $testrun || 0;
+	$out::emir{sblot_id}   = $glob_sub_lotid if $glob_sub_lotid ne "";
+        print OUTFILE &out::pack_EMIR(\%out::emir);
+
+
+	###############
+        # SOURCE LOTID
+        ###############
+        if ($glob_sub_lotid ne "" || $glob_src_lot ne "")
+        #if ($glob_src_lot ne "")
+        {
+                %out::ltr           = %{$out::init{ltr}};
+                $out::ltr{lot_id}   = $glob_src_lot||$glob_sub_lotid;
+                #$out::ltr{lot_id}   = $glob_src_lot || $glob_sub_lotid if $glob_sub_lotid ne "";
+                print OUTFILE &out::pack_LTR(\%out::ltr);
+        }
+
+
+        foreach my $wafer_id(sort {$a <=> $b} keys %td)
+	{
+
+		#############
+        	# WIR RECORD
+        	#############
+        	if ($wafer_id > 0)
+        	{
+                	%out::wir            = %{$out::init{wir}};
+                	$out::wir{wafer_id}  = $wafer_id;
+                	print OUTFILE &out::pack_WIR(\%out::wir);
+        	}
+		
+
+		my $loc_part_cnt = 0;
+		my $parts 	 = $td{$wafer_id};
+		my ($x,$y) = &getXYLocCol();
+        	foreach my $serial(sort {$a <=> $b} keys %$parts)
+        	{
+			my $addrForXYLoc      = $$parts{$serial}{READINGS};
+                	#############
+                	# PIR RECORD
+                	#############
+                	%out::pir             = %{$out::init{pir}};
+			if(($$addrForXYLoc{$x} ne "" || $$addrForXYLoc{$y} ne "") && $XYLocFlag eq "On") {
+				$out::pir{x_coord}  = $$addrForXYLoc{$x} if $$addrForXYLoc{$x} ne "";
+				$out::pir{y_coord}  = $$addrForXYLoc{$y} if $$addrForXYLoc{$y} ne "";
+			}
+                	$out::pir{part_id}    = $serial;
+                	print OUTFILE &out::pack_PIR(\%out::pir);
+			$pir_count++;
+		
+                	#############
+                	# PTR RECORD
+                	#############
+			my $x         = 0;
+			my $test_flag = 0;
+			my $addr      = $$parts{$serial}{READINGS};
+			   $loc_part_cnt++;
+			foreach $testno(sort {$a<=>$b} keys %$addr)
+			{
+				next if    $tp{$testno}{LIMIT_ITEM_NAME} eq "" 
+					|| $tp{$testno}{LIMIT_ITEM_NAME} =~ /$skip_tests/i
+					|| $tp{$testno}{LOW_SPEC_LIM}    eq "" 
+					|| $tp{$testno}{HI_SPEC_LIM}     eq "";
+
+
+                		%out::ptr           = %{$out::init{ptr}};
+                        	$out::ptr{test_num} = $testno;
+                        	$out::ptr{result}   = $$addr{$testno};
+                        	$out::ptr{test_flg} = "01000000";
+				$out::ptr{test_nam} = $tp{$testno}{LIMIT_ITEM_NAME};
+                        	print OUTFILE &out::pack_PTR(\%out::ptr);
+
+				$ptr_count++;
+				$x++;
+                	}
+
+			### COUNT GOOD UNIT ###
+			$good_units++ if $$parts{$serial}{BIN} == $good_hbin_num;
+			$test_flag=1  if $$parts{$serial}{BIN} != $good_hbin_num;
+
+
+                	###############
+                	# EPRR RECORD
+                	###############
+                	%out::eprr           = %{$out::init{eprr}};
+                	$out::eprr{num_test} = $x;
+                	$out::eprr{part_id}  = $serial;
+	        	$out::eprr{hard_bin} = $$parts{$serial}{BIN};	
+	        	$out::eprr{soft_bin} = $$parts{$serial}{BIN};	
+			if(($$addrForXYLoc{$x} ne "" || $$addrForXYLoc{$y} ne "") && $XYLocFlag eq "On") {
+				#$out::pir{x_coord}  = $$addrForXYLoc{$x} if $$addrForXYLoc{$x} ne "";
+				#$out::pir{y_coord}  = $$addrForXYLoc{$y} if $$addrForXYLoc{$y} ne "";
+				$out::eprr{x_coord}  = $out::pir{x_coord};
+				$out::eprr{y_coord}  = $out::pir{y_coord};
+			}
+			$out::eprr{part_flg} = "0000".$test_flag."000";
+                	print OUTFILE &out::pack_EPRR(\%out::eprr);
+		}
+ 
+
+		############################
+		# ADD WAFER SUMMARY RECORDS
+		############################
+        	if($wafer_id > 0)
+        	{
+        		##############
+        		# WSBR RECORD
+        		##############
+        		foreach my $bin_num(sort {$a<=>$b} keys %{$wsbin{$wafer_id}})
+        		{
+				next if $tp{$bin_num}{LIMIT_ITEM_NAME} =~ /$skip_tests/i;
+	
+                		%out::wsbr           = %{$out::init{wsbr}};
+                		$out::wsbr{sbin_num} = $bin_num;
+                		$out::wsbr{sbin_nam} = $tp{$bin_num}{LIMIT_ITEM_NAME};
+                		$out::wsbr{sbin_cnt} = $wsbin{$wafer_id}{$bin_num}||0;
+                		print OUTFILE &out::pack_WSBR(\%out::wsbr);
+        		}
+
+
+        		##############
+        		# WHBR RECORD
+        		##############
+			my $addr      = "";
+			$loc_part_cnt = 0 if $wafer_id > 0;
+			if ( $use_dta_bin eq "N")
+			{
+				### FROM YLD FILE ###
+				$addr = $whbin{$wafer_id} if exists($whbin{$wafer_id});
+			}
+			elsif ($use_dta_bin eq "Y")
+			{
+				### FROM DTA FILE ###
+				$addr = $dta_whbin{$wafer_id} if exists($dta_whbin{$wafer_id});
+			}
+		
+        		foreach my $bin_num(1..$max_hbin_num)
+        		{
+                		%out::whbr           = %{$out::init{whbr}};
+                		$out::whbr{hbin_num} = $bin_num;
+                		$out::whbr{hbin_nam} = "BIN".$bin_num;
+                		$out::whbr{hbin_cnt} = $$addr{$bin_num}||0;
+                		print OUTFILE &out::pack_WHBR(\%out::whbr);
+
+				### COUNT TOTAL TESTED PARTS PER WAFER ###
+				$loc_part_cnt += $whbin{$wafer_id}{$bin_num}||0;
+        		}
+
+
+        		#############
+        		# WRR RECORD
+        		#############
+                	%out::wrr           = %{$out::init{wrr}};
+                	$out::wrr{wafer_id} = $wafer_id;
+			$out::wrr{part_cnt} = $die_cnt_per_wafer{$wafer_id}||$loc_part_cnt||0;
+			$out::wrr{good_cnt} = $whbin{$wafer_id}{1} if exists($whbin{$wafer_id}{1});
+                	print OUTFILE &out::pack_WRR(\%out::wrr);
+        	}
+	}
+
+
+	#############
+        # SBR RECORD
+        #############
+	foreach my $bin_num(sort {$a<=>$b} keys %sbin)
+        {
+
+                %out::sbr           = %{$out::init{sbr}};
+                $out::sbr{sbin_num} = $bin_num;
+                $out::sbr{sbin_cnt} = $sbin{$bin_num};
+                print OUTFILE &out::pack_SBR(\%out::sbr);
+        }
+
+
+        #############
+        # HBR RECORD
+        #############
+	my %loc_hbin = ();
+	if ($use_dta_bin eq "N")
+	{
+		### FROM YLD FILE ###
+        	%loc_hbin = %hbin if keys %hbin > 0;      		    ### FROM YLD FILE
+	}
+	elsif ($use_dta_bin eq "Y")
+	{
+		### FROM DTA FILE ###
+        	%loc_hbin = %dta_hbin if keys %dta_hbin > 0;
+	}
+
+       	foreach my $bin_num(1..$max_hbin_num)
+       	{
+               	%out::hbr           = %{$out::init{hbr}};
+               	$out::hbr{hbin_num} = $bin_num;
+               	$out::hbr{hbin_nam} = "BIN".$bin_num;
+               	$out::hbr{hbin_cnt} = $loc_hbin{$bin_num}||0;
+               	print OUTFILE &out::pack_HBR(\%out::hbr);
+       	}
+
+
+        #############
+        # MRR RECORD
+        #############
+        %out::mrr            = %{$out::init{mrr}};
+        $out::mrr{finish_t}  = $session_datetime;		
+        $out::mrr{part_cnt}  = $yld_total_part_cnt||$logged_qty||0;
+	$out::mrr{disp_cod}  = $lot_disp;
+	$out::mrr{good_cnt}  = $hbin{1}||$good_units;
+        print OUTFILE &out::pack_MRR(\%out::mrr);
+        close OUTFILE;
+
+
+	########################
+        # UPDATE EMIR{PRES_CNT}
+        ########################
+        $out::emir{psum_cnt} = $pir_count;			
+        $out::emir{pres_cnt} = $ptr_count;                      #<-- TOTAL COUNT OF PTR RECORDS
+        &out::update_EMIR(\%out::emir, $td_filename) ;
+
+}
+
+
+
+
+##################################
+# CONVERT TO BASE UNIT (NOT USED)
+##################################
+sub convert_to_base_unit
+{
+        my $value      = shift;
+	my $unit       = shift;
+        my $multiplier = 1;
+
+        #print "orig: unit=$unit, value=$value\n";
+
+        if ($unit =~ /^p/)
+        {
+                $unit       =~ s/^p//;
+                $multiplier = 1e-12;
+        }
+        elsif ($unit =~ /^n/)
+        {
+                $unit       =~ s/^n//;
+                $multiplier = 1e-9;
+        }
+        elsif ($unit =~ /^u/)
+        {
+                $unit       =~ s/^u//;
+                $multiplier = 1e-6;
+        }
+        elsif ($unit =~ /^m/)
+        {
+                $unit       =~ s/^m//;
+                $multiplier = 1e-3;
+        }
+        elsif ($unit =~ /^K/)
+        {
+                $unit       =~ s/^K//;
+                $multiplier = 1e3;
+        }
+        elsif ($unit =~ /^M/)
+        {
+                $unit       =~ s/^M//;
+                $multiplier = 1e6;
+        }
+        elsif ($unit =~ /^G/)
+        {
+                $unit       =~ s/^G//;
+                $multiplier = 1e9;
+        }
+
+        $value *= $multiplier;
+
+        #print "new: unit=$unit , value=$value , mul=$multiplier\n"; 
+        return($value, uc($unit));
+}
+
+sub getXYLocCol {
+
+	my @arr = ();
+	my $xLoc = "";
+	my $yLoc = "";
+
+	foreach (sort {$a<=>$b} keys %tp)
+        {
+		$xLoc = $_ if $tp{$_}{LIMIT_ITEM_NAME} =~ /XLOC/i;
+		$yLoc = $_ if $tp{$_}{LIMIT_ITEM_NAME} =~ /YLOC/i;
+		
+        }
+	push(@arr, $xLoc);
+	push(@arr, $yLoc);
+	return @arr;
+}

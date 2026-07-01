@@ -1,0 +1,463 @@
+#! /apps/exensio/pdf/exn41/bin/perl_db
+##! /usr/bin/perl
+#
+#
+# DATE       WHO            COMMENTS
+# ---------- -------------- --------------------------------
+# 09/21/2012 Ben Rommel Kho Author
+# 02/05/2013 Ben Rommel Kho Remove MD5 tag from being displayed
+# 11/12/2015 Ben Rommel Kho Modified for Exensio. Added download files button
+#			    and hidden input tag for selected files
+# 11/18/2015 Ben Rommel Kho Disable buttons when download/next button is clicked.
+#
+
+
+###############
+# LOAD MODULES
+###############
+require "init.pl";
+use mod_routines;
+
+
+#################################################################
+# REDIRECT BACK TO THE MAIN PAGE ONCE SESSION COOKIE HAS EXPIRED
+#################################################################
+if (keys %{&read_cookie("envs")} == 0)
+{
+	print "Session values have expired. Redirecting back to the Main Page...<br>";
+	&go_to_url("1_0_ask_lotid.cgi");
+}
+
+
+##############
+# HTML HEADER
+##############
+#print "Content-type: text/html\n\n";
+print "<html>";
+print "<head>";
+print "<title> Exensio Web Dearchive Tool </title>";
+print "<link rel='stylesheet' type='text/css' href='/ewb.css' />";
+
+
+#############################
+# CLIENT-SIDE SCRIPTS(START)
+#############################
+print <<"JAVASCRIPT";
+
+<script language="javascript">
+
+    function update_form(btnName)
+    {
+        frmMain.action = "2_0_review_files.cgi?btnName=" + btnName;
+        frmMain.submit()
+    }
+
+    function load_page(direction)
+    {
+        if (direction == "prev")
+        {
+            frmMain.action = "1_0_ask_lotid.cgi"
+            frmMain.submit()
+        }
+        else
+        {
+            if (frmMain.cmboRestore.options[0].value != "")
+            {
+                if (confirm("Would you like to restore the files listed on the right panel now?"))
+                {
+			frmMain("btnBack").disabled     = true;
+			frmMain("btnDownload").disabled = true;
+			frmMain("btnnext").disabled     = true;
+                        frmMain.action                  = "2_1_reload_files.cgi";
+                        frmMain.submit()
+                }
+            }
+            else
+            {
+                alert("There are no files to restore.");
+            }
+        }
+    }
+
+    function download_files()
+    {
+	if (frmMain.cmboRestore.options[0].value != "")
+	{
+		if (confirm("Would you like to download file/s listed on the right panel?") == true)
+		{
+        		frmMain.action 			= "2_1_download_files.cgi";
+        		frmMain.submit()
+		}
+	}
+	else
+	{
+		alert("There are no files on the right panel");
+
+	}
+    }
+
+</script>
+JAVASCRIPT
+print "</head>";
+print "<body>";
+
+###########################
+# CLIENT-SIDE SCRIPTS(END)
+###########################
+
+
+###########################
+# IDENTIFY DATA TO DISPLAY
+###########################
+my $sel_raw   = "";
+my $sel_stdf  = "";
+my $data_type = "";
+if ((&read_cookie("total_raw_cnt") > 0 && param("cmboType") eq "")
+   || param("cmboType") eq "RAW"
+   || &read_cookie("total_stdf_cnt") == 0)
+{
+        $sel_raw   = "selected";
+	$data_type = "RAW";
+}
+else
+{
+        $sel_stdf  = "selected";
+	$data_type = "STDF";
+}
+
+
+####################################
+# POPULATE SELECTED & EXCLUDED LIST
+####################################
+my %data_selected = %{&read_cookie("data_selected")};
+my %data_excluded = %{&read_cookie("data_excluded")};
+if ($qs{'btnName'} eq "")
+{
+	%data_selected = %{&read_cookie("search_result")};
+	%data_excluded = ();
+}
+
+#
+# MOVE FILES TO THE LEFT(EXCLUDED) PANE 
+#
+if ($qs{"btnName"} eq "left")
+{
+
+
+	### UPDATE "SELECTED" & "EXCLUDED" LIST ###
+	my %tmp_list = ();
+	foreach my $lotid(keys %data_selected)
+	{
+
+		$tmp_list{$lotid}{ACTIVE}      = $data_selected{$lotid}{ACTIVE};
+		$data_excluded{$lotid}{ACTIVE} = $data_selected{$lotid}{ACTIVE};
+		foreach my $file(@{$data_selected{$lotid}{$data_type}})
+		{
+
+
+                        my $match = "N";
+			foreach my $xfile(param('cmboRestore'))
+			{
+				if ($file eq $xfile)		
+				{
+					$match = "Y";
+					last;
+				}	
+			}
+
+			if ($match eq "Y")
+			{
+				push(@{$data_excluded{$lotid}{$data_type}}, $file);
+			}
+			else
+			{
+				push(@{$tmp_list{$lotid}{$data_type}}, $file);
+			}
+		}
+
+	}
+	%data_selected = %tmp_list;
+}
+#
+# MOVE FILES TO THE RIGHT(SELECTED) PANE
+#
+elsif ($qs{"btnName"} eq "right")
+{
+
+
+	### LOAD "SELECTED" FILES ###
+	#%data_selected = %{&read_cookie("data_selected")};
+
+	### UPDATE "SELECTED" & "EXCLUDED" LIST ###
+        my %tmp_list = ();
+	foreach my $lotid(keys %data_excluded)
+        {
+		$tmp_list{$lotid}{ACTIVE} = $data_selected{$lotid}{ACTIVE};
+                foreach my $file(@{$data_excluded{$lotid}{$data_type}})
+                {
+                        my $match = "N";
+                        foreach my $xfile(param('cmboExclude'))
+                        {
+                                if ($file eq $xfile)
+                                {
+                                        $match = "Y";
+                                        last;
+                                }
+                        }
+
+                        if ($match eq "Y")
+                        {
+                                push(@{$data_selected{$lotid}{$data_type}}, $file);
+                        }
+                        else
+                        {
+                                push(@{$tmp_list{$lotid}{$data_type}}, $file);
+                        }
+		}
+        }
+	%data_excluded = %tmp_list; 
+}
+&save_cookie("data_selected", \%data_selected);
+&save_cookie("data_excluded", \%data_excluded);
+
+	
+
+#############
+# START FORM
+#############
+print "<form name='frmMain' method='POST'>";
+
+
+##############
+# START TABLE
+##############
+print "<h1>REVIEW FILES FOR RESTORE/DOWNLOAD <br> <font class=step>(Step 2 of 3)</font></h1>";
+
+
+###############################
+# DISPLAY FILE TYPE TO RESTORE
+###############################
+print "<center>",
+      "<table border=0 cellpadding=0px width=850px>",
+      "<tr>",
+      "<td valign=top align=left height=40px>",
+      "<strong><font style='font-size:13px'>FILE TYPE TO RESTORE: </strong> &nbsp;",
+      "<select name='cmboType' onchange=update_form('') style='font-size:13px'>";
+print "<option value='RAW'  ${sel_raw} >RAW DATA    </option>" if &read_cookie("total_raw_cnt")  > 0;
+print "<option value='STDF' ${sel_stdf}>SUMMARY DATA</option>" if &read_cookie("total_stdf_cnt") > 0;
+print "</select>",
+      "</td>",
+      "</tr>",
+      "</table>";
+
+
+
+#################
+# DISPLAY PANELS
+#################
+print "<table border=2 cellpadding=0px width=800px>",
+      "<tr>",
+          "<th width=470px style='font-size:15px'> FILES TO EXCLUDE</th>",
+          "<th width=30px></th>",
+          "<th width=470px style='font-size:15px'> FILES TO RESTORE/DOWNLOAD</th>",
+      "</tr>";
+
+      
+#############
+# LEFT PANEL 
+#############
+print "<tr>",
+      "<td>",
+      "<select size=25 multiple name='cmboExclude' id='cmboExclude' ondblclick=update_form('right')>";	
+	  ##########################
+          # DISPLAY "EXCLUDED" DATA
+          ##########################
+          my $left_panel_blank = "";
+          foreach my $lotid(sort {$a<=>$b} keys %data_excluded)
+          {
+		next if $#{$data_excluded{$lotid}{$data_type}} == -1;
+
+                $left_panel_blank = "filled";
+		my $status        = "  (NOTE: MANUAL RESTORE MAY TAKE DAYS)" if $data_selected{$lotid}{ACTIVE} eq "N";
+
+                print "<optgroup label=\"${lotid}${status}\">";
+                foreach my $file(@{$data_excluded{$lotid}{$data_type}})
+                {
+                        print &display_file($file);
+                }
+		print "<optgroup>";		### SPACER BETWEEN LOTS
+          }
+
+
+	  ############################
+	  # ELSE DISPLAY "EMPTY" LIST
+	  ############################
+	  if ($left_panel_blank eq "")
+	  {
+		my $blank = "";
+	  	for (my $i=0; $i<50; $i++)
+                {
+                	$blank .= "&nbsp; ";
+                }
+                print "<option> - EMPTY - $blank </option>";
+
+  	  }
+
+print "</select>",
+      "</td>";
+
+
+
+##############################
+# CENTER "MOVE FILES" BUTTONS
+##############################
+print "<td valign=middle>",
+      input({-type   =>"button",
+             -class  =>"btn",
+             -name   =>"btnRight",
+             -value  =>" > ",
+             -onclick=>"update_form('right')"}),
+      "<br>",
+      input({-type   =>"button",
+             -class  =>"btn",
+             -name   =>"btnLeft",
+             -value  =>" < ",
+             -onclick=>"update_form('left')"}),
+      "</td>";
+
+
+
+##############
+# RIGHT PANEL
+##############
+print "<td>",
+      "<select size=25 multiple name='cmboRestore' id='cmboRestore' ondblclick=update_form('left')>";
+
+
+	  #####################
+	  # DISPLAY "RAW" DATA
+	  #####################
+	  my $right_panel_blank = "";
+	  foreach my $lotid(sort {$a<=>$b} keys %data_selected)
+	  {
+		next if $#{$data_selected{$lotid}{$data_type}} == -1;
+
+		$right_panel_blank = "filled";
+		my $status         = "  (NOTE: MANUAL RESTORE MAY TAKE DAYS)" if $data_selected{$lotid}{ACTIVE} eq "N";
+		print "<optgroup label=\"${lotid}${status}\">";
+	  	foreach my $file(@{$data_selected{$lotid}{$data_type}})
+		{
+			$sel_files .= (split /\:/, $file)[0] . " ";	#<-- FOR DOWNLOAD USE
+			print &display_file($file);
+		}
+		print "<optgroup>";		### SPACER BETWEEN LOTS
+	  }
+
+          ############################
+          # ELSE DISPLAY "EMPTY" LIST
+          ############################
+          if ($right_panel_blank eq "")
+          {
+                my $blank = "";
+                for (my $i=0; $i<50; $i++)
+                {
+                        $blank .= "&nbsp; ";
+                }
+                print "<option> - EMPTY - $blank </option>";
+
+          }
+
+print "</td>",
+      "</tr>";
+
+
+
+##################
+# DISPLAY BUTTONS
+##################
+print "<tr>",
+      "<td colspan=3 align=center>",
+      input({-type   =>"button",
+             -class  =>"btn",
+             -name   =>"btnBack",
+             -value  =>" < Back ",
+             -title  =>"Back to the main page",
+             -onclick=>"load_page('prev')"}),
+     "&nbsp; &nbsp; &nbsp; &nbsp;",
+      input({-type   =>"button",
+             -class  =>"btn",
+             -name   =>"btnDownload",
+             -value  =>"Download Files",
+             -title  =>"Download selected files",
+             -onclick=>"download_files()"}),
+      "&nbsp; &nbsp; &nbsp; &nbsp;",
+      input({-type   =>"button",
+             -class  =>"btn",
+             -name   =>"btnNext",
+             -value  =>" Next Step > ",
+             -title  =>"Reloads the selected archived data into Exensio",
+             -onclick=>"load_page('next')"}),
+      "</td>",
+      "</tr>";
+
+
+
+
+###########
+# END FORM
+# (NOTE: HIDDEN INPUT CONTAINS SELECTED FILES FOR DOWNLOAD)
+###########
+print "</table>",
+      "</center>",
+      "<input type=hidden name=txtSelFiles value='$sel_files'>",
+      "</form>";
+
+
+#####################
+# DISPLAY USER GUIDE
+#####################
+print<<"GUIDE";
+   <br>
+   <hr>
+   <label>
+   <b><u> Quick Guide: </u></b>
+   <br>
+   <br>
+
+        <b>1.</b> The files listed on the right panel will be restored into Exensio. To exclude, select 
+		  the files then click the <b>"<"</b> button to move files to the left panel. Hold 
+		  the shift key to select multiple files.
+        <br>
+        <b>2.</b> Hit the "Next Step" button to begin processing files and reload them in EWB.
+        <br>
+        <b>3.</b> If you encounter issues or have questions, please contact <font color=blue>${support_team}</font>.
+   </label>
+GUIDE
+
+print end_html;
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SUBROUTINES >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+###################
+# SHORTEN FILENAME
+###################
+sub display_file
+{
+	
+	my $line    = shift;
+	my (@dummy) = split /\/|\:/, $line;	
+	my $size    = $dummy[$#dummy];	
+	my $file    = $dummy[$#dummy - 1];	
+	my $mon     = $dummy[$#dummy - 2];
+	my $yr      = $dummy[$#dummy - 3];
+
+	### SHORTEN FILENAME ###
+	$file    =~ s/\.gz$//i;
+	($file,) = split /_MD5/, $file if $file =~ /_MD5/i;	### REMOVE MD5 
+	if (length($file) > 45)
+	{
+		my (@ext) = split /\_|\./, $file;
+		$file = substr($file,0,40) . " ..." .$ext[$#ext]; 
+	}
+	return("<option value=$line> ${file} &nbsp; $size (${mon} ${yr})</option>");	
+}

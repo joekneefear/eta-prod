@@ -1,0 +1,92 @@
+=pod
+
+=head1 PP_LOT
+
+ P Name                  Null Type              Default   
+   -------------------- ----- ----------------- ----------
+ * LOT                     NO VARCHAR2(32)                
+   PARENT_LOT             YES VARCHAR2(32)                
+   PRODUCT                YES VARCHAR2(32)                
+   LOT_OWNER              YES VARCHAR2(32)                
+   PARENT_PRODUCT         YES VARCHAR2(32)                
+   SOURCE_LOT             YES VARCHAR2(32)                
+   INSERT_TIME            YES DATE              sysdate   
+
+=head1 PP_FINALLOT
+
+ P Name                  Null Type              Default   
+   -------------------- ----- ----------------- ----------
+ * LOT                     NO VARCHAR2(32)                
+   LOT_OWNER              YES VARCHAR2(32)                
+   PRODUCT                YES VARCHAR2(32)                
+   DATE_CODE              YES VARCHAR2(32)                
+   INSERT_TIME            YES DATE              sysdate   
+
+=head1 PP_LOTCLASS
+
+ P Name                  Null Type              Default   
+   -------------------- ----- ----------------- ----------
+ * LOT_OWNER               NO VARCHAR2(32)                
+   LOT_CLASS              YES VARCHAR2(32)                
+   INSERT_TIME            YES DATE              sysdate   
+
+=head1 PP_PROD
+
+ P Name                  Null Type              Default   
+   -------------------- ----- ----------------- ----------
+ * PRODUCT                 NO VARCHAR2(32)                
+   ITEM_TYPE              YES VARCHAR2(15)                
+   FAB                    YES VARCHAR2(32)                
+   FAB_DESC               YES VARCHAR2(50)                
+   AFM                    YES VARCHAR2(45)                
+   PROCESS                YES VARCHAR2(32)                
+   FAMILY                 YES VARCHAR2(32)                
+   PACKAGE                YES VARCHAR2(32)                
+   GDPW                   YES NUMBER(38)                  
+   WF_UNITS               YES VARCHAR2(32)                
+   WF_SIZE                YES FLOAT(126)                  
+   DIE_UNITS              YES VARCHAR2(32)                
+   DIE_WIDTH              YES FLOAT(126)                  
+   DIE_HEIGHT             YES FLOAT(126)                  
+   INSERT_TIME            YES DATE              sysdate   
+
+=head1 PP_LIMITS
+
+ P Name                  Null Type              Default   
+   -------------------- ----- ----------------- ----------
+ * PROGRAM                 NO VARCHAR2(128)               
+ * REVISION                NO VARCHAR2(32)                
+   START_TIME             YES DATE                        
+   PP_SCRIPT              YES VARCHAR2(256)               
+   LIMIT_FILE             YES VARCHAR2(256)               
+   INPUT_FILE             YES VARCHAR2(256)               
+   INSERT_TIME            YES DATE              sysdate   
+
+=head1 PP_WMAP
+
+ P Name                  Null Type              Default   
+   -------------------- ----- ----------------- ----------
+ * PRODUCT                 NO VARCHAR2(32)                
+ * TESTER_TYPE             NO VARCHAR2(32)                
+   WF_UNITS               YES VARCHAR2(8)                 
+   WF_SIZE                YES FLOAT(126)                  
+   FLAT_TYPE              YES CHAR(1)                     
+   FLAT                   YES CHAR(1)                     
+   DIE_WIDTH              YES FLOAT(126)                  
+   DIE_HEIGHT             YES FLOAT(126)                  
+   CENTER_X               YES FLOAT(126)                  
+   CENTER_Y               YES FLOAT(126)                  
+   POSITIVE_X             YES CHAR(1)                     
+   POSITIVE_Y             YES CHAR(1)                     
+   RETICLE_ROWS           YES NUMBER(38)                  
+   RETICLE_COLS           YES NUMBER(38)                  
+   RETICLE_ROW_OFFSET     YES NUMBER(38)                  
+   RETICLE_COL_OFFSET     YES NUMBER(38)                  
+   CONFIRMED              YES CHAR(1)                     
+   DEVICE_COUNT           YES NUMBER(38)                  
+   INSERT_TIME            YES DATE              sysdate   
+   CONFIRM_TIME           YES DATE                        
+   COMMENTS               YES VARCHAR2(256)               
+
+
+=cut

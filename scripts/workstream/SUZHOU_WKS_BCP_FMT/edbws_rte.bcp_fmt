@@ -1,0 +1,7 @@
+4.0
+5
+1	SYBCHAR	1	255	""	1	route
+2	SYBCHAR	1	255	""	2	facility
+3	SYBCHAR	1	255	""	3	route_description
+4	SYBCHAR	1	255	""	4	route_group_1
+5	SYBCHAR	1	255	""	5	route_group_2

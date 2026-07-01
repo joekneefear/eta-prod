@@ -1,0 +1,143 @@
+================================================================================
+  Oracle Benchmark Integration - Quick Start Guide
+  getCamstarWafer2AssemblyGenealogy.pl
+================================================================================
+
+NEW COMMAND-LINE OPTIONS:
+-------------------------
+  --benchmark_db_dsn {oracle-dsn}     Oracle TNS name or connection string
+  --benchmark_db_user [{username}]    Database username (optional value)
+  --benchmark_db_pass [{password}]    Database password (optional value)
+
+DEFAULT CREDENTIALS:
+--------------------
+  If --benchmark_db_user is passed WITHOUT a value, default credentials are used:
+    Username: refdb
+    Password: br#^gox66312sdAB
+
+ENVIRONMENT VARIABLES (Alternative):
+------------------------------------
+  export BENCHMARK_DB_USER="your_username"
+  export BENCHMARK_DB_PASS="your_password"
+
+ORACLE DSN FORMATS:
+-------------------
+  TNS Name:          DWPRD, LOTGPRD, etc.
+  Connection String: //hostname:1521/service_name
+
+QUICK EXAMPLES:
+---------------
+
+1. Use DEFAULT credentials (simplest - recommended):
+   
+   perl getCamstarWafer2AssemblyGenealogy.pl \
+     --source_db CEBU \
+     --benchmark_log ./log/benchmark.jsonl \
+     --benchmark_db_dsn DWPRD \
+     --benchmark_db_user \
+     [... other required options ...]
+
+2. Write to BOTH JSONL and Oracle with CUSTOM credentials:
+   
+   perl getCamstarWafer2AssemblyGenealogy.pl \
+     --source_db OSV \
+     --benchmark_log ./log/benchmark.jsonl \
+     --benchmark_db_dsn DWPRD \
+     --benchmark_db_user "custom_user" \
+     --benchmark_db_pass "custom_password" \
+     [... other required options ...]
+
+3. Use environment variables for CUSTOM credentials:
+   
+   export BENCHMARK_DB_USER="pipeline_user"
+   export BENCHMARK_DB_PASS="secure_password"
+   
+   perl getCamstarWafer2AssemblyGenealogy.pl \
+     --source_db ONSZ \
+     --benchmark_db_dsn DWPRD \
+     [... other required options ...]
+
+4. Skip Oracle (existing behavior):
+   
+   perl getCamstarWafer2AssemblyGenealogy.pl \
+     --source_db SBN \
+     --benchmark_log ./log/benchmark.jsonl \
+     [... other required options ...]
+
+PREREQUISITES:
+--------------
+  1. Oracle database with pipeline_runs table created
+     See: pipeline-service-prod/sql/create_pipeline_runs.sql
+  
+  2. Metadata/benchmark columns added
+     See: pipeline-service-prod/sql/migration_add_metadata_benchmark.sql
+  
+  3. DBD::Oracle Perl module installed
+     Install: cpan DBD::Oracle
+
+BEHAVIOR:
+---------
+  - Oracle insert is OPTIONAL and NON-BLOCKING
+  - If DSN not provided: Oracle insert skipped (no warning)
+  - If credentials missing: Warning logged, execution continues
+  - If connection fails: Warning logged, execution continues
+  - If insert fails: Transaction rolled back, warning logged
+  - Pipeline always completes successfully
+
+DATA STORED:
+------------
+  Core Metrics:
+    - Timestamps (local & UTC)
+    - Elapsed time (seconds & human-readable)
+    - Row counts (extracted, written, skipped)
+    - File counts
+  
+  File Tracking:
+    - Output file paths (genealogy & trace)
+    - Archived file paths
+    - Multiple files stored as JSON arrays
+  
+  Metadata (JSON):
+    - rows_fetched, rows_kept, rows_skipped
+  
+  Benchmark (JSON):
+    - Complete benchmark data with all metrics
+
+SECURITY:
+---------
+  ✓ Use environment variables for credentials
+  ✓ Avoid command-line passwords (visible in process list)
+  ✓ Restrict password file permissions: chmod 600
+  ✓ Use dedicated DB user with INSERT-only permissions
+  ✓ Consider Oracle Wallet for production
+
+TROUBLESHOOTING:
+----------------
+  Test TNS:        tnsping DWPRD
+  Test Connection: sqlplus user/pass@DWPRD
+  Check Logs:      grep -i "benchmark\|oracle" ./log/*.log
+  Install Driver:  cpan DBD::Oracle
+
+QUERY EXAMPLES:
+---------------
+  Recent runs:
+    SELECT pipeline_name, start_utc, elapsed_human, rowcount
+    FROM pipeline_runs
+    WHERE start_utc >= SYSTIMESTAMP - INTERVAL '7' DAY
+    ORDER BY start_utc DESC;
+  
+  Performance trends:
+    SELECT pipeline_name, TRUNC(start_utc) as run_date,
+           AVG(elapsed_seconds) as avg_elapsed,
+           AVG(rowcount) as avg_rows
+    FROM pipeline_runs
+    WHERE pipeline_name LIKE 'camstar_wafer2assembly%'
+    GROUP BY pipeline_name, TRUNC(start_utc)
+    ORDER BY run_date DESC;
+
+MORE INFO:
+----------
+  See: docs/oracle_benchmark_integration.md
+  See: scripts/getCamstarWafer2AssemblyGenealogy_oracle_benchmark_example.sh
+
+================================================================================

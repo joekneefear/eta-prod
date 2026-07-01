@@ -1,0 +1,11 @@
+4.0
+9
+1	SYBCHAR	1	255	""	1	event
+2	SYBCHAR	1	255	""	2	facility
+3	SYBCHAR	1	255	""	3	event_description
+4	SYBCHAR	1	255	""	4	event_type
+5	SYBCHAR	1	255	""	5	event_group_1
+6	SYBCHAR	1	255	""	6	event_group_2
+7	SYBCHAR	1	255	""	7	event_group_3
+8	SYBCHAR	1	255	""	8	event_group_4
+9	SYBCHAR	1	255	""	9	event_group_5

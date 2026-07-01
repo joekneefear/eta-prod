@@ -1,0 +1,6 @@
+#$DPLOAD/fcs_prod_ref_loader.cfg   : -mtime -log_db central_log -log $DPLOG/fcs_prod_ref_loader.cfg.log : REFDB_DEV_SVR
+#$DPLOAD/fcs_prod_ref_lotGen.cfg   : -mtime -log_db central_log -log $DPLOG/fcs_prod_ref_lotGgen.cfg.log : LOTG_NOFILTER
+
+$DPLOAD/fcs_pp_bk_sort_wmap.cfg : -mtime -log_db central_log -log $DPLOG/fcs_pp_bk_sort_wmap.cfg.log : BK_BIN_MAP
+
+$DPLOAD/fetch_script/fetch_bksort_tmt.cfg : -log $DPLOG/fcs_pp_bk_sort_wmap.cfg.log : BKSORT_TMT_FETCH

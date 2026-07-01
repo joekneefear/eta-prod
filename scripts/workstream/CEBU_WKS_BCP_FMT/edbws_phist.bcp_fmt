@@ -1,0 +1,33 @@
+4.0
+31
+1	SYBCHAR	1	255	""	1	parameter_set_id
+2	SYBCHAR	1	255	""	2	parameter_set_version
+3	SYBCHAR	1	255	""	3	date_time
+4	SYBCHAR	1	255	""	4	work_week
+5	SYBCHAR	1	255	""	5	facility
+6	SYBCHAR	1	255	""	6	parameter_name
+7	SYBINT2	0	2	""	7	sequence_number
+8	SYBCHAR	1	255	""	8	unit_id
+9	SYBCHAR	1	255	""	9	type_id
+10	SYBINT2	0	2	""	10	number_of_values
+11	SYBCHAR	1	255	""	11	c_value_1
+12	SYBCHAR	1	255	""	12	c_value_2
+13	SYBCHAR	1	255	""	13	c_value_3
+14	SYBCHAR	1	255	""	14	c_value_4
+15	SYBCHAR	1	255	""	15	c_value_5
+16	SYBFLT8	1	8	""	16	d_value_1
+17	SYBFLT8	1	8	""	17	d_value_2
+18	SYBFLT8	1	8	""	18	d_value_3
+19	SYBFLT8	1	8	""	19	d_value_4
+20	SYBFLT8	1	8	""	20	d_value_5
+21	SYBCHAR	0	1	""	21	format_flag
+22	SYBCHAR	0	1	""	22	exceed_limit_flag
+23	SYBINT2	0	2	""	23	calculation_type
+24	SYBINT2	0	2	""	24	calculation_basis
+25	SYBFLT8	1	8	""	25	high_shutdown_limit
+26	SYBFLT8	1	8	""	26	low_shutdown_limit
+27	SYBCHAR	1	1	""	27	test_data_flag_1
+28	SYBCHAR	1	1	""	28	test_data_flag_2
+29	SYBCHAR	1	1	""	29	test_data_flag_3
+30	SYBCHAR	1	1	""	30	test_data_flag_4
+31	SYBCHAR	1	1	""	31	test_data_flag_5

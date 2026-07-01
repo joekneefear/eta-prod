@@ -1,0 +1,13 @@
+setenv EDB_ENV reference_data
+setenv DB_ROOT /apps/exensio_data
+setenv EDB_LOG $DPLOG/fetch_log
+
+setenv FTP_IN      /apps/exensio_data/${EDB_ENV}
+setenv FTP_IN_WAIT /apps/exensio_data/${EDB_ENV}_wait
+
+setenv PULL_NODE usaz15ls082.onsemi.com
+setenv PULL_USER dpower
+setenv PULL_PASS 5taRf1sh
+setenv PULL_MODE bin
+setenv PULL_PATH ref_data/Processed
+setenv PULL_FILE_TYPE *.mes

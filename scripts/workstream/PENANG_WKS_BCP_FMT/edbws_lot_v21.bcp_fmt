@@ -1,0 +1,11 @@
+4.0
+9
+1	SYBCHAR	1	255	""	1	lot_id
+2	SYBCHAR	1	255	""	2	lot_start
+3	SYBCHAR	0	1	""	3	lot_type
+4	SYBCHAR	1	255	""	4	device_id
+5	SYBCHAR	1	255	""	5	product_id
+6	SYBCHAR	1	255	""	6	drawing
+7	SYBCHAR	1	255	""	7	customer
+8	SYBCHAR	1	255	""	8	original_due_date
+9	SYBCHAR	1	255	""	9	scheduled_due_date

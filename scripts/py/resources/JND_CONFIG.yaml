@@ -1,0 +1,551 @@
+common_paths: &common_paths
+  lot_metadata_location: /apps/exensio_data/data/jnd_lot
+  ws_url: /export/home/dpower/project/scripts/py/lib/WS/url.yaml
+  scribe_json: /export/home/dpower/project/scripts/py/resources/scribe.json
+  scribe: /export/home/dpower/project/scripts/py/resources/SCRIBE_big.txt
+  ship_scribe: /export/home/dpower/project/scripts/py/resources/SHIP_SCRIBE_big.txt
+  CFG_JAVA: "/apps/exensio/java/jdk1.8.0_60/bin/java"
+  refdb:
+    prod:
+      user: "refdb"
+      password: "88sgX%#$29-azx"
+      port: "1729"
+      sid: "EXNPRD"
+      server_name: "exnprd-db.onsemi.com"
+      service_name: "EXNPRD.onsemi.com"
+
+    qa:
+      user: "refdb"
+      password: "br#^gox66312sdAB"
+      port: "1740"
+      sid: "EXNQA"
+      server_name: "exnqa-db.onsemi.com"
+      service_name: "EXNQA.onsemi.com"
+
+    dev:
+      user: "refdb"
+      password: "XBfjCq#$1542FFz"
+      port: "1739"
+      sid: "EXNDEV"
+      server_name: "exndev-db.onsemi.com"
+      service_name: "EXNDEV.onsemi.com"
+
+
+
+common_wmc_constants: &common_wmc_constants
+  WmcWaferUnits: "mm"
+  WmcFlatType: "N"
+  WmcWaferFlat: "B"
+  WmcPositiveX: "R"
+  WmcPositiveY: "D"
+
+WS_Refdb_Client:
+  retries: 5
+  backoff_factor: 0.5
+  status_forcelist:
+    - 500
+    - 502
+    - 504
+  timeout: 5.0
+
+xml_sanitizer:
+  enable_encoding_cleanup: true
+  drop_replacement_character: true
+  escape_unescaped_ampersand: true
+  escape_angle_brackets_in_attributes: true
+  normalize_attribute_whitespace: true
+  remove_null_bytes: true
+  final_utf8_validation: true
+  remove_codepoints: [27]
+  remove_codepoint_ranges:
+    - [127, 159]
+  replacements:
+    "\u00A0": " "
+    "\u202F": " "
+    "\u2007": " "
+    "\u2009": " "
+    "\u200A": " "
+    "\u200B": ""
+    "\u200C": ""
+    "\u200D": ""
+    "\u2060": ""
+    "\uFEFF": ""
+    "\u2018": "'"
+    "\u2019": "'"
+    "\u201C": "\""
+    "\u201D": "\""
+    "\u2013": "-"
+    "\u2014": "-"
+
+Metrology:
+  <<: *common_paths
+  EDC_LOCATION: /apps/exensio_data/data/jnd_edc_met/edc_met
+  KIND_SPLIT_OUT_MET: /apps/exensio_data/data/jnd_met_edc/outbox/met
+  KIND_SPLIT_OUT_PRD: /apps/exensio_data/data/jnd_met_edc/outbox/prd
+  KIND_SPLIT_OUT_FAB: /apps/exensio_data/data/jnd_met_edc/outbox/fab
+  KIND_SPLIT_OUT_EQP: /apps/exensio_data/data/jnd_met_edc/outbox/eqp
+  KIND_SPLIT_OUT_MET_LIMIT: /apps/exensio_data/data/jnd_met_edc/outbox/met_limit
+  KIND_SPLIT_OUT_PRD_LIMIT: /apps/exensio_data/data/jnd_met_edc/outbox/prd_limit
+  KIND_SPLIT_OUT_FAB_LIMIT: /apps/exensio_data/data/jnd_met_edc/outbox/fab_limit
+  KIND_SPLIT_OUT_EQP_LIMIT: /apps/exensio_data/data/jnd_met_edc/outbox/eqp_limit
+  FILE_TYPES:
+    - MET
+    - PRD_EDC
+    - FAB_EDC
+    - EQP_EDC
+  LOT_PER_FILE: 500
+  staging_folder: /apps/exensio_data/data/jnd_met_edc/inbox/inflate_staging
+  is_generate_limits:
+  use_ERT: False
+
+Tesec:
+  enrichements:
+    enrich_clean_test_name_and_test_desc
+  <<: *common_paths
+  <<: *common_wmc_constants
+  fjm_location: /apps/exensio_data/data/jnd_wmc/outbox/wmc_fjm
+  wmc_constant_value: *common_wmc_constants
+  field_mapping:
+    onLot:
+      product: PRODUCT
+      sourceLot: SOURCE_LOT
+      fab: FAB
+      lotType: LOT_TYPE
+      lotClass: ONS_LOT_CLASS
+      productCode: PRODUCT_CODE
+    onProd:
+      # product: PRODUCT
+      # fab: FAB
+      family: FAMILY
+      pti4: PTI_4_PAL
+      technology: TECHNOLOGY
+      maskSet: MASK_SET
+    onScribe:
+      scribeId: SCRIBE_ID
+      waferId: WAFER_ID
+    stdml:
+      LotId: LOT_ID
+      SublotId: WAFER_NUMBER
+      JobName: RECIPE
+      JobRevision: RECIPE_REVISION
+      StartTime: START_TIME
+      FinishTime: END_TIME
+      NodeName: MEASURING_EQUIPMENT
+      TesterType: TESTER_TYPE
+      OperatorName: OPERATOR
+      ModeCode: TEST_MODE
+      TestCode: PROCESSING_STEP
+    constant:
+      Area: AREA
+      DateTimeMask: DATE_TIME_MASK
+      DefaultMappingDate: DEFAULT_MAPPING_DATE
+      DefaultMappingVersion: DEFAULT_MAPPING_VERSION
+      TestFacility: TEST_FACILITY
+      TestFloor: TEST_FLOOR
+    wmc:
+      center_x: WMC_CENTER_X
+      center_y: WMC_CENTER_Y
+      die_height: WMC_DIE_HEIGHT
+      die_width: WMC_DIE_WIDTH
+      flat_type: WMC_FLAT_TYPE
+      positive_x: WMC_POSITIVE_X
+      positive_y: WMC_POSITIVE_Y
+      reticle_col_offset: WMC_RETICLE_COL_OFFSET
+      reticle_cols: WMC_RETICLE_COLS
+      reticle_row_offset: WMC_RETICLE_ROW_OFFSET
+      reticle_rows: WMC_RETICLE_ROWS
+      flat: WMC_WAFER_FLAT
+      wf_size: WMC_WAFER_SIZE
+      wf_units: WMC_WAFER_UNITS
+      cfg_id: WMC_CFG
+      wmc_device: ALTERNATE_PRODUCT
+      # maskSet: MASK_SET
+  source_mapping:
+    onLot:
+      product: EXENSIO_REF_TABLES_ONLOT
+      status: LOTG_MFGLOT_DW
+      lotOwner: EXENSIO_REF_TABLES_ONLOT
+      parentProduct: EXENSIO_REF_TABLES_ONLOT
+      sourceLot: SCRIPT_MODIFIED
+      alternateProduct: EXENSIO_REF_TABLES_ONLOT
+      fab: EXENSIO_REF_TABLES_ONLOT
+      lotType: SCRIPT_LOT_METADATA
+      lotClass: EXENSIO_REF_TABLES_ONLOT
+      alternateLot: EXENSIO_REF_TABLES_ONLOT
+      subconLot: EXENSIO_REF_TABLES_ONLOT
+      subconProduct: EXENSIO_REF_TABLES_ONLOT
+      productCode: EXENSIO_REF_TABLES_ONLOT
+      mfgLot: EXENSIO_REF_TABLES_ONLOT
+    onProd:
+      # product: EXENSIO_REF_TABLES_ONPROD
+      # fab: EXENSIO_REF_TABLES_ONPROD
+      process: EXENSIO_REF_TABLES_ONPROD
+      family: SCRIPT_from_PTI4
+      pti4: EXENSIO_REF_TABLES_ONPROD
+      technology: SCRIPT_LOT_METADATA
+      maskSet: EXENSIO_REF_TABLES_ONPROD
+      package: EXENSIO_REF_TABLES_ONPROD
+    onScribe:
+      scribeId: EXENSIO_REF_TABLES_ONSCRIBE
+      waferIdSource: EXENSIO_REF_TABLES_ONSCRIBE
+      # waferNum: SCRIPT_FILE
+      waferId: EXENSIO_REF_TABLES_ONSCRIBE
+    stdml:
+      LotId: SCRIPT_FILE
+      SublotId: SCRIPT_FILE
+      StartTime: SCRIPT_FILE
+      FinishTime: SCRIPT_FILE
+      NodeName: SCRIPT_FILE
+      TesterType: SCRIPT_FILE
+      JobName: SCRIPT_FILE
+      JobRevision: SCRIPT_FILE
+      OperatorName: SCRIPT_FILE
+      ModeCode: SCRIPT_FILE
+      TestCode: SCRIPT_FILE
+    constant:
+      Area: SCRIPT_CONSTANT
+      DateTimeMask: SCRIPT_CONSTANT
+      DefaultMappingDate: SCRIPT_CONSTANT
+      DefaultMappingVersion: SCRIPT_CONSTANT
+      TestFacility: SCRIPT_CONSTANT
+      TestFloor: SCRIPT_CONSTANT
+    wmc:
+      WmcCenterX: SCRIPT_FJM_STAT_CALCULATED
+      WmcCenterY: SCRIPT_FJM_STAT_CALCULATED
+      WmcDieHeight: SCRIPT_FJM
+      WmcDieWidth: SCRIPT_FJM
+      WmcFlatType: SCRIPT_CONSTANT
+      WmcPositiveX: SCRIPT_CONSTANT
+      WmcPositiveY: SCRIPT_CONSTANT
+      WmcReticleColOffset: SCRIPT_FJM
+      WmcReticleCols: SCRIPT_FJM
+      WmcReticleRowOffset: SCRIPT_FJM
+      WmcReticleRows: SCRIPT_FJM
+      WmcWaferFlat: SCRIPT_CONSTANT
+      WmcWaferSize: SCRIPT_FJM
+      WmcWaferUnits: SCRIPT_CONSTANT
+      center_x: SCRIPT_FJM_STAT_CALCULATED
+      center_y: SCRIPT_FJM_STAT_CALCULATED
+      wf_units: SCRIPT_CONSTANT
+      wf_size: SCRIPT_FJM
+      flat_type: SCRIPT_CONSTANT
+      flat: SCRIPT_CONSTANT
+      die_width: SCRIPT_FJM
+      die_height: SCRIPT_FJM
+      center_x_coord: SCRIPT_FJM
+      center_y_coord: SCRIPT_FJM
+      positive_x: SCRIPT_CONSTANT
+      positive_y: SCRIPT_CONSTANT
+      reticle_rows: SCRIPT_FJM
+      reticle_cols: SCRIPT_FJM
+      reticle_row_offset: SCRIPT_FJM
+      reticle_col_offset: SCRIPT_FJM
+      wmc_device: SCRIPT_FJM
+      cfg_id: SCRIPT_FJM
+      # maskSet: SCRIPT_FJM
+  constant_mapping_value:
+    Area: "PROBE"
+    DateTimeMask: "%Y/%m/%d %H:%M:%S"
+    DefaultMappingDate: "2024-09-03 23:47:23.350"
+    DefaultMappingVersion: "1"
+    TestFacility: "JND:AIZU2 FAB (PTI)"
+    TestFloor: "JND:AIZU2 FAB (PTI)"
+
+Advantest:
+  enrichements:
+  <<: *common_paths
+  <<: *common_wmc_constants
+  fjm_location: /apps/exensio_data/data/jnd_wmc/outbox/wmc_fjm
+  wmc_constant_value: *common_wmc_constants
+  wmc_ref_location: /apps/exensio_data/data/jnd_wmc_ref_advantest
+  test_lookup: /apps/exensio_data/data/jnd_probe_advantest/test_lookup_csv
+  field_mapping:
+    onLot:
+      product: PRODUCT
+      sourceLot: SOURCE_LOT
+      fab: FAB
+      lotType: LOT_TYPE
+      lotClass: ONS_LOT_CLASS
+      productCode: PRODUCT_CODE
+    onProd:
+      product: PRODUCT
+      fab: FAB
+      family: FAMILY
+      pti4: PTI_4_PAL
+      technology: TECHNOLOGY
+      maskSet: MASK_SET
+    onScribe:
+      scribeId: SCRIBE_ID
+      waferId: WAFER_ID
+    stdml:
+      LOT_NO: LOT_ID
+      WAFER_NO: WAFER_NUMBER
+      PROGRAM_NAME: RECIPE
+      PRO_REVISION: RECIPE_REVISION
+      MEAS_START: START_TIME
+      MEAS_END: END_TIME
+      TESTER_NAME: MEASURING_EQUIPMENT
+    constant:
+      Area: AREA
+      DateTimeMask: DATE_TIME_MASK
+      DefaultMappingDate: DEFAULT_MAPPING_DATE
+      DefaultMappingVersion: DEFAULT_MAPPING_VERSION
+      TestFacility: TEST_FACILITY
+      TestFloor: TEST_FLOOR
+    wmc:
+      center_x: WMC_CENTER_X
+      center_y: WMC_CENTER_Y
+      die_height: WMC_DIE_HEIGHT
+      die_width: WMC_DIE_WIDTH
+      flat_type: WMC_FLAT_TYPE
+      positive_x: WMC_POSITIVE_X
+      positive_y: WMC_POSITIVE_Y
+      reticle_col_offset: WMC_RETICLE_COL_OFFSET
+      reticle_cols: WMC_RETICLE_COLS
+      reticle_row_offset: WMC_RETICLE_ROW_OFFSET
+      reticle_rows: WMC_RETICLE_ROWS
+      flat: WMC_WAFER_FLAT
+      wf_size: WMC_WAFER_SIZE
+      wf_units: WMC_WAFER_UNITS
+      cfg_id: WMC_CFG
+      wmc_device: ALTERNATE_PRODUCT
+      maskSet: MASK_SET
+  source_mapping:
+    onLot:
+      product: EXENSIO_REF_TABLES_ONLOT
+      status: LOTG_MFGLOT_DW
+      lotOwner: EXENSIO_REF_TABLES_ONLOT
+      parentProduct: EXENSIO_REF_TABLES_ONLOT
+      sourceLot: SCRIPT_MODIFIED
+      alternateProduct: EXENSIO_REF_TABLES_ONLOT
+      fab: EXENSIO_REF_TABLES_ONLOT
+      lotType: SCRIPT_LOT_METADATA
+      lotClass: EXENSIO_REF_TABLES_ONLOT
+      alternateLot: EXENSIO_REF_TABLES_ONLOT
+      subconLot: EXENSIO_REF_TABLES_ONLOT
+      subconProduct: EXENSIO_REF_TABLES_ONLOT
+      productCode: EXENSIO_REF_TABLES_ONLOT
+      mfgLot: EXENSIO_REF_TABLES_ONLOT
+    onProd:
+      # product: EXENSIO_REF_TABLES_ONPROD
+      # fab: EXENSIO_REF_TABLES_ONPROD
+      process: EXENSIO_REF_TABLES_ONPROD
+      family: SCRIPT_from_PTI4
+      pti4: EXENSIO_REF_TABLES_ONPROD
+      technology: SCRIPT_LOT_METADATA
+      maskSet: SCRIPT_FJM
+      package: EXENSIO_REF_TABLES_ONPROD
+    onScribe:
+      scribeId: EXENSIO_REF_TABLES_ONSCRIBE
+      waferIdSource: EXENSIO_REF_TABLES_ONSCRIBE
+      waferNum: SCRIPT_FILE
+      waferId: EXENSIO_REF_TABLES_ONSCRIBE
+    stdml:
+      LOT_NO: SCRIPT_FILE
+      WAFER_NO: SCRIPT_FILE
+      MEAS_START: SCRIPT_FILE
+      MEAS_END: SCRIPT_FILE
+      TESTER_NAME: SCRIPT_FILE
+      PROGRAM_NAME: SCRIPT_FILE
+      PRO_REVISION: SCRIPT_FILE
+    constant:
+      Area: SCRIPT_CONSTANT
+      DateTimeMask: SCRIPT_CONSTANT
+      DefaultMappingDate: SCRIPT_CONSTANT
+      DefaultMappingVersion: SCRIPT_CONSTANT
+      TestFacility: SCRIPT_CONSTANT
+      TestFloor: SCRIPT_CONSTANT
+    wmc:
+      WmcCenterX: SCRIPT_FJM_STAT_CALCULATED
+      WmcCenterY: SCRIPT_FJM_STAT_CALCULATED
+      WmcDieHeight: SCRIPT_FJM
+      WmcDieWidth: SCRIPT_FJM
+      WmcFlatType: SCRIPT_CONSTANT
+      WmcPositiveX: SCRIPT_CONSTANT
+      WmcPositiveY: SCRIPT_CONSTANT
+      WmcReticleColOffset: SCRIPT_FJM
+      WmcReticleCols: SCRIPT_FJM
+      WmcReticleRowOffset: SCRIPT_FJM
+      WmcReticleRows: SCRIPT_FJM
+      WmcWaferFlat: SCRIPT_CONSTANT
+      WmcWaferSize: SCRIPT_FJM
+      WmcWaferUnits: SCRIPT_CONSTANT
+      center_x: SCRIPT_FJM_STAT_CALCULATED
+      center_y: SCRIPT_FJM_STAT_CALCULATED
+      wf_units: SCRIPT_CONSTANT
+      wf_size: SCRIPT_FJM
+      flat_type: SCRIPT_CONSTANT
+      flat: SCRIPT_CONSTANT
+      die_width: SCRIPT_FJM
+      die_height: SCRIPT_FJM
+      center_x_coord: SCRIPT_FJM
+      center_y_coord: SCRIPT_FJM
+      positive_x: SCRIPT_CONSTANT
+      positive_y: SCRIPT_CONSTANT
+      reticle_rows: SCRIPT_FJM
+      reticle_cols: SCRIPT_FJM
+      reticle_row_offset: SCRIPT_FJM
+      reticle_col_offset: SCRIPT_FJM
+      wmc_device: SCRIPT_FJM
+      cfg_id: SCRIPT_FJM
+      maskSet: SCRIPT_FJM
+  constant_mapping_value:
+    Area: "PROBE"
+    DateTimeMask: "%Y/%m/%d %H:%M:%S"
+    DefaultMappingDate: "2024-09-03 23:47:23.350"
+    DefaultMappingVersion: "1"
+    TestFacility: "JND:AIZU2 FAB (PTI)"
+    TestFloor: "JND:AIZU2 FAB (PTI)"
+
+KDF:
+  <<: *common_paths
+
+SPEC:
+  <<: *common_paths
+
+RAW_MAPS:
+  <<: *common_paths
+
+PHOTOLITHO:
+  <<: *common_paths
+
+default_onlot_prod:
+  onLot:
+    status: "ERROR"
+    lot: null
+    parentLot: null
+    product: null
+    lotOwner: null
+    parentProduct: null
+    sourceLot: null
+    insertTime: null
+    alternateProduct: null
+    fab: null
+    lotType: null
+    lotClass: null
+    alternateLot: null
+    subconLot: null
+    subconProduct: null
+    productCode: null
+    mfgLot: null
+    errorMessage: "ERROR"
+  onProd:
+    status: "ERROR"
+    product: null
+    itemType: null
+    fab: null
+    fabDesc: null
+    afm: null
+    process: null
+    family: null
+    gdpw: null
+    wfUnits: null
+    wfSize: null
+    dieUnits: null
+    dieWidth: null
+    dieHeight: null
+    insertTime: null
+    pti4: null
+    technology: null
+    errorMessage: "ERROR"
+    maskSet: null
+    package: null
+  
+default_onscribe_metadata:
+  status: "ERROR"
+  scribeId: null
+  waferIdSource: null
+  waferNum: "NA"
+  waferId: "NA"
+  lot: "NA"
+
+default_onlot_metadata:
+  status: ERROR
+  lot: null
+  parentLot: null
+  product: null
+  lotOwner: null
+  parentProduct: null
+  sourceLot: null
+  insertTime: null
+  alternateProduct: null
+  fab: null
+  lotType: null
+  lotClass: null
+  alternateLot: null
+  subconLot: null
+  subconProduct: null
+  productCode: null
+  mfgLot: null
+  errorMessage: ERROR
+
+UPM:
+  <<: *common_paths
+  CFG_UPM_TO_XML: "/apps/exensio/lib-jar/jnd/upm-to-xml-translator/afsm-upm-to-xml-translator-1.0-SNAPSHOT-jar-with-dependencies.jar"
+  translated_staging: "/apps/exensio_data/data/jnd_probe_upm/translated_staging"
+  pr_list: 
+    - 08R14
+    - 08R09
+    - 08R10
+    - 08R27
+    - 08R37
+
+Klarf18:
+  <<: *common_paths
+  <<: *common_wmc_constants
+  fjm_location: /apps/exensio_data/data/jnd_wmc/outbox/wmc_fjm
+  wmc_constant_value: *common_wmc_constants
+  field_mapping:
+    wmc:
+      center_x: WMC_CENTER_X
+      center_y: WMC_CENTER_Y
+      die_height: WMC_DIE_HEIGHT
+      die_width: WMC_DIE_WIDTH
+      flat_type: WMC_FLAT_TYPE
+      positive_x: WMC_POSITIVE_X
+      positive_y: WMC_POSITIVE_Y
+      reticle_col_offset: WMC_RETICLE_COL_OFFSET
+      reticle_cols: WMC_RETICLE_COLS
+      reticle_row_offset: WMC_RETICLE_ROW_OFFSET
+      reticle_rows: WMC_RETICLE_ROWS
+      flat: WMC_WAFER_FLAT
+      wf_size: WMC_WAFER_SIZE
+      wf_units: WMC_WAFER_UNITS
+      cfg_id: WMC_CFG
+      wmc_device: ALTERNATE_PRODUCT
+  source_mapping:
+    wmc:
+      WmcCenterX: SCRIPT_FJM_STAT_CALCULATED
+      WmcCenterY: SCRIPT_FJM_STAT_CALCULATED
+      WmcDieHeight: SCRIPT_FJM
+      WmcDieWidth: SCRIPT_FJM
+      WmcFlatType: SCRIPT_CONSTANT
+      WmcPositiveX: SCRIPT_CONSTANT
+      WmcPositiveY: SCRIPT_CONSTANT
+      WmcReticleColOffset: SCRIPT_FJM
+      WmcReticleCols: SCRIPT_FJM
+      WmcReticleRowOffset: SCRIPT_FJM
+      WmcReticleRows: SCRIPT_FJM
+      WmcWaferFlat: SCRIPT_CONSTANT
+      WmcWaferSize: SCRIPT_FJM
+      WmcWaferUnits: SCRIPT_CONSTANT
+      center_x: SCRIPT_FJM_STAT_CALCULATED
+      center_y: SCRIPT_FJM_STAT_CALCULATED
+      wf_units: SCRIPT_CONSTANT
+      wf_size: SCRIPT_FJM
+      flat_type: SCRIPT_CONSTANT
+      flat: SCRIPT_CONSTANT
+      die_width: SCRIPT_FJM
+      die_height: SCRIPT_FJM
+      center_x_coord: SCRIPT_FJM
+      center_y_coord: SCRIPT_FJM
+      positive_x: SCRIPT_CONSTANT
+      positive_y: SCRIPT_CONSTANT
+      reticle_rows: SCRIPT_FJM
+      reticle_cols: SCRIPT_FJM
+      reticle_row_offset: SCRIPT_FJM
+      reticle_col_offset: SCRIPT_FJM
+      wmc_device: SCRIPT_FJM
+      cfg_id: SCRIPT_FJM
+
+

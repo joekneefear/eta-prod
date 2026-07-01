@@ -1,0 +1,13 @@
+setenv EDB_ENV mxic_tw_et_hp
+setenv DB_ROOT /apps/exensio_data/data
+setenv EDB_LOG $DPLOG/fetch_log
+
+setenv FTP_IN      /apps/exensio_data/data/${EDB_ENV}
+setenv FTP_IN_WAIT /apps/exensio_data/data/${EDB_ENV}_wait
+
+setenv PULL_NODE oruxymsetl01p.onsemi.com
+setenv PULL_USER dpower
+setenv PULL_PASS 5taRf1sh
+setenv PULL_MODE bin
+setenv PULL_PATH /data/mxic_tw_et_hp/Processed/Processed
+setenv PULL_FILE_TYPE *.WAT

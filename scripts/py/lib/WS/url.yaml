@@ -1,0 +1,13 @@
+refdb:
+  qa:
+    on_lot: http://usaz15ls120.onsemi.com:61050/exensioreftables-ws/api/onlot/bylotid
+    on_lot_prod: http://usaz15ls120.onsemi.com:61050/exensioreftables-ws/api/onlotprod/bylotid
+    pp_lot:  http://usaz15ls120.onsemi.com:61050/exensioreftables-ws/api/pplot/bylotid
+    on_scribe: http://usaz15ls120.onsemi.com:61050/exensioreftables-ws/api/onscribe/bylotidandwafernum
+    on_prod: http://usaz15ls120.onsemi.com:61050/exensioreftables-ws/api/onprod/byproduct
+  prod:
+    on_lot: http://globmfgapp.onsemi.com:61050/exensioreftables-ws/api/onlot/bylotid
+    on_lot_prod: http://globmfgapp.onsemi.com:61050/exensioreftables-ws/api/onlotprod/bylotid
+    pp_lot: http://globmfgapp.onsemi.com:61050/exensioreftables-ws/api/pplot/bylotid
+    on_scribe: http://globmfgapp.onsemi.com:61050/exensioreftables-ws/api/onscribe/bylotidandwafernum
+    on_prod: http://globmfgapp.onsemi.com:61050/exensioreftables-ws/api/onprod/byproduct
