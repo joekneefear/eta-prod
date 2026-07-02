@@ -198,15 +198,13 @@ class InnoFtXlsxParser:
                 # Test# row: Structure is blank/Test#/blank/T1/T2/T3...
                 # Test names start from column D (index 3) because of blank column C
                 if col_b and self._PATTERNS['test_num_row'].match(col_b):
-                    test_names = [self._clean_cell(c) for c in row_data[3:] if c]
-                    test_names = [t for t in test_names if t and not self._PATTERNS['whitespace'].match(t)]
+                    test_names = [self._clean_cell(c) for c in row_data[3:]]
                     self.logger.INFO(f"Found {len(test_names)} test IDs: {test_names}")
                     continue
 
                 # Test Parameter row: blank/Test Parameter/blank/Vth_HT/Igss_HT...
                 if col_b and self._PATTERNS['test_param'].match(col_b):
-                    test_names = [self._clean_cell(c) for c in row_data[3:] if c]
-                    test_names = [t for t in test_names if t and not self._PATTERNS['whitespace'].match(t)]
+                    test_names = [self._clean_cell(c) for c in row_data[3:]]
                     self.logger.INFO(f"Found {len(test_names)} test names: {test_names}")
                     continue
                 
@@ -368,6 +366,8 @@ class InnoFtXlsxParser:
         )
         
         for i, name in enumerate(test_names):
+            if not name:
+                continue
             lsl = lo_limits[i] if i < len(lo_limits) else ''
             hsl = hi_limits[i] if i < len(hi_limits) else ''
             unit = units[i] if i < len(units) else ''
