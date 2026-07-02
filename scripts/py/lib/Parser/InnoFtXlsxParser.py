@@ -13,6 +13,8 @@ AUTHOR
 
 CHANGES
     2026-Jul-02 - Initial Python implementation
+    2026-Jul-03 - Fixed test result alignment by not filtering test names in header rows
+                  and creating Test objects only for non-empty names after parsing.
 
 LICENSE
     (C) onsemi 2026 All rights reserved.
@@ -152,16 +154,11 @@ class InnoFtXlsxParser:
         # Parse state
         raw_header: Dict[str, str] = {}
         test_names: List[str] = []
+        test_numbers: List[str] = []
         lo_limits: List[str] = []
         hi_limits: List[str] = []
         units: List[str] = []
-        ]
-        # Filtered lists for test creation and die data (computed after header parsed)
-        filtered_test_names: List[str] = []
-        filtered_lo_limits: List[str] = []
-        filtered_hi_limits: List[str] = []
-        filtered_units: List[str] = []
-        filters_computed = False
+        data_flag = False
 
         rows = list(worksheet.iter_rows(values_only=True))
 
@@ -204,8 +201,8 @@ class InnoFtXlsxParser:
                 # Test# row: Structure is blank/Test#/blank/T1/T2/T3...
                 # Test names start from column D (index 3) because of blank column C
                 if col_b and self._PATTERNS['test_num_row'].match(col_b):
-                    test_names = [self._clean_cell(c) for c in row_data[3:]]
-                    self.logger.INFO(f"Found {len(test_names)} test IDs: {test_names}")
+                    test_numbers = [self._clean_cell(c) for c in row_data[3:]]
+                    self.logger.INFO(f"Found {len(test_numbers)} test numbers: {test_numbers}")
                     continue
 
                 # Test Parameter row: blank/Test Parameter/blank/Vth_HT/Igss_HT...
@@ -234,20 +231,7 @@ class InnoFtXlsxParser:
 
                 # Data row: col_a is numeric (die index), col_b is BIN
                 if col_a and self._PATTERNS['numeric_row'].match(col_a):
-                    if not filters_computed:
-                        # Compute filtered lists from accumulated header data
-                        filtered_test_names.clear()
-                        filtered_lo_limits.clear()
-                        filtered_hi_limits.clear()
-                        filtered_units.clear()
-                        for i, name in enumerate(test_names):
-                            if name and not self._PATTERNS['whitespace'].match(name):
-                                filtered_test_names.append(name)
-                                filtered_lo_limits.append(lo_limits[i] if i < len(lo_limits) else '')
-                                filtered_hi_limits.append(hi_limits[i] if i < len(hi_limits) else '')
-                                filtered_units.append(units[i] if i < len(units) else '')
-                        filters_computed = True
-                    self._parse_die_data(row_data, wafer, filtered_test_names)
+                    self._parse_die_data(row_data, wafer, test_names)
 
         # Set raw_header on model.header
         header._raw = raw_header
@@ -255,24 +239,41 @@ class InnoFtXlsxParser:
         # Set LOT from raw_header
         header.LOT = raw_header.get('LotID', 'NA')
 
-        # Ensure filtered lists are computed (in case there were no data rows)
-        if not filters_computed:
-            filtered_test_names.clear()
-            filtered_lo_limits.clear()
-            filtered_hi_limits.clear()
-            filtered_units.clear()
+        # Create Test objects only for non-empty test names
+        if test_names:
+            test_count = 0
             for i, name in enumerate(test_names):
                 if name and not self._PATTERNS['whitespace'].match(name):
-                    filtered_test_names.append(name)
-                    filtered_lo_limits.append(lo_limits[i] if i < len(lo_limits) else '')
-                    filtered_hi_limits.append(hi_limits[i] if i < len(hi_limits) else '')
-                    filtered_units.append(units[i] if i < len(units) else '')
+                    test_count += 1
+                    lsl = lo_limits[i] if i < len(lo_limits) else ''
+                    hsl = hi_limits[i] if i < len(hi_limits) else ''
+                    unit = units[i] if i < len(units) else ''
 
-        # Create Test objects only if filtered_test_names were found
-        if filtered_test_names:
-            self._create_tests(model, wafer, filtered_test_names, filtered_lo_limits, filtered_hi_limits, filtered_units)
+                    # Determine test number from Test# row (original) if available, else fallback to sequential
+                    test_num_raw = test_numbers[i] if i < len(test_numbers) else ''
+                    test_num = self._clean_cell(test_num_raw)
+                    if not test_num:
+                        test_num = str(test_count)  # fallback to sequential count if empty
+
+                    # Create Test object with dictionary initialization (like Qorvo)
+                    test = Test({
+                        'number': test_num,
+                        'name': name,
+                        'units': unit.strip() if unit else '',
+                        'LPL': lsl,
+                        'HPL': hsl,
+                        'LSL': lsl,
+                        'HSL': hsl,
+                        'LOL': '',
+                        'HOL': '',
+                        'LWL': '',
+                        'HWL': ''
+                    })
+
+                    model.add('tests', test)
+                    wafer.add('tests', test)
         else:
-            self.logger.WARN("No valid test names found after filtering - skipping test creation")
+            self.logger.WARN("No test names found - skipping test creation")
 
     def _clean_cell(self, value: Any) -> str:
         """
@@ -377,47 +378,3 @@ class InnoFtXlsxParser:
             }))
         else:
             bin_obj_h.count += 1
-
-    def _create_tests(self, model: Model, wafer: Wafer, test_names: List[str],
-                      lo_limits: List[str], hi_limits: List[str],
-                      units: List[str]) -> None:
-        """
-        Create Test objects from parsed header rows.
-
-        Args:
-            model: Model to add tests to
-            wafer: Wafer to add tests to
-            test_names: List of test names
-            lo_limits: List of low limit values
-            hi_limits: List of high limit values
-            units: List of unit strings
-        """
-        self.logger.INFO(
-            f"Creating tests: {len(test_names)} names, {len(lo_limits)} lo_limits, "
-            f"{len(hi_limits)} hi_limits, {len(units)} units"
-        )
-
-        for i, name in enumerate(test_names):
-            if not name:
-                continue
-            lsl = lo_limits[i] if i < len(lo_limits) else ''
-            hsl = hi_limits[i] if i < len(hi_limits) else ''
-            unit = units[i] if i < len(units) else ''
-
-            # Create Test object with dictionary initialization (like Qorvo)
-            test = Test({
-                'number': i + 1,
-                'name': name,
-                'units': unit.strip() if unit else '',
-                'LPL': lsl,
-                'HPL': hsl,
-                'LSL': lsl,
-                'HSL': hsl,
-                'LOL': '',
-                'HOL': '',
-                'LWL': '',
-                'HWL': ''
-            })
-
-            model.add('tests', test)
-            wafer.add('tests', test)

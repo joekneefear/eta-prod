@@ -8,10 +8,10 @@ DESCRIPTION
     Maps raw_header and RefDB fields to Model.header attributes.
 
 AUTHOR
-    kiro@onsemi.com
+    junifferallan.garcia@onsemi.com
 
 CHANGES
-    2026-Jul-02 - Initial implementation based on Klarf18Enricher pattern
+    2026-Jul-02 - Initial implementation
 
 LICENSE
     (C) onsemi 2026 All rights reserved.
