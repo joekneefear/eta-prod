@@ -743,16 +743,19 @@ class IFF(Base):
         wr.ext = 'limit'
         wr.noWMap = 0
         wr.open()
-        wr.put(f"<HEADER>\n{limit.to_string()}\n</HEADER>\n")
-        wr.put(f"<LIMIT>\n{self.limit_to_string()}</LIMIT>\n")
-        
-        if limit.conditionNames:
-            wr.put("<CONDITION>\n")
-            wr.put(",".join(limit.conditionNames) + "\n")
-            wr.put(self.limit_to_string_with_conditions())
-            wr.put("</CONDITION>\n")
-        
-        wr.close()
+        try:
+            wr.put(f"<HEADER>\n{limit.to_string()}\n</HEADER>\n")
+            wr.put(f"<LIMIT>\n{self.limit_to_string()}</LIMIT>\n")
+            
+            if limit.conditionNames:
+                wr.put("<CONDITION>\n")
+                wr.put(",".join(limit.conditionNames) + "\n")
+                wr.put(self.limit_to_string_with_conditions())
+                wr.put("</CONDITION>\n")
+            wr.close()
+        except Exception:
+            wr.cancel()
+            raise
      
     def limit_to_string(self):
         limit = self.model.limit
@@ -815,3 +818,131 @@ class IFF(Base):
             line = [str(element) for element in line]
             strings.append(",".join(line))
         return "\n".join(strings) + "\n"
+
+    # -------------------------------------------------------------------------
+    # INNO FT XLSX specific formatters
+    # -------------------------------------------------------------------------
+
+    def _format_die_line_inno_ft(self, die):
+        """
+        Format a single die as one flat comma-separated line for INNO FT output.
+
+        Layout: partid,site,soft_bin,hard_bin,bindesc,result1,result2,...
+
+        This differs from the generic _format_die_line which uses KEY=value
+        newline-separated fields.  INNO FT needs a compact CSV row so the
+        downstream parser can split on commas to recover individual test results.
+        """
+        fields = []
+        if 'partid' in self.data_items:
+            fields.append(str(Util.rep_na(die.partid)))
+        if 'site' in self.data_items:
+            fields.append(str(Util.rep_na(die.site)))
+        if 'soft_bin' in self.data_items:
+            fields.append(str(Util.rep_na(die.soft_bin)))
+        if 'hard_bin' in self.data_items:
+            fields.append(str(Util.rep_na(die.hard_bin)))
+        if 'bindesc' in self.data_items:
+            fields.append(str(Util.rep_na(die.bindesc)))
+
+        # Append all test results separated by commas on the same line
+        die_result = getattr(die, 'result', [])
+        fields.extend(str(Util.rep_na(v)) for v in die_result)
+
+        return ",".join(fields)
+
+    def _dies_to_string_inno_ft(self, dies):
+        """
+        Convert a list of Die objects to a flat CSV string (one line per die).
+        Skips inked / no-test dies consistent with the generic formatter.
+        """
+        lines = [
+            self._format_die_line_inno_ft(die)
+            for die in dies
+            if not (die.inked or die.notest)
+        ]
+        return "\n".join(lines) + "\n"
+
+    def print_par_inno_ft(self):
+        """
+        Write PAR output for INNO FT XLSX data.
+
+        Identical flow to print_par_per_wafer_number but uses
+        _dies_to_string_inno_ft so that each die row is a single
+        comma-separated line instead of the generic KEY=value multi-line block.
+        """
+        wr = self.writer
+        model = self.model
+        outfilename = wr.basename
+
+        model_tests = getattr(model, 'tests', None)
+        model_tests_string = self.tests_to_string(model_tests) if model_tests else None
+
+        metadata = (
+            model.header
+            if getattr(model, 'header', None)
+            else getattr(model, 'metadata', None)
+        )
+        if not metadata:
+            Util.dp_exit(1, pplogger=wr.pplogger, error="Header/metadata is missing in model")
+
+        Log.INFO(f"Starting print_par_inno_ft for LOT: {metadata.LOT}, Filename: {outfilename}")
+
+        # Group wafers by START_TIME (same grouping logic as the generic method)
+        group = {}
+        for wafer in model.wafers:
+            group.setdefault(wafer.START_TIME, []).append(wafer)
+
+        for _start_time, wafers in group.items():
+            for wafer in wafers:
+                wafer_number = str(wafer.number).zfill(2)
+
+                if wafer.START_TIME:
+                    metadata.START_TIME = wafer.START_TIME
+                if wafer.END_TIME:
+                    metadata.END_TIME = wafer.END_TIME
+
+                wr.basename = f"{outfilename}_{wafer_number}"
+
+                try:
+                    wr.open()
+                    Log.INFO(f"Opened output file: {wr.openedfile}")
+                except Exception as e:
+                    Log.ERROR(f"Failed to open output file, Error: {e}")
+                    continue
+
+                try:
+                    wr.put(f"<HEADER>\n{self.header_to_string(metadata)}</HEADER>\n")
+
+                    if model.wmap:
+                        wr.put(f"<WMAP>\n{model.wmap.to_string()}</WMAP>\n")
+
+                    wafer_id = f"{metadata.LOT.upper()}_{wafer_number}"
+                    wr.put("<WAFER>\n")
+                    wr.put(f"WAFER_ID={wafer.name if wafer.name else wafer_id}\n")
+                    wr.put(f"WAFER_NUMBER={wafer_number}\n")
+                    wr.put("</WAFER>\n")
+
+                    if wafer.sbins:
+                        wr.put(f"<SBIN>\n{self.bins_to_string(wafer.sbins)}</SBIN>\n")
+                    if wafer.hbins:
+                        wr.put(f"<HBIN>\n{self.bins_to_string(wafer.hbins)}</HBIN>\n")
+
+                    wafer_tests = getattr(wafer, 'tests', None)
+                    if wafer_tests:
+                        wr.put(f"<PAR>\n{self.tests_to_string(wafer_tests)}</PAR>\n")
+                    elif model_tests_string:
+                        wr.put(f"<PAR>\n{model_tests_string}</PAR>\n")
+
+                    # Use INNO-specific flat CSV die formatter
+                    wr.put(f"<DATA>\n{self._dies_to_string_inno_ft(wafer.dies)}</DATA>\n")
+
+                    wr.close()
+                    Log.INFO(f"Closed output file: {wr.openedfile}")
+
+                except Exception as e:
+                    Log.ERROR(f"Error writing INNO FT output: {e}")
+                    wr.cancel()
+                    Util.dp_exit(1, pplogger=wr.pplogger, error=str(e))
+
+        Log.INFO("Finished print_par_inno_ft")

@@ -9,7 +9,7 @@ DESCRIPTION
     Test table contains test names, limits, units, and die data.
 
 AUTHOR
-    kiro@onsemi.com
+    junifferallan.garcia@onsemi.com
 
 CHANGES
     2026-Jul-02 - Initial Python implementation
@@ -55,7 +55,8 @@ class InnoFtXlsxParser:
         'll_limit': re.compile(r'^LL$', re.IGNORECASE),
         'hl_limit': re.compile(r'^HL$', re.IGNORECASE),
         'unit_row': re.compile(r'^Unit$', re.IGNORECASE),
-        'test_table_marker': re.compile(r'^(Test#|No)$', re.IGNORECASE),
+        'test_table_marker': re.compile(r'^No$', re.IGNORECASE),
+        'test_num_row': re.compile(r'^Test#$', re.IGNORECASE),
         'whitespace': re.compile(r'^\s*$'),
     }
     
@@ -116,10 +117,6 @@ class InnoFtXlsxParser:
             f"LOT={header.LOT}--DEVICE={header.PRODUCT}--PROGRAM={header.RECIPE}--"
             f"RECIPE_REVISION={header.RECIPE_REVISION}--TIME={header.START_TIME}"
         )
-        
-        # Build limits from tests
-        model.build_limit()
-        model.limit.testItems = ['number', 'name', 'units']
         
         self.logger.INFO(
             f"Parsing complete: {len(model.tests)} tests, {len(wafer.dies)} dies, "
@@ -186,32 +183,42 @@ class InnoFtXlsxParser:
                         value = 'NA'
                     raw_header[col_a] = value
                     self.logger.INFO(f"Parsed header: {col_a}={value}")
-                continue
+                    continue
             
             # Parse test table rows
             if data_flag:
-                # Test Parameter row
-                if self._PATTERNS['test_param'].match(col_a) or \
-                   (col_b and self._PATTERNS['test_param'].match(col_b)):
+                # Debug: log col_a to see what we're trying to match
+                self.logger.DEBUG(f"Processing row with col_a='{col_a}', data_flag={data_flag}")
+                
+                # Test# row: col_a='Test#', col_b='Test Parameter', col_c+ = test names
+                # e.g. | Test# | Test Parameter | Vth_HT | Igss_HT | Ron_HT | ...
+                if self._PATTERNS['test_num_row'].match(col_a):
+                    test_names = [self._clean_cell(c) for c in row_data[2:] if c]
+                    test_names = [t for t in test_names if t and not self._PATTERNS['whitespace'].match(t)]
+                    self.logger.INFO(f"Found {len(test_names)} test names: {test_names}")
+                    continue
+
+                # Fallback: plain 'Test Parameter' label in col_a or col_b (no Test# prefix)
+                if col_b and self._PATTERNS['test_param'].match(col_b) and False or \
                     test_names = [self._clean_cell(c) for c in row_data[2:] if c]
                     test_names = [t for t in test_names if t and not self._PATTERNS['whitespace'].match(t)]
                     self.logger.INFO(f"Found {len(test_names)} test names")
                     continue
                 
                 # LL (Low Limit) row
-                if self._PATTERNS['ll_limit'].match(col_a):
+                if col_b and self._PATTERNS['ll_limit'].match(col_b):
                     lo_limits = [self._clean_cell(c) for c in row_data[2:]]
                     self.logger.INFO(f"Found {len(lo_limits)} low limits")
                     continue
                 
                 # HL (High Limit) row
-                if self._PATTERNS['hl_limit'].match(col_a):
+                if col_b and self._PATTERNS['hl_limit'].match(col_b):
                     hi_limits = [self._clean_cell(c) for c in row_data[2:]]
                     self.logger.INFO(f"Found {len(hi_limits)} high limits")
                     continue
                 
                 # Unit row
-                if self._PATTERNS['unit_row'].match(col_a):
+                if col_b and self._PATTERNS['unit_row'].match(col_b):
                     units = [self._clean_cell(c) for c in row_data[2:]]
                     self.logger.INFO(f"Found {len(units)} units")
                     continue
@@ -262,8 +269,8 @@ class InnoFtXlsxParser:
         if len(row_data) < 2:
             return
         
-        partid = row_data[0]
-        soft_bin = row_data[1] if row_data[1] else '0'
+        partid = row_data[1] if len(row_data) > 1 else ''
+        soft_bin = row_data[2] if len(row_data) > 2 else '0'
         
         # Extract numeric part of bin
         bin_numeric = re.sub(r'\D', '', soft_bin)
@@ -284,7 +291,7 @@ class InnoFtXlsxParser:
         })
         
         # Parse test results aligned to test_names
-        for result_val in row_data[2:len(test_names) + 2]:
+        for result_val in row_data[3:len(test_names) + 3]:
             cleaned = self._clean_cell(result_val)
             # Remove common markers like 'Over', 'undef'
             cleaned = re.sub(r'(Over|undef)', '', cleaned, flags=re.IGNORECASE)
@@ -351,6 +358,11 @@ class InnoFtXlsxParser:
             test.units = unit.strip() if unit else ''
             test.LSL = lsl
             test.HSL = hsl
+            test.LPL = lsl
+            test.HPL = hsl
             
             model.add('tests', test)
             wafer.add('tests', test)
+
+
+

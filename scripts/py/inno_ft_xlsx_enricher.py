@@ -11,7 +11,7 @@ DESCRIPTION
     database logging via PPLogger.
 
 AUTHOR
-    kiro@onsemi.com
+    junifferallan.garcia@onsemi.com
 
 CHANGES
     2026-Jul-02 - Initial implementation
@@ -388,9 +388,10 @@ def main():
         }
 
         writer = Writer(**wr_kwargs)
-        writer.open()
 
         # Instantiate IFF formatter and write data
+        # Note: writer.open() is NOT called here — print_par_inno_ft and
+        # print_limit each manage their own open/close per output file.
         iff_args = {
             'writer': writer,
             'model': model
@@ -399,13 +400,11 @@ def main():
         iff.data_items = ['partid', 'site', 'soft_bin', 'hard_bin', 'bindesc']
         iff.test_items = ['number', 'name', 'units']
         iff.bin_items = ['number', 'name', 'PF', 'count']
-        iff.print_par_per_wafer_number()
+        iff.print_par_inno_ft()
         iff.print_limit()
 
-        writer.close()
-
-        pplogger.set_limit_file(writer.openedfile)
-        Log.INFO(f"IFF output written to {writer.openedfile}")
+        pplogger.set_limit_file(model.limit.limit_file)
+        Log.INFO(f"IFF output written successfully")
 
     except Exception as e:
         Log.ERROR(f"Failed to write IFF output: {e}")
