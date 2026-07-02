@@ -391,9 +391,16 @@ def main():
         writer.open()
 
         # Instantiate IFF formatter and write data
-        iff = IFF(writer=writer)
-        iff.print_par_per_wafer_number(model)
-        iff.print_limit(model)
+        iff_args = {
+            'writer': writer,
+            'model': model
+        }
+        iff = IFF(iff_args)
+        iff.data_items = ['partid', 'site', 'soft_bin', 'hard_bin', 'bindesc']
+        iff.test_items = ['number', 'name', 'units']
+        iff.bin_items = ['number', 'name', 'PF', 'count']
+        iff.print_par_per_wafer_number()
+        iff.print_limit()
 
         writer.close()
 
