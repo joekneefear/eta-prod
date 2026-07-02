@@ -1,0 +1,197 @@
+# INNO Final Test XLSX Enrichment Configuration
+#
+# Site-keyed mapping rules for InnoFtXlsxEnricher.
+# Supported rule types: constant, field, refdb, composite
+# Supported transforms: regex_replace, format, slice, fallback
+
+# INNO site-specific block — used when LotID matches "INNO"
+INNO_DEFAULT:
+  match_fab: ["INNO"]
+  env: "inno_ft_xlsx"
+  fields:
+    AlternateProduct:
+      type: refdb
+      source: alternateProduct
+      target: ALTERNATE_PRODUCT
+      fallback:
+        type: field
+        source: Product
+        target: ALTERNATE_PRODUCT
+
+    EndTime:
+      type: field
+      source: TestDate
+      regex_replace: ["(\\d{1,2})/(\\d{1,2})/(\\d{4})", "\\3/\\1/\\2"]
+      target: END_TIME
+
+    Fab:
+      type: refdb
+      source: fab
+      target: FAB
+      fallback:
+        type: constant
+        value: "NA"
+        target: FAB
+
+    LotId:
+      type: field
+      source: LotID
+      target: LOT
+
+    MeasuringEquipment:
+      type: field
+      source: TesterId
+      target: MEASURING_EQUIPMENT
+
+    ProcessingStep:
+      type: constant
+      value: "FT"
+      target: PROCESSING_STEP
+
+    Product:
+      type: refdb
+      source: product
+      target: PRODUCT
+      fallback:
+        type: field
+        source: Device Name
+        target: PRODUCT
+
+    Recipe:
+      type: field
+      source: Program
+      target: RECIPE
+
+    RecipeRevision:
+      type: field
+      source: Program
+      regex_replace: [".*_R(\\d+)_.*", "\\1"]
+      target: RECIPE_REVISION
+
+    SourceLot:
+      type: refdb
+      source: sourceLot
+      format: "{0}.S"
+      target: SOURCE_LOT
+      fallback:
+        type: field
+        source: LotID
+        regex_replace: ["(\\.[^.]*)?$", ".S"]
+        target: SOURCE_LOT
+
+    StartTime:
+      type: field
+      source: TestDate
+      regex_replace: ["(\\d{1,2})/(\\d{1,2})/(\\d{4})", "\\3/\\1/\\2"]
+      target: START_TIME
+
+    WaferId:
+      type: field
+      source: WaferModle
+      target: SCRIBE_ID
+
+    SubconLotId:
+      type: field
+      source: Sub LotID
+      target: SUBCON_LOT
+
+    Operator:
+      type: field
+      source: Operator ID
+      target: OPERATOR
+
+
+# DEFAULT block — pass-through baseline (no match_fab, used as fallback for any site)
+DEFAULT:
+  env: "inno_ft_xlsx"
+  fields:
+    AlternateProduct:
+      type: refdb
+      source: alternateProduct
+      target: ALTERNATE_PRODUCT
+      fallback:
+        type: field
+        source: Product
+        target: ALTERNATE_PRODUCT
+
+    EndTime:
+      type: field
+      source: TestDate
+      regex_replace: ["(\\d{1,2})/(\\d{1,2})/(\\d{4})", "\\3/\\1/\\2"]
+      target: END_TIME
+
+    Fab:
+      type: refdb
+      source: fab
+      target: FAB
+      fallback:
+        type: constant
+        value: "NA"
+        target: FAB
+
+    LotId:
+      type: field
+      source: LotID
+      target: LOT
+
+    MeasuringEquipment:
+      type: field
+      source: TesterId
+      target: MEASURING_EQUIPMENT
+
+    ProcessingStep:
+      type: constant
+      value: "FT"
+      target: PROCESSING_STEP
+
+    Product:
+      type: refdb
+      source: product
+      target: PRODUCT
+      fallback:
+        type: field
+        source: Device Name
+        target: PRODUCT
+
+    Recipe:
+      type: field
+      source: Program
+      target: RECIPE
+
+    RecipeRevision:
+      type: field
+      source: Program
+      regex_replace: [".*_R(\\d+)_.*", "\\1"]
+      target: RECIPE_REVISION
+
+    SourceLot:
+      type: refdb
+      source: sourceLot
+      format: "{0}.S"
+      target: SOURCE_LOT
+      fallback:
+        type: field
+        source: LotID
+        regex_replace: ["(\\.[^.]*)?$", ".S"]
+        target: SOURCE_LOT
+
+    StartTime:
+      type: field
+      source: TestDate
+      regex_replace: ["(\\d{1,2})/(\\d{1,2})/(\\d{4})", "\\3/\\1/\\2"]
+      target: START_TIME
+
+    WaferId:
+      type: field
+      source: WaferModle
+      target: SCRIBE_ID
+
+    SubconLotId:
+      type: field
+      source: Sub LotID
+      target: SUBCON_LOT
+
+    Operator:
+      type: field
+      source: Operator ID
+      target: OPERATOR
