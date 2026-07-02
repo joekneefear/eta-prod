@@ -825,31 +825,40 @@ class IFF(Base):
 
     def _format_die_line_inno_ft(self, die):
         """
-        Format a single die as one flat comma-separated line for INNO FT output.
+        Format a single die for INNO FT output with metadata on separate lines.
 
-        Layout: partid,site,soft_bin,hard_bin,bindesc,result1,result2,...
-
-        This differs from the generic _format_die_line which uses KEY=value
-        newline-separated fields.  INNO FT needs a compact CSV row so the
-        downstream parser can split on commas to recover individual test results.
+        Format:
+        SITE=1
+        PARTID=1
+        TOUCHDOWN_NUM=-1
+        ECID=1
+        HARD_BIN=1
+        SOFT_BIN=1
+        BINDESC=SWBin_001
+        result1,result2,result3,...
         """
-        fields = []
-        if 'partid' in self.data_items:
-            fields.append(str(Util.rep_na(die.partid)))
+        lines = []
+        
         if 'site' in self.data_items:
-            fields.append(str(Util.rep_na(die.site)))
-        if 'soft_bin' in self.data_items:
-            fields.append(str(Util.rep_na(die.soft_bin)))
+            lines.append(f"SITE={Util.rep_na(die.site)}")
+        if 'partid' in self.data_items:
+            lines.append(f"PARTID={Util.rep_na(die.partid)}")
+        if 'touchdown_num' in self.data_items:
+            lines.append(f"TOUCHDOWN_NUM={Util.rep_na(die.touchdown_num)}")
+        if 'ecid' in self.data_items:
+            lines.append(f"ECID={Util.rep_na(die.ecid)}")
         if 'hard_bin' in self.data_items:
-            fields.append(str(Util.rep_na(die.hard_bin)))
+            lines.append(f"HARD_BIN={Util.rep_na(die.hard_bin)}")
+        if 'soft_bin' in self.data_items:
+            lines.append(f"SOFT_BIN={Util.rep_na(die.soft_bin)}")
         if 'bindesc' in self.data_items:
-            fields.append(str(Util.rep_na(die.bindesc)))
+            lines.append(f"BINDESC={Util.rep_na(die.bindesc)}")
 
-        # Append all test results separated by commas on the same line
+        # Append all test results as comma-separated values on the last line
         die_result = getattr(die, 'result', [])
-        fields.extend(str(Util.rep_na(v)) for v in die_result)
+        lines.append(",".join(str(Util.rep_na(v)) for v in die_result))
 
-        return ",".join(fields)
+        return "\n".join(lines)
 
     def _dies_to_string_inno_ft(self, dies):
         """

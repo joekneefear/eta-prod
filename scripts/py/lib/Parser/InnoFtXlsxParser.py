@@ -106,7 +106,12 @@ class InnoFtXlsxParser:
         })
         
         # Initialize wafer (wafer number 0 for discrete device testing)
-        wafer = Wafer({'number': 0})
+        # Set START_TIME and END_TIME to None initially (will be set by enricher)
+        wafer = Wafer({
+            'number': 0,
+            'START_TIME': None,
+            'END_TIME': None
+        })
         model.add('wafers', wafer)
         
         # Parse Excel file
@@ -190,36 +195,36 @@ class InnoFtXlsxParser:
                 # Debug: log col_a to see what we're trying to match
                 self.logger.DEBUG(f"Processing row with col_a='{col_a}', data_flag={data_flag}")
                 
-                # Test# row: col_a='Test#', col_b='Test Parameter', col_c+ = test names
-                # e.g. | Test# | Test Parameter | Vth_HT | Igss_HT | Ron_HT | ...
-                if self._PATTERNS['test_num_row'].match(col_a):
-                    test_names = [self._clean_cell(c) for c in row_data[2:] if c]
+                # Test# row: Structure is blank/Test#/blank/T1/T2/T3...
+                # Test names start from column D (index 3) because of blank column C
+                if col_b and self._PATTERNS['test_num_row'].match(col_b):
+                    test_names = [self._clean_cell(c) for c in row_data[3:] if c]
+                    test_names = [t for t in test_names if t and not self._PATTERNS['whitespace'].match(t)]
+                    self.logger.INFO(f"Found {len(test_names)} test IDs: {test_names}")
+                    continue
+
+                # Test Parameter row: blank/Test Parameter/blank/Vth_HT/Igss_HT...
+                if col_b and self._PATTERNS['test_param'].match(col_b):
+                    test_names = [self._clean_cell(c) for c in row_data[3:] if c]
                     test_names = [t for t in test_names if t and not self._PATTERNS['whitespace'].match(t)]
                     self.logger.INFO(f"Found {len(test_names)} test names: {test_names}")
                     continue
-
-                # Fallback: plain 'Test Parameter' label in col_a or col_b (no Test# prefix)
-                if col_b and self._PATTERNS['test_param'].match(col_b) and False or \
-                    test_names = [self._clean_cell(c) for c in row_data[2:] if c]
-                    test_names = [t for t in test_names if t and not self._PATTERNS['whitespace'].match(t)]
-                    self.logger.INFO(f"Found {len(test_names)} test names")
-                    continue
                 
-                # LL (Low Limit) row
+                # LL (Low Limit) row: blank/LL/blank/1/-10000/120...
                 if col_b and self._PATTERNS['ll_limit'].match(col_b):
-                    lo_limits = [self._clean_cell(c) for c in row_data[2:]]
+                    lo_limits = [self._clean_cell(c) for c in row_data[3:]]
                     self.logger.INFO(f"Found {len(lo_limits)} low limits")
                     continue
                 
-                # HL (High Limit) row
+                # HL (High Limit) row: blank/HL/blank/3.5/508000/220...
                 if col_b and self._PATTERNS['hl_limit'].match(col_b):
-                    hi_limits = [self._clean_cell(c) for c in row_data[2:]]
+                    hi_limits = [self._clean_cell(c) for c in row_data[3:]]
                     self.logger.INFO(f"Found {len(hi_limits)} high limits")
                     continue
                 
-                # Unit row
+                # Unit row: blank/Unit/blank/V/nA/mohm...
                 if col_b and self._PATTERNS['unit_row'].match(col_b):
-                    units = [self._clean_cell(c) for c in row_data[2:]]
+                    units = [self._clean_cell(c) for c in row_data[3:]]
                     self.logger.INFO(f"Found {len(units)} units")
                     continue
                 
@@ -233,8 +238,11 @@ class InnoFtXlsxParser:
         # Set LOT from raw_header
         header.LOT = raw_header.get('LotID', 'NA')
         
-        # Create Test objects
-        self._create_tests(model, wafer, test_names, lo_limits, hi_limits, units)
+        # Create Test objects only if test_names were found
+        if test_names:
+            self._create_tests(model, wafer, test_names, lo_limits, hi_limits, units)
+        else:
+            self.logger.WARN("No test names found - skipping test creation")
     
     def _clean_cell(self, value: Any) -> str:
         """
@@ -256,10 +264,14 @@ class InnoFtXlsxParser:
         """
         Parse one data row into a Die object.
         
-        Column mapping:
-          col[0] = numeric part index (Die index)
-          col[1] = BIN (soft bin and hard bin)
-          col[2+] = test results aligned to test_names
+        Column mapping for INNO FT Excel data rows:
+          col[0] = die index (No: 1, 2, 3...)
+          col[1] = BIN value (1, 1, 1...)
+          col[2] onwards = test results aligned to test_names
+        
+        Note: Data rows have different structure than header rows.
+        Header rows: blank | label | blank | data...
+        Data rows: No | BIN | data... (no blank column before data)
         
         Args:
             row_data: Cleaned row data
@@ -269,16 +281,19 @@ class InnoFtXlsxParser:
         if len(row_data) < 2:
             return
         
-        partid = row_data[1] if len(row_data) > 1 else ''
-        soft_bin = row_data[2] if len(row_data) > 2 else '0'
+        die_index = row_data[0] if row_data else '0'
+        soft_bin = row_data[1] if len(row_data) > 1 else '0'
         
         # Extract numeric part of bin
         bin_numeric = re.sub(r'\D', '', soft_bin)
         if not bin_numeric:
-            bin_numeric = soft_bin
+            bin_numeric = '0'
         
         # Determine pass/fail
         pass_fail = 'P' if bin_numeric == '1' else 'F'
+        
+        # Use die_index as partid
+        partid = die_index
         
         die = Die({
             'partid': partid,
@@ -290,13 +305,18 @@ class InnoFtXlsxParser:
             'ecid': partid,
         })
         
-        # Parse test results aligned to test_names
-        for result_val in row_data[3:len(test_names) + 3]:
-            cleaned = self._clean_cell(result_val)
-            # Remove common markers like 'Over', 'undef'
-            cleaned = re.sub(r'(Over|undef)', '', cleaned, flags=re.IGNORECASE)
-            cleaned = cleaned.strip()
-            die.add('result', Util.rep_na(cleaned))
+        # Parse test results starting from column C (index 2) - data rows don't have blank column
+        for i in range(len(test_names)):
+            col_idx = 2 + i
+            if col_idx < len(row_data):
+                result_val = row_data[col_idx]
+                cleaned = self._clean_cell(result_val)
+                # Remove common markers like 'Over', 'undef'
+                cleaned = re.sub(r'(Over|undef)', '', cleaned, flags=re.IGNORECASE)
+                cleaned = cleaned.strip()
+                die.add('result', Util.rep_na(cleaned))
+            else:
+                die.add('result', 'NA')
         
         wafer.add('dies', die)
         
@@ -352,14 +372,20 @@ class InnoFtXlsxParser:
             hsl = hi_limits[i] if i < len(hi_limits) else ''
             unit = units[i] if i < len(units) else ''
             
-            test = Test()
-            test.number = i + 1
-            test.name = name
-            test.units = unit.strip() if unit else ''
-            test.LSL = lsl
-            test.HSL = hsl
-            test.LPL = lsl
-            test.HPL = hsl
+            # Create Test object with dictionary initialization (like Qorvo)
+            test = Test({
+                'number': i + 1,
+                'name': name,
+                'units': unit.strip() if unit else '',
+                'LPL': lsl,
+                'HPL': hsl,
+                'LSL': lsl,
+                'HSL': hsl,
+                'LOL': '',
+                'HOL': '',
+                'LWL': '',
+                'HWL': ''
+            })
             
             model.add('tests', test)
             wafer.add('tests', test)

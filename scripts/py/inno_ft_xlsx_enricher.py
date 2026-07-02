@@ -361,6 +361,12 @@ def main():
     if not program or program == "NA":
         program = f"{model.header.PRODUCT}_{model.header.RECIPE_REVISION}" if hasattr(model.header, 'RECIPE_REVISION') else model.header.PRODUCT
     model.header.PROGRAM = program
+    
+    # Set START_TIME and END_TIME on wafer from header (required for print_par grouping)
+    if model.wafers:
+        for wafer in model.wafers:
+            wafer.START_TIME = model.header.START_TIME if hasattr(model.header, 'START_TIME') else None
+            wafer.END_TIME = model.header.END_TIME if hasattr(model.header, 'END_TIME') else None
 
     Log.DEBUG(f"Set AREA=FT, PROGRAM_CLASS=2, PROGRAM={program}")
 
@@ -373,9 +379,9 @@ def main():
         fname, fext = os.path.splitext(base_file)
         if fext == '.gz':
             fname, fext = os.path.splitext(fname)
-            fext = fext.lstrip(".") + '.gz'
+            fext = 'iff.gz'
         else:
-            fext = fext.lstrip(".")
+            fext = 'iff'
 
         wr_kwargs = {
             'outdir': out_dir,
@@ -390,17 +396,15 @@ def main():
         writer = Writer(**wr_kwargs)
 
         # Instantiate IFF formatter and write data
-        # Note: writer.open() is NOT called here — print_par_inno_ft and
-        # print_limit each manage their own open/close per output file.
         iff_args = {
             'writer': writer,
             'model': model
         }
         iff = IFF(iff_args)
-        iff.data_items = ['partid', 'site', 'soft_bin', 'hard_bin', 'bindesc']
+        iff.data_items = ['site', 'partid', 'touchdown_num', 'ecid', 'hard_bin', 'soft_bin', 'bindesc']
         iff.test_items = ['number', 'name', 'units']
         iff.bin_items = ['number', 'name', 'PF', 'count']
-        iff.print_par_inno_ft()
+        iff.print_par()
         iff.print_limit()
 
         pplogger.set_limit_file(model.limit.limit_file)
