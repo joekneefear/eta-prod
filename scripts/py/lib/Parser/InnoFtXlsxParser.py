@@ -285,7 +285,7 @@ class InnoFtXlsxParser:
 
                     test = Test({
                         'number': test_num,
-                        'name': name,
+                        'name': f"{test_num}_{name}",
                         'units': unit.strip() if unit else '',
                         'LPL': lsl,
                         'HPL': hsl,
