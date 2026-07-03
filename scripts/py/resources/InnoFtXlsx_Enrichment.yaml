@@ -1,27 +1,23 @@
 # INNO Final Test XLSX Enrichment Configuration
 #
 # Site-keyed mapping rules for InnoFtXlsxEnricher.
-# Supported rule types: constant, field, refdb, composite
-# Supported transforms: regex_replace, format, slice, fallback
+# Supported rule types: constant, field, refdb
+# Supported transforms: regex_replace, format, slice, normalize_date, fallback
 
-# INNO site-specific block — used when LotID matches "INNO"
-INNO_DEFAULT:
-  match_fab: ["INNO"]
+# INNOBE site-specific block — used when --site INNOBE is passed via CLI
+INNOBE:
+  match_fab: ["INNOBE"]
   env: "inno_ft_xlsx"
   fields:
     AlternateProduct:
-      type: refdb
-      source: alternateProduct
+      type: field
+      source: Product
       target: ALTERNATE_PRODUCT
-      fallback:
-        type: field
-        source: Product
-        target: ALTERNATE_PRODUCT
 
     EndTime:
       type: field
       source: TestDate
-      regex_replace: ["(\\d{1,2})/(\\d{1,2})/(\\d{4})", "\\3/\\1/\\2"]
+      normalize_date: true
       target: END_TIME
 
     Fab:
@@ -30,8 +26,13 @@ INNO_DEFAULT:
       target: FAB
       fallback:
         type: constant
-        value: "NA"
+        value: "INNOBE:INNOSCIENCE BEBUYCVN"
         target: FAB
+
+    Handler:
+      type: field
+      source: Handler
+      target: HANDLER
 
     LotId:
       type: field
@@ -48,14 +49,20 @@ INNO_DEFAULT:
       value: "FT"
       target: PROCESSING_STEP
 
+    TestFacility:
+      type: constant
+      value: "INNOBE:INNOSCIENCE BEBUYCVN"
+      target: TEST_FACILITY
+
     Product:
-      type: refdb
-      source: product
+      type: field
+      source: Device Name
       target: PRODUCT
-      fallback:
-        type: field
-        source: Device Name
-        target: PRODUCT
+
+    Program:
+      type: field
+      source: Program
+      target: PROGRAM
 
     Recipe:
       type: field
@@ -67,6 +74,17 @@ INNO_DEFAULT:
       source: Program
       regex_replace: [".*_R(\\d+)_.*", "\\1"]
       target: RECIPE_REVISION
+
+    TesterSoftware:
+      type: field
+      source: Program
+      target: TESTER_SOFTWARE
+
+    TesterSoftwareVersion:
+      type: field
+      source: Program
+      regex_replace: [".*_R(\\d+)_.*", "\\1"]
+      target: TESTER_SOFTWARE_VERSION
 
     SourceLot:
       type: refdb
@@ -82,7 +100,7 @@ INNO_DEFAULT:
     StartTime:
       type: field
       source: TestDate
-      regex_replace: ["(\\d{1,2})/(\\d{1,2})/(\\d{4})", "\\3/\\1/\\2"]
+      normalize_date: true
       target: START_TIME
 
     WaferId:
@@ -106,18 +124,14 @@ DEFAULT:
   env: "inno_ft_xlsx"
   fields:
     AlternateProduct:
-      type: refdb
-      source: alternateProduct
+      type: field
+      source: Product
       target: ALTERNATE_PRODUCT
-      fallback:
-        type: field
-        source: Product
-        target: ALTERNATE_PRODUCT
 
     EndTime:
       type: field
       source: TestDate
-      regex_replace: ["(\\d{1,2})/(\\d{1,2})/(\\d{4})", "\\3/\\1/\\2"]
+      normalize_date: true
       target: END_TIME
 
     Fab:
@@ -128,6 +142,11 @@ DEFAULT:
         type: constant
         value: "NA"
         target: FAB
+
+    Handler:
+      type: field
+      source: Handler
+      target: HANDLER
 
     LotId:
       type: field
@@ -144,14 +163,20 @@ DEFAULT:
       value: "FT"
       target: PROCESSING_STEP
 
+    TestFacility:
+      type: constant
+      value: "INNOBE:INNOSCIENCE BEBUYCVN"
+      target: TEST_FACILITY
+
     Product:
-      type: refdb
-      source: product
+      type: field
+      source: Device Name
       target: PRODUCT
-      fallback:
-        type: field
-        source: Device Name
-        target: PRODUCT
+
+    Program:
+      type: field
+      source: Program
+      target: PROGRAM
 
     Recipe:
       type: field
@@ -163,6 +188,17 @@ DEFAULT:
       source: Program
       regex_replace: [".*_R(\\d+)_.*", "\\1"]
       target: RECIPE_REVISION
+
+    TesterSoftware:
+      type: field
+      source: Program
+      target: TESTER_SOFTWARE
+
+    TesterSoftwareVersion:
+      type: field
+      source: Program
+      regex_replace: [".*_R(\\d+)_.*", "\\1"]
+      target: TESTER_SOFTWARE_VERSION
 
     SourceLot:
       type: refdb
@@ -178,7 +214,7 @@ DEFAULT:
     StartTime:
       type: field
       source: TestDate
-      regex_replace: ["(\\d{1,2})/(\\d{1,2})/(\\d{4})", "\\3/\\1/\\2"]
+      normalize_date: true
       target: START_TIME
 
     WaferId:

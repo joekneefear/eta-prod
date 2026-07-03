@@ -356,19 +356,13 @@ def main():
     model.header.AREA = "FT"
     model.header.PROGRAM_CLASS = 2
     
-    # Build PROGRAM name from RECIPE and RECIPE_REVISION if available
-    program = model.header.RECIPE if hasattr(model.header, 'RECIPE') else "NA"
-    if not program or program == "NA":
-        program = f"{model.header.PRODUCT}_{model.header.RECIPE_REVISION}" if hasattr(model.header, 'RECIPE_REVISION') else model.header.PRODUCT
-    model.header.PROGRAM = program
-    
     # Set START_TIME and END_TIME on wafer from header (required for print_par grouping)
     if model.wafers:
         for wafer in model.wafers:
             wafer.START_TIME = model.header.START_TIME if hasattr(model.header, 'START_TIME') else None
             wafer.END_TIME = model.header.END_TIME if hasattr(model.header, 'END_TIME') else None
 
-    Log.DEBUG(f"Set AREA=FT, PROGRAM_CLASS=2, PROGRAM={program}")
+    Log.DEBUG(f"Set AREA=FT, PROGRAM_CLASS=2")
 
     # 11. Build limits and prepare output
     model.build_limit()
@@ -379,9 +373,9 @@ def main():
         fname, fext = os.path.splitext(base_file)
         if fext == '.gz':
             fname, fext = os.path.splitext(fname)
-            fext = 'iff.gz'
+            fext = 'xlsx.iff.gz'
         else:
-            fext = 'iff'
+            fext = 'xlsx.iff'
 
         wr_kwargs = {
             'outdir': out_dir,

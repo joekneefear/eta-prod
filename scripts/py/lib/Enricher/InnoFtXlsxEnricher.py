@@ -19,6 +19,7 @@ LICENSE
 
 import re
 from lib.Log import Log
+from lib.Util import Util
 
 
 class InnoFtXlsxEnricher:
@@ -35,11 +36,16 @@ class InnoFtXlsxEnricher:
         'EndTime': 'END_TIME',
         'Fab': 'FAB',
         'LotId': 'LOT',
+        'Handler': 'HANDLER',
         'MeasuringEquipment': 'MEASURING_EQUIPMENT',
         'ProcessingStep': 'PROCESSING_STEP',
         'Product': 'PRODUCT',
+        'Program': 'PROGRAM',
+        'TestFacility': 'TEST_FACILITY',
         'Recipe': 'RECIPE',
         'RecipeRevision': 'RECIPE_REVISION',
+        'TesterSoftware': 'TESTER_SOFTWARE',
+        'TesterSoftwareVersion': 'TESTER_SOFTWARE_VERSION',
         'SourceLot': 'SOURCE_LOT',
         'StartTime': 'START_TIME',
         'WaferId': 'SCRIBE_ID',
@@ -208,6 +214,8 @@ class InnoFtXlsxEnricher:
         
         elif rtype == 'refdb':
             # Read from lot_metadata dict
+            if not self.lot_metadata:
+                Log.WARN(f"RefDB lookup for '{source}' skipped: lot_metadata is empty (no RefDB call made or no data returned)")
             val = self._find_in_metadata(self.lot_metadata, source)
             if val is not None:
                 val = str(val).strip()
@@ -255,6 +263,13 @@ class InnoFtXlsxEnricher:
             if 'slice' in rule:
                 s = rule['slice']
                 val = str(val)[s[0]:s[1]]
+
+            # Normalize date fields to YYYY/MM/DD HH:MM:SS
+            if rule.get('normalize_date'):
+                try:
+                    val = Util.convert_date_format_to_yyyymmdd_hms(val)
+                except Exception as e:
+                    Log.WARN(f"Date normalization failed for '{val}': {e}")
         
         return {'value': val, 'source': meta_source}
     

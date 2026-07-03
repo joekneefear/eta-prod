@@ -12,7 +12,7 @@ AUTHOR
     junifferallan.garcia@onsemi.com
 
 CHANGES
-    2026-Jul-02 - Initial Python implementation
+    2026-Jul-02 - Initial implementation
     2026-Jul-03 - Fixed test result alignment and parsing logic to handle test headers
                   appearing before the "No" data marker
 
@@ -108,9 +108,9 @@ class InnoFtXlsxParser:
             'dataSource': 'INNO_FT_XLSX'
         })
 
-        # Initialize wafer (wafer number 0 for discrete device testing)
+        # Initialize wafer (wafer number NA for discrete device testing)
         wafer = Wafer({
-            'number': 0,
+            'number': 'NA',
             'START_TIME': None,
             'END_TIME': None
         })
@@ -119,10 +119,9 @@ class InnoFtXlsxParser:
         # Parse Excel file
         self._parse_excel_file(infile, model, wafer, header)
 
-        # Log parsed metadata
+        # Log parsed metadata (PRODUCT/RECIPE_REVISION/FAB resolved later by enricher)
         self.logger.INFO(
-            f"LOT={header.LOT}--DEVICE={header.PRODUCT}--PROGRAM={header.RECIPE}--"
-            f"RECIPE_REVISION={header.RECIPE_REVISION}--TIME={header.START_TIME}"
+            f"LOT={header.LOT}--PROGRAM={header.RECIPE}--TIME={header.START_TIME}"
         )
 
         self.logger.INFO(
@@ -256,8 +255,21 @@ class InnoFtXlsxParser:
                 self._parse_die_data(row_data, wafer, test_names)
         
         # Set metadata
+        # NOTE: PRODUCT, RECIPE_REVISION, and FAB are intentionally NOT set here.
+        # They are resolved by InnoFtXlsxEnricher from the YAML mapping:
+        #   - PRODUCT: from raw_header["Device Name"] (via enricher/YAML)
+        #   - RECIPE_REVISION: from Program via regex .*_R(\d+)_.*
+        #   - FAB: from RefDB.fab, fallback to "NA"
         header._raw = raw_header
         header.LOT = raw_header.get('LotID', 'NA')
+        header.RECIPE = raw_header.get('Program', 'NA')
+        header.TESTER_ID = raw_header.get('TesterId', 'NA')
+        # TESTER_SOFTWARE mirrors RECIPE; version is left for enricher to set via RECIPE_REVISION
+        header.TESTER_SOFTWARE = header.RECIPE
+
+        # Set wafer.name from WaferModle so IFF outputs WAFER_ID=<wafer_module_value>
+        # WAFER_NUMBER stays 0 (discrete/FT device, no physical wafer number)
+        wafer.name = raw_header.get('WaferModle', None)
         
         # Create Test objects
         if test_names:
