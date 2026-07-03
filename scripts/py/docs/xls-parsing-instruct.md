@@ -1,0 +1,6 @@
+Column A: Row numbers (1, 2, 3...)
+Column B: Labels (Test#, Test Parameter, LL, HL, Unit, BIN)
+Column C: T1, Vth_HT, 1, 3.5, V (first test data)
+Column D: T2, Igss_HT, -10000, 508000, nA (second test data)
+Column E: T3, Ron_HT, 120, 220, mohm (third test data)
+Column F: T4, Idss_HT, -1000, 55000, nA (fourth test data)

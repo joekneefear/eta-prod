@@ -13,8 +13,8 @@ AUTHOR
 
 CHANGES
     2026-Jul-02 - Initial Python implementation
-    2026-Jul-03 - Fixed test result alignment by not filtering test names in header rows
-                  and creating Test objects only for non-empty names after parsing.
+    2026-Jul-03 - Fixed test result alignment and parsing logic to handle test headers
+                  appearing before the "No" data marker
 
 LICENSE
     (C) onsemi 2026 All rights reserved.
@@ -41,7 +41,8 @@ class InnoFtXlsxParser:
 
     Parses xlsx files with:
     - Header block: key-value pairs (label in col A, value in col B or C)
-    - Test table: test names, limits (LL/HL), units, and die data rows
+    - Test headers: test names, limits (LL/HL), units (BEFORE "No" marker)
+    - Die data rows (AFTER "No" marker)
 
     Outputs a Model with:
     - model.header: Metadata with parsed fields (raw_header stored as _raw attr)
@@ -58,7 +59,7 @@ class InnoFtXlsxParser:
         'hl_limit': re.compile(r'^HL$', re.IGNORECASE),
         'unit_row': re.compile(r'^Unit$', re.IGNORECASE),
         'test_table_marker': re.compile(r'^No$', re.IGNORECASE),
-        'test_num_row': re.compile(r'^Test#$', re.IGNORECASE),
+        'test_num_row': re.compile(r'Test\s*#', re.IGNORECASE),
         'whitespace': re.compile(r'^\s*$'),
     }
 
@@ -108,7 +109,6 @@ class InnoFtXlsxParser:
         })
 
         # Initialize wafer (wafer number 0 for discrete device testing)
-        # Set START_TIME and END_TIME to None initially (will be set by enricher)
         wafer = Wafer({
             'number': 0,
             'START_TIME': None,
@@ -135,7 +135,10 @@ class InnoFtXlsxParser:
     def _parse_excel_file(self, infile: str, model: Model, wafer: Wafer,
                           header: Metadata) -> None:
         """
-        Parse Excel file and populate model, wafer, and header.
+        Parse Excel file using three-phase approach:
+        1. Find "No" marker and parse metadata headers
+        2. Parse test headers (rows before "No" marker)
+        3. Parse die data (rows after "No" marker)
 
         Args:
             infile: Path to Excel file
@@ -151,6 +154,9 @@ class InnoFtXlsxParser:
             self.logger.ERROR(error_msg)
             Util.dp_exit(1, pplogger=self.pplogger, error=error_msg)
 
+        # Convert all rows to list for indexed access
+        all_rows = list(worksheet.iter_rows(values_only=True))
+        
         # Parse state
         raw_header: Dict[str, str] = {}
         test_names: List[str] = []
@@ -158,88 +164,102 @@ class InnoFtXlsxParser:
         lo_limits: List[str] = []
         hi_limits: List[str] = []
         units: List[str] = []
-        data_flag = False
-
-        rows = list(worksheet.iter_rows(values_only=True))
-
-        for row_idx, row in enumerate(rows):
-            # Skip empty rows
-            if not row or not row[0]:
+        
+        # PHASE 1: Find the "No" marker and parse metadata
+        test_start_row = None
+        for row_idx, row in enumerate(all_rows):
+            if not row:
                 continue
-
-            # Clean row data
+                
+            col_a = self._clean_cell(row[0]) if row else ''
+            
+            # Check for "No" marker in column A
+            if col_a and self._PATTERNS['test_table_marker'].match(col_a):
+                self.logger.INFO(f"Found 'No' marker at row {row_idx + 1}")
+                test_start_row = row_idx
+                break
+                
+            # Parse known header fields (column A has label)
+            if col_a in self._HEADER_LABELS:
+                col_b = self._clean_cell(row[1]) if len(row) > 1 else ''
+                col_c = self._clean_cell(row[2]) if len(row) > 2 else ''
+                value = col_c if col_c else col_b
+                value = Util.trim(value) if value else 'NA'
+                if self._PATTERNS['whitespace'].match(str(value)):
+                    value = 'NA'
+                raw_header[col_a] = value
+                self.logger.INFO(f"Parsed header: {col_a}={value}")
+        
+        if test_start_row is None:
+            self.logger.WARN("No 'No' marker found - cannot parse test data")
+            header._raw = raw_header
+            header.LOT = raw_header.get('LotID', 'NA')
+            return
+        
+        # PHASE 2: Parse test headers (look backwards from "No" marker)
+        # Test headers should be in the rows immediately before the "No" marker
+        search_start = max(0, test_start_row - 10)
+        for row_idx in range(search_start, test_start_row):
+            row = all_rows[row_idx]
+            if not row or len(row) < 2:
+                continue
+                
+            col_a = self._clean_cell(row[0])
+            col_b = self._clean_cell(row[1])
+            
+            # Skip metadata header rows
+            if col_a in self._HEADER_LABELS:
+                continue
+            
+            # Look for test headers in column B
+            # Test# row - data starts at column C (index 2)
+            if col_b and self._PATTERNS['test_num_row'].match(col_b):
+                test_numbers = [self._clean_cell(c) for c in row[2:]]
+                self.logger.INFO(f"Found Test# row at {row_idx + 1}: {test_numbers}")
+                continue
+            
+            # Test Parameter row - data starts at column C (index 2)
+            if col_b and self._PATTERNS['test_param'].match(col_b):
+                test_names = [self._clean_cell(c) for c in row[2:]]
+                self.logger.INFO(f"Found Test Parameter row at {row_idx + 1}: {test_names}")
+                continue
+            
+            # LL row - data starts at column C (index 2)
+            if col_b and self._PATTERNS['ll_limit'].match(col_b):
+                lo_limits = [self._clean_cell(c) for c in row[2:]]
+                self.logger.INFO(f"Found LL row at {row_idx + 1}: {lo_limits}")
+                continue
+            
+            # HL row - data starts at column C (index 2)
+            if col_b and self._PATTERNS['hl_limit'].match(col_b):
+                hi_limits = [self._clean_cell(c) for c in row[2:]]
+                self.logger.INFO(f"Found HL row at {row_idx + 1}: {hi_limits}")
+                continue
+            
+            # Unit row - data starts at column C (index 2)
+            if col_b and self._PATTERNS['unit_row'].match(col_b):
+                units = [self._clean_cell(c) for c in row[2:]]
+                self.logger.INFO(f"Found Unit row at {row_idx + 1}: {units}")
+                continue
+        
+        # PHASE 3: Parse die data (rows after "No" marker)
+        for row_idx in range(test_start_row + 1, len(all_rows)):
+            row = all_rows[row_idx]
+            if not row:
+                continue
+            
             row_data = [self._clean_cell(cell) for cell in row]
             col_a = row_data[0] if row_data else ''
-            col_b = row_data[1] if len(row_data) > 1 else ''
-            col_c = row_data[2] if len(row_data) > 2 else ''
-
-            # Check for test table start marker
-            if self._PATTERNS['test_table_marker'].match(col_a):
-                self.logger.INFO(f"Found test table marker at row {row_idx + 1}: {col_a}")
-                data_flag = True
-                continue
-
-            # Parse header block (before test table)
-            if not data_flag:
-                # Try to match known header labels
-                if col_a in self._HEADER_LABELS:
-                    # Header format: [Label, empty, Value] or [Label, Value]
-                    value = col_c if col_c else col_b
-                    value = Util.trim(value) if value else 'NA'
-                    # Replace whitespace-only with NA
-                    if self._PATTERNS['whitespace'].match(str(value)):
-                        value = 'NA'
-                    raw_header[col_a] = value
-                    self.logger.INFO(f"Parsed header: {col_a}={value}")
-                    continue
-
-            # Parse test table rows
-            if data_flag:
-                # Debug: log col_a to see what we're trying to match
-                self.logger.DEBUG(f"Processing row with col_a='{col_a}', data_flag={data_flag}")
-
-                # Test# row: Structure is blank/Test#/blank/T1/T2/T3...
-                # Test names start from column D (index 3) because of blank column C
-                if col_b and self._PATTERNS['test_num_row'].match(col_b):
-                    test_numbers = [self._clean_cell(c) for c in row_data[3:]]
-                    self.logger.INFO(f"Found {len(test_numbers)} test numbers: {test_numbers}")
-                    continue
-
-                # Test Parameter row: blank/Test Parameter/blank/Vth_HT/Igss_HT...
-                if col_b and self._PATTERNS['test_param'].match(col_b):
-                    test_names = [self._clean_cell(c) for c in row_data[3:]]
-                    self.logger.INFO(f"Found {len(test_names)} test names: {test_names}")
-                    continue
-
-                # LL (Low Limit) row: blank/LL/blank/1/-10000/120...
-                if col_b and self._PATTERNS['ll_limit'].match(col_b):
-                    lo_limits = [self._clean_cell(c) for c in row_data[3:]]
-                    self.logger.INFO(f"Found {len(lo_limits)} low limits")
-                    continue
-
-                # HL (High Limit) row: blank/HL/blank/3.5/508000/220...
-                if col_b and self._PATTERNS['hl_limit'].match(col_b):
-                    hi_limits = [self._clean_cell(c) for c in row_data[3:]]
-                    self.logger.INFO(f"Found {len(hi_limits)} high limits")
-                    continue
-
-                # Unit row: blank/Unit/blank/V/nA/mohm...
-                if col_b and self._PATTERNS['unit_row'].match(col_b):
-                    units = [self._clean_cell(c) for c in row_data[3:]]
-                    self.logger.INFO(f"Found {len(units)} units")
-                    continue
-
-                # Data row: col_a is numeric (die index), col_b is BIN
-                if col_a and self._PATTERNS['numeric_row'].match(col_a):
-                    self._parse_die_data(row_data, wafer, test_names)
-
-        # Set raw_header on model.header
+            
+            # Data row: col_a is numeric (die index)
+            if col_a and self._PATTERNS['numeric_row'].match(col_a):
+                self._parse_die_data(row_data, wafer, test_names)
+        
+        # Set metadata
         header._raw = raw_header
-
-        # Set LOT from raw_header
         header.LOT = raw_header.get('LotID', 'NA')
-
-        # Create Test objects only for non-empty test names
+        
+        # Create Test objects
         if test_names:
             test_count = 0
             for i, name in enumerate(test_names):
@@ -248,14 +268,9 @@ class InnoFtXlsxParser:
                     lsl = lo_limits[i] if i < len(lo_limits) else ''
                     hsl = hi_limits[i] if i < len(hi_limits) else ''
                     unit = units[i] if i < len(units) else ''
-
-                    # Determine test number from Test# row (original) if available, else fallback to sequential
                     test_num_raw = test_numbers[i] if i < len(test_numbers) else ''
-                    test_num = self._clean_cell(test_num_raw)
-                    if not test_num:
-                        test_num = str(test_count)  # fallback to sequential count if empty
+                    test_num = self._clean_cell(test_num_raw) if test_num_raw else str(test_count)
 
-                    # Create Test object with dictionary initialization (like Qorvo)
                     test = Test({
                         'number': test_num,
                         'name': name,
@@ -276,105 +291,60 @@ class InnoFtXlsxParser:
             self.logger.WARN("No test names found - skipping test creation")
 
     def _clean_cell(self, value: Any) -> str:
-        """
-        Clean cell value: handle None, convert to string, strip whitespace.
-
-        Args:
-            value: Cell value from Excel
-
-        Returns:
-            Cleaned string
-        """
+        """Clean cell value: handle None, convert to string, strip whitespace."""
         if value is None or str(value).lower() == 'nan':
             return ''
-
         return str(value).strip()
 
     def _parse_die_data(self, row_data: List[str], wafer: Wafer,
                         test_names: List[str]) -> None:
         """
         Parse one data row into a Die object.
-
-        Column mapping for INNO FT Excel data rows:
-          col[0] = die index (No: 1, 2, 3...)
-          col[1] = BIN value (1, 1, 1...)
-          col[2] onwards = test results aligned to test_names
-
-        Note: Data rows have different structure than header rows.
-        Header rows: blank | label | blank | data...
-        Data rows: No | BIN | data... (no blank column before data)
-
-        Args:
-            row_data: Cleaned row data
-            wafer: Wafer object to add die to
-            test_names: List of test names for result alignment
+        
+        Column structure: No | BIN | blank | test1 | test2 | ...
         """
         if len(row_data) < 2:
             return
 
-        die_index = row_data[0] if row_data else '0'
-        soft_bin = row_data[1] if len(row_data) > 1 else '0'
-
-        # Extract numeric part of bin
-        bin_numeric = re.sub(r'\D', '', soft_bin)
-        if not bin_numeric:
-            bin_numeric = '0'
-
-        # Determine pass/fail
+        die_index = row_data[0]
+        soft_bin = row_data[1]
+        bin_numeric = re.sub(r'\D', '', soft_bin) or '0'
         pass_fail = 'P' if bin_numeric == '1' else 'F'
 
-        # Use die_index as partid
-        partid = die_index
-
         die = Die({
-            'partid': partid,
+            'partid': die_index,
             'soft_bin': bin_numeric,
             'hard_bin': bin_numeric,
             'bindesc': f"SWBin_{bin_numeric.zfill(3)}",
             'site': 1,
             'touchdown_num': -1,
-            'ecid': partid,
+            'ecid': die_index,
         })
 
-        # Parse test results starting from column C (index 2) - data rows don't have blank column
+        # Test results start at column C (index 2)
         for i in range(len(test_names)):
             col_idx = 2 + i
             if col_idx < len(row_data):
                 result_val = row_data[col_idx]
                 cleaned = self._clean_cell(result_val)
-                # Remove common markers like 'Over', 'undef'
-                cleaned = re.sub(r'(Over|undef)', '', cleaned, flags=re.IGNORECASE)
-                cleaned = cleaned.strip()
+                cleaned = re.sub(r'(Over|undef)', '', cleaned, flags=re.IGNORECASE).strip()
                 die.add('result', Util.rep_na(cleaned))
             else:
                 die.add('result', 'NA')
 
         wafer.add('dies', die)
 
-        # Track sbins
-        bin_name_s = f"SWBin_{bin_numeric.zfill(3)}"
-        bin_obj_s = wafer.find("sbins", {"number": bin_numeric})
-        if bin_obj_s is None:
-            wafer.add("sbins", Bin({
-                'number': bin_numeric,
-                'name': bin_name_s,
-                'bindesc': bin_name_s,
-                'PF': pass_fail,
-                'count': 1,
-            }))
-        else:
-            bin_obj_s.count += 1
-
-        # Track hbins
-        bin_name_h = f"HWBin_{bin_numeric.zfill(3)}"
-        bin_obj_h = wafer.find("hbins", {"number": bin_numeric})
-        if bin_obj_h is None:
-            wafer.add("hbins", Bin({
-                'number': bin_numeric,
-                'name': bin_name_h,
-                'bindesc': bin_name_h,
-                'PF': pass_fail,
-                'count': 1,
-            }))
-        else:
-            bin_obj_h.count += 1
+        # Track bins
+        for bin_type, bin_list in [('sbins', 'SWBin'), ('hbins', 'HWBin')]:
+            bin_name = f"{bin_list}_{bin_numeric.zfill(3)}"
+            bin_obj = wafer.find(bin_type, {"number": bin_numeric})
+            if bin_obj is None:
+                wafer.add(bin_type, Bin({
+                    'number': bin_numeric,
+                    'name': bin_name,
+                    'bindesc': bin_name,
+                    'PF': pass_fail,
+                    'count': 1,
+                }))
+            else:
+                bin_obj.count += 1
