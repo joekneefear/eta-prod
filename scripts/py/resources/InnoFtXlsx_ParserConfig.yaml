@@ -1,0 +1,90 @@
+# INNO FT XLSX Parser Configuration
+# This file defines how to parse INNO FT Excel files with site-specific customizations
+
+defaults:
+  # Header label mapping: Excel column A labels -> Model field names
+  header_labels:
+    'Program': 'RECIPE'
+    'Product': 'PRODUCT'
+    'WaferModle': 'WAFER_MODEL'
+    'LotID': 'LOT'
+    'TesterId': 'TESTER_ID'
+    'Handler': 'HANDLER'
+    'Device Name': 'DEVICE_NAME'
+    'Test temp': 'TEST_TEMP'
+    'TestDate': 'TEST_DATE'
+    'Sub LotID': 'SUB_LOT_ID'
+    'Operator ID': 'OPERATOR_ID'
+  
+  # Field transformations: Apply transformations to extracted values
+  field_transformations:
+    LOT:
+      trim: true
+      skip_empty: true
+      default: 'NA'
+    RECIPE:
+      trim: true
+      default: 'NA'
+    PRODUCT:
+      trim: true
+      default: 'NA'
+    TESTER_ID:
+      trim: true
+      default: 'NA'
+  
+  # Test header detection patterns (regex)
+  test_headers:
+    test_num_pattern: 'Test\s*#'
+    test_param_pattern: 'Test\s*Parameter'
+    ll_limit_pattern: '^LL'
+    hl_limit_pattern: '^HL'
+    unit_pattern: '^Unit'
+    test_table_marker: '^No'
+  
+  # Custom parsers to enable (set to true to enable)
+  custom_parsers:
+    lot_parser: false
+    header_field_parser: false
+  
+  # Lot ID extraction configuration (used if lot_parser is enabled)
+  lot_id:
+    source: 'header_field'  # 'header_field' or 'filename'
+    field_label: 'LotID'
+    pattern: null           # Optional regex pattern for extraction
+    groups: {}              # Group mappings for regex extraction
+    transformations:
+      trim: true
+      uppercase: false
+    fallback: 'NA'
+
+# Site-specific overrides (merge with defaults)
+sites:
+  DEFAULT:
+    # No overrides for default site
+
+  # Example: Custom configuration for a specific site
+  # CUSTOM_SITE:
+  #   header_labels:
+  #     'LotNumber': 'LOT'  # Override: use 'LotNumber' instead of 'LotID'
+  #   
+  #   field_transformations:
+  #     LOT:
+  #       trim: true
+  #       regex:
+  #         pattern: '^([A-Z0-9]+)-.*'  # Extract first part before dash
+  #         replacement: '$1'
+  #       default: 'NA'
+  #   
+  #   custom_parsers:
+  #     lot_parser: true
+  #   
+  #   lot_id:
+  #     source: 'header_field'
+  #     field_label: 'LotNumber'
+  #     pattern: '^([A-Z0-9]+)-(.+)$'
+  #     groups:
+  #       1: 'LOT'
+  #     transformations:
+  #       trim: true
+  #       uppercase: true
+  #     fallback: 'NA'

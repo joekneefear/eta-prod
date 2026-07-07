@@ -27,6 +27,7 @@ import yaml
 from lib.Log import Log
 from lib.Util import Util
 from lib.Parser.InnoFtXlsxSts8200Parser import InnoFtXlsxSts8200Parser
+from lib.Config.InnoFtXlsxSts8200ParserConfig import InnoFtXlsxSts8200ParserConfig
 from lib.Enricher.InnoFtXlsxSts8200Enricher import InnoFtXlsxSts8200Enricher
 from lib.Formatter.IFF import IFF
 from lib.Writer import Writer
@@ -117,7 +118,7 @@ def main():
     out_dir = params.get('out')
     config_file = params.get('config', os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 
-        'resources', 'InnoFtXlsx_Enrichment.yaml'))
+        'resources', 'InnoFtXlsxSts8200_Enrichment_config.yaml'))
     site_arg = params.get('site')
     forced_final_folder = params.get('forced_final_folder')
     force_prd = _as_bool(params.get('force_prd'))
@@ -173,7 +174,17 @@ def main():
 
     # 3. Parse XLSX file into Model
     try:
-        parser = InnoFtXlsxSts8200Parser(pplogger=pplogger)
+        # Load parser configuration (site-specific rules for field mapping and transformations)
+        parser_config_file = params.get(
+            'parser_config',
+            os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), 
+                'resources', 'InnoFtXlsx_ParserConfig.yaml'))
+        
+        parser_config = InnoFtXlsxSts8200ParserConfig(config_file=parser_config_file, site=site)
+        Log.INFO(f"Loaded parser configuration from: {parser_config_file}")
+        
+        parser = InnoFtXlsxSts8200Parser(config=parser_config, pplogger=pplogger)
         model = parser.parse_to_model(working_file)
         Log.INFO("XLSX parsed successfully")
     except Exception as e:
