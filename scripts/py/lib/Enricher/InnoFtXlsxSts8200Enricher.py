@@ -22,7 +22,7 @@ from lib.Log import Log
 from lib.Util import Util
 
 
-class InnoFtXlsxEnricher:
+class InnoFtXlsxSts8200Enricher:
     """
     Enricher for INNO FT XLSX data.
     

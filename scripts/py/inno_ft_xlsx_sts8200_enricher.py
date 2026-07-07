@@ -26,8 +26,8 @@ import gzip
 import yaml
 from lib.Log import Log
 from lib.Util import Util
-from lib.Parser.InnoFtXlsxParser import InnoFtXlsxParser
-from lib.Enricher.InnoFtXlsxEnricher import InnoFtXlsxEnricher
+from lib.Parser.InnoFtXlsxSts8200Parser import InnoFtXlsxSts8200Parser
+from lib.Enricher.InnoFtXlsxSts8200Enricher import InnoFtXlsxSts8200Enricher
 from lib.Formatter.IFF import IFF
 from lib.Writer import Writer
 from lib.PPLogger import PPLogger
@@ -78,11 +78,12 @@ def main():
     4. Decompress .gz if needed
     5. Parse XLSX file into Model
     6. Set lot in PPLogger
-    7. Auto-detect or use --site argument
-    8. Fetch RefDB metadata if configured
-    9. Enrich model with metadata
-    10. Build limits and write IFF output
-    11. Exit cleanly
+    7. Determine site (--site CLI takes priority, DEFAULT is fallback)
+    8. Set PPLogger Environment from Config
+    9. Fetch RefDB metadata if configured
+    10. Enrich model with metadata
+    11. Build limits and write IFF output
+    12. Exit cleanly
     """
 
     def _as_bool(value):
@@ -172,7 +173,7 @@ def main():
 
     # 3. Parse XLSX file into Model
     try:
-        parser = InnoFtXlsxParser(pplogger=pplogger)
+        parser = InnoFtXlsxSts8200Parser(pplogger=pplogger)
         model = parser.parse_to_model(working_file)
         Log.INFO("XLSX parsed successfully")
     except Exception as e:
@@ -182,38 +183,14 @@ def main():
     # 4. Set lot in PPLogger
     pplogger.set_lot(model.header.LOT)
 
-    # 5. Determine Site (--site CLI takes priority, auto-detect is fallback)
+    # 5. Determine Site (--site CLI takes priority, DEFAULT is fallback)
     site = None
     if site_arg and site_arg is not True:
         site = site_arg
         Log.INFO(f"Site explicitly set from --site: {site}")
     else:
-        Log.INFO("No --site value provided. Attempting auto-detection from LotID.")
-        
-        lot_id = model.header.LOT
-        if lot_id and lot_id != "NA":
-            lot_id_upper = str(lot_id).upper()
-            Log.DEBUG(f"Attempting to match LotID '{lot_id_upper}' against site patterns")
-            
-            for site_key, site_data in config.items():
-                if site_key == "DEFAULT":
-                    continue
-                if not isinstance(site_data, dict):
-                    continue
-                
-                match_pats = site_data.get("match_fab", [])
-                if not match_pats:
-                    Log.DEBUG(f"Site '{site_key}' has no match_fab patterns. Skipping.")
-                    continue
-                
-                Log.DEBUG(f"Checking site '{site_key}' patterns {match_pats} against '{lot_id_upper}'")
-                if any(pat.upper() in lot_id_upper for pat in match_pats):
-                    site = site_key
-                    Log.INFO(f"Site auto-detected from LotID: {site}")
-                    break
-    
-    if not site:
         site = "DEFAULT"
+        Log.INFO("No --site value provided. Using DEFAULT site.")
     
     Log.INFO(f"Enrichment site: {site}")
 
@@ -312,7 +289,7 @@ def main():
 
     # 8. Enrich model with metadata
     try:
-        enricher = InnoFtXlsxEnricher(
+        enricher = InnoFtXlsxSts8200Enricher(
             raw_header=model.header._raw,
             model=model,
             config=config,

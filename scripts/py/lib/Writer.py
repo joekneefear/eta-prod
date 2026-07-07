@@ -79,14 +79,12 @@ class Writer:
     def set_timestamp_to_basename(self):
         """
         Append timestamp to basename if should_apply_timestamp() returns True.
+        Timestamp is added between basename and extension, regardless of dots in basename.
         """
         if self.basename is not None and self.ext is not None and self.should_apply_timestamp():
-            fname, fext = os.path.splitext(os.path.basename(self.basename))
-            if re.search(r'\.(gz|zip)$', fext, re.IGNORECASE):
-                temp_fname = os.path.splitext(self.basename)[0]
-                fname = os.path.basename(temp_fname)
             date_time = Util.get_logging_time()
-            self.basename = f'{fname}_{date_time}{fext}'
+            # Simply append timestamp to basename without parsing it
+            self.basename = f'{self.basename}_{date_time}'
                 
     def outfile(self):
         if self.basename is None or self.ext is None:
