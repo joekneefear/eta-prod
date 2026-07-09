@@ -75,16 +75,17 @@ def main():
     Flow:
     1. Setup logging and PPLogger
     2. Parse CLI arguments
-    3. Load YAML configuration
+    3. Load YAML enrichment configuration
     4. Decompress .gz if needed
-    5. Parse XLSX file into Model
-    6. Set lot in PPLogger
-    7. Determine site (--site CLI takes priority, DEFAULT is fallback)
-    8. Set PPLogger Environment from Config
-    9. Fetch RefDB metadata if configured
-    10. Enrich model with metadata
-    11. Build limits and write IFF output
-    12. Exit cleanly
+    5. Determine site (--site CLI takes priority, DEFAULT is fallback)
+    6. Load parser configuration (site-specific field mappings)
+    7. Parse XLSX file into Model (with site-specific configuration)
+    8. Set lot in PPLogger
+    9. Set PPLogger Environment from Config
+    10. Fetch RefDB metadata if configured
+    11. Enrich model with metadata
+    12. Build limits and write IFF output
+    13. Exit cleanly
     """
 
     def _as_bool(value):
@@ -172,9 +173,12 @@ def main():
             Log.ERROR(f"Failed to decompress {input_file}: {e}")
             Util.dp_exit(1, pplogger=pplogger, error=str(e))
 
-    # 3. Parse XLSX file into Model
+    # 3. Determine Site (--site CLI takes priority, DEFAULT is fallback)
+    site = params.get('site') or "DEFAULT"
+    Log.INFO(f"Enrichment site: {site}")
+
+    # 4. Load parser configuration (site-specific rules for field mapping and transformations)
     try:
-        # Load parser configuration (site-specific rules for field mapping and transformations)
         parser_config_file = params.get(
             'parser_config',
             os.path.join(
@@ -183,7 +187,13 @@ def main():
         
         parser_config = InnoFtXlsxSts8200ParserConfig(config_file=parser_config_file, site=site)
         Log.INFO(f"Loaded parser configuration from: {parser_config_file}")
-        
+    except Exception as e:
+        Log.ERROR(f"Failed to load parser configuration: {e}")
+        parser_config = InnoFtXlsxSts8200ParserConfig()  # Fallback to defaults
+        Log.INFO("Falling back to default parser configuration")
+
+    # 5. Parse XLSX file into Model (with site-specific configuration)
+    try:
         parser = InnoFtXlsxSts8200Parser(config=parser_config, pplogger=pplogger)
         model = parser.parse_to_model(working_file)
         Log.INFO("XLSX parsed successfully")
@@ -191,28 +201,17 @@ def main():
         Log.ERROR(f"Failed to parse XLSX: {e}")
         Util.dp_exit(1, pplogger=pplogger, error=str(e))
 
-    # 4. Set lot in PPLogger
+    # 6. Set lot in PPLogger
     pplogger.set_lot(model.header.LOT)
 
-    # 5. Determine Site (--site CLI takes priority, DEFAULT is fallback)
-    site = None
-    if site_arg and site_arg is not True:
-        site = site_arg
-        Log.INFO(f"Site explicitly set from --site: {site}")
-    else:
-        site = "DEFAULT"
-        Log.INFO("No --site value provided. Using DEFAULT site.")
-    
-    Log.INFO(f"Enrichment site: {site}")
-
-    # 6. Set PPLogger Environment from Config
+    # 7. Set PPLogger Environment from Config
     site_config = config.get(site, config.get("DEFAULT", {}))
-    env_name = site_config.get("env", "inno_ft_xlsx")
+    env_name = site_config.get("env", "inno_ft_xlsx_sts8200")
     pplogger.set_env(env_name)
     pplogger.set_site(site)
     Log.DEBUG(f"PPLOG Environment: {env_name}")
 
-    # 7. Fetch RefDB metadata if configured
+    # 8. Fetch RefDB metadata if configured
     def _is_no_data_status(status_value):
         """Check if status indicates no data or error."""
         if status_value is None:
@@ -298,7 +297,7 @@ def main():
             on_lot_no_data_status = True
             Log.WARN(f"Failed to fetch RefDB metadata: {e}. Fallback logic in Enricher will be used.")
 
-    # 8. Enrich model with metadata
+    # 10. Enrich model with metadata
     try:
         enricher = InnoFtXlsxSts8200Enricher(
             raw_header=model.header._raw,
@@ -339,7 +338,7 @@ def main():
     elif site_uses_refdb and on_lot_called and not on_lot_no_data_status:
         Log.INFO(f"on_lot status='{on_lot_status}' returned metadata for site '{site}'. Keeping default PRODUCTION routing (writer.noMeta=False)")
 
-    # 10. Set additional model metadata
+    # 11. Set additional model metadata
     model.header.DATA_FILE_NAME = os.path.basename(input_file)
     model.header.AREA = "FT"
     model.header.PROGRAM_CLASS = 2
@@ -352,10 +351,10 @@ def main():
 
     Log.DEBUG(f"Set AREA=FT, PROGRAM_CLASS=2")
 
-    # 11. Build limits and prepare output
+    # 12. Build limits and prepare output
     model.build_limit()
 
-    # 12. Write IFF output
+    # 13. Write IFF output
     try:
         base_file = os.path.basename(working_file)
         fname, fext = os.path.splitext(base_file)

@@ -35,7 +35,7 @@ from lib.Log import Log
 from lib.Util import Util
 
 
-class InnoFtXlsxParser:
+class InnoFtXlsxSts8200Parser:
     """
     Parser for INNO Final Test (FT) Excel format.
 
@@ -69,13 +69,15 @@ class InnoFtXlsxParser:
         'Device Name', 'Test temp', 'TestDate', 'Sub LotID', 'Operator ID'
     }
 
-    def __init__(self, pplogger=None):
+    def __init__(self, config=None, pplogger=None):
         """
         Initialize parser.
 
         Args:
-            pplogger: Optional PPLogger instance for logging (not used in this phase)
+            config: Optional parser configuration (InnoFtXlsxSts8200ParserConfig)
+            pplogger: Optional PPLogger instance for logging
         """
+        self.config = config
         self.pplogger = pplogger
         self.logger = Log()
 
@@ -180,12 +182,19 @@ class InnoFtXlsxParser:
                 
             # Parse known header fields (column A has label)
             if col_a in self._HEADER_LABELS:
+                # DEBUG: Log raw row before processing
+                self.logger.DEBUG(f"Raw row for {col_a}: {row}")
+                
+                # Read from column B (index 1)
                 col_b = self._clean_cell(row[1]) if len(row) > 1 else ''
-                col_c = self._clean_cell(row[2]) if len(row) > 2 else ''
-                value = col_c if col_c else col_b
+                value = col_b
                 value = Util.trim(value) if value else 'NA'
                 if self._PATTERNS['whitespace'].match(str(value)):
                     value = 'NA'
+                
+                # DEBUG: Log extracted value
+                self.logger.DEBUG(f"Header parse: label={col_a} | col_b_raw={row[1] if len(row) > 1 else 'MISSING'} | col_b_clean='{col_b}' | final='{value}'")
+                
                 raw_header[col_a] = value
                 self.logger.INFO(f"Parsed header: {col_a}={value}")
         

@@ -72,7 +72,7 @@ INNOBE:
     RecipeRevision:
       type: field
       source: Program
-      regex_replace: [".*_R(\\d+)_.*", "\\1"]
+      regex_replace: [".*_?[A-Za-z]+(\\d+).*", "\\1"]
       target: RECIPE_REVISION
 
     TesterSoftware:
@@ -83,7 +83,7 @@ INNOBE:
     TesterSoftwareVersion:
       type: field
       source: Program
-      regex_replace: [".*_R(\\d+)_.*", "\\1"]
+      regex_replace: [".*_?[A-Za-z]+(\\d+).*", "\\1"]
       target: TESTER_SOFTWARE_VERSION
 
     SourceLot:
@@ -186,7 +186,7 @@ DEFAULT:
     RecipeRevision:
       type: field
       source: Program
-      regex_replace: [".*_R(\\d+)_.*", "\\1"]
+      regex_replace: [".*_?[A-Za-z]+(\\d+).*", "\\1"]
       target: RECIPE_REVISION
 
     TesterSoftware:
@@ -197,7 +197,7 @@ DEFAULT:
     TesterSoftwareVersion:
       type: field
       source: Program
-      regex_replace: [".*_R(\\d+)_.*", "\\1"]
+      regex_replace: [".*_?[A-Za-z]+(\\d+).*", "\\1"]
       target: TESTER_SOFTWARE_VERSION
 
     SourceLot:
