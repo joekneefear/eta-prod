@@ -44,6 +44,7 @@ class InnoFtXlsxSts8200Enricher:
         'TestFacility': 'TEST_FACILITY',
         'Recipe': 'RECIPE',
         'RecipeRevision': 'RECIPE_REVISION',
+        'Temperature': 'TEMPERATURE',
         'TesterSoftware': 'TESTER_SOFTWARE',
         'TesterSoftwareVersion': 'TESTER_SOFTWARE_VERSION',
         'SourceLot': 'SOURCE_LOT',
@@ -53,7 +54,7 @@ class InnoFtXlsxSts8200Enricher:
         'Operator': 'OPERATOR',
     }
     
-    def __init__(self, raw_header, model, config=None, site="DEFAULT", lot_metadata=None):
+    def __init__(self, raw_header, model, config=None, site="DEFAULT", lot_metadata=None, debug=False):
         """
         Initialize enricher.
         
@@ -63,12 +64,14 @@ class InnoFtXlsxSts8200Enricher:
             config: YAML configuration dict
             site: Site name for YAML config selection
             lot_metadata: Dict of RefDB on_lot response data
+            debug: Enable debug logging (default: False)
         """
         self.raw_header = raw_header or {}
         self.model = model
         self.config = config or {}
         self.site = site or "DEFAULT"
         self.lot_metadata = lot_metadata or {}
+        self.debug = debug
         
         self._refdb_direct_found = 0
         self._refdb_insensitive_found = 0
@@ -149,6 +152,8 @@ class InnoFtXlsxSts8200Enricher:
         if site_config:
             merged_fields.update(site_config.get('fields', {}))
         
+        Log.DEBUG(f"YAML fields to process: {list(merged_fields.keys())}")
+        
         results = {}
         for attr_name, rule in merged_fields.items():
             resolved = self._resolve_rule(rule)
@@ -207,6 +212,7 @@ class InnoFtXlsxSts8200Enricher:
         elif rtype == 'field':
             # Read from raw_header dict
             val = self.raw_header.get(source, 'NA')
+            Log.DEBUG(f"Field extraction: source='{source}' | raw_header_val='{val}' | raw_header_keys={list(self.raw_header.keys())}")
             if val:
                 val = str(val).strip()
                 if not val:
@@ -248,9 +254,13 @@ class InnoFtXlsxSts8200Enricher:
             # Apply regex_replace
             if 'regex_replace' in rule:
                 pattern, replacement = rule['regex_replace']
+                Log.DEBUG(f"Regex transform: pattern='{pattern}' | replacement='{replacement}' | input='{val}'")
                 new_val = re.sub(pattern, replacement, str(val))
+                Log.DEBUG(f"Regex result: output='{new_val}' | changed={str(new_val) != str(val)}")
                 if str(new_val) != str(val):
                     val = new_val
+                else:
+                    Log.WARN(f"Regex pattern '{pattern}' did not match or produce a change for value '{val}'")
             
             # Apply format
             if 'format' in rule:

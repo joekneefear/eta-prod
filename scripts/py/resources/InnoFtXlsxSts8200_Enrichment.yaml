@@ -72,7 +72,7 @@ INNOBE:
     RecipeRevision:
       type: field
       source: Program
-      regex_replace: [".*_?[A-Za-z]+(\\d+).*", "\\1"]
+      regex_replace: ['^.*_[A-Z]+[-]?(\d+)(?=_|\.|$).*$', '\1']
       target: RECIPE_REVISION
 
     TesterSoftware:
@@ -83,7 +83,7 @@ INNOBE:
     TesterSoftwareVersion:
       type: field
       source: Program
-      regex_replace: [".*_?[A-Za-z]+(\\d+).*", "\\1"]
+      regex_replace: ['^.*_[A-Z]+[-]?(\d+)(?=_|\.|$).*$', '\1']
       target: TESTER_SOFTWARE_VERSION
 
     SourceLot:
@@ -94,7 +94,7 @@ INNOBE:
       fallback:
         type: field
         source: LotID
-        regex_replace: ["(\\.[^.]*)?$", ".S"]
+        regex_replace: ['(\.[^.]*)?$', '.S']
         target: SOURCE_LOT
 
     StartTime:
@@ -102,6 +102,11 @@ INNOBE:
       source: TestDate
       normalize_date: true
       target: START_TIME
+
+    Temperature:
+      type: field
+      source: Test temp
+      target: TEMPERATURE
 
     WaferId:
       type: field
@@ -186,7 +191,7 @@ DEFAULT:
     RecipeRevision:
       type: field
       source: Program
-      regex_replace: [".*_?[A-Za-z]+(\\d+).*", "\\1"]
+      regex_replace: ['^.*_[A-Z]+[-]?(\d+)(?=_|\.|$).*$', '\1']
       target: RECIPE_REVISION
 
     TesterSoftware:
@@ -197,7 +202,7 @@ DEFAULT:
     TesterSoftwareVersion:
       type: field
       source: Program
-      regex_replace: [".*_?[A-Za-z]+(\\d+).*", "\\1"]
+      regex_replace: ['^.*_[A-Z]+[-]?(\d+)(?=_|\.|$).*$', '\1']
       target: TESTER_SOFTWARE_VERSION
 
     SourceLot:
@@ -208,7 +213,7 @@ DEFAULT:
       fallback:
         type: field
         source: LotID
-        regex_replace: ["(\\.[^.]*)?$", ".S"]
+        regex_replace: ['(\.[^.]*)?$', '.S']
         target: SOURCE_LOT
 
     StartTime:
@@ -216,6 +221,11 @@ DEFAULT:
       source: TestDate
       normalize_date: true
       target: START_TIME
+
+    Temperature:
+      type: field
+      source: Test temp
+      target: TEMPERATURE
 
     WaferId:
       type: field

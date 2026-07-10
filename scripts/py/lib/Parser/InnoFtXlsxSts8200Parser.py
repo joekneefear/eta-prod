@@ -155,6 +155,12 @@ class InnoFtXlsxSts8200Parser:
             self.logger.ERROR(error_msg)
             Util.dp_exit(1, pplogger=self.pplogger, error=error_msg)
 
+        # Get config-driven header labels
+        header_labels = self.config.get_header_labels() if self.config else {
+            'Program', 'Product', 'WaferModle', 'LotID', 'TesterId', 'Handler',
+            'Device Name', 'Test temp', 'TestDate', 'Sub LotID', 'Operator ID'
+        }
+        
         # Convert all rows to list for indexed access
         all_rows = list(worksheet.iter_rows(values_only=True))
         
@@ -181,7 +187,7 @@ class InnoFtXlsxSts8200Parser:
                 break
                 
             # Parse known header fields (column A has label)
-            if col_a in self._HEADER_LABELS:
+            if col_a in header_labels:
                 # DEBUG: Log raw row before processing
                 self.logger.DEBUG(f"Raw row for {col_a}: {row}")
                 

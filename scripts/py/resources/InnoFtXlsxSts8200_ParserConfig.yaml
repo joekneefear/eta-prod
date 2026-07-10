@@ -1,0 +1,66 @@
+# INNO Final Test XLSX Parser Configuration
+#
+# Site-keyed parser rules for InnoFtXlsxSts8200Parser.
+# Defines which Excel column A labels to extract and how to parse them.
+
+# DEFAULT configuration (used as baseline for all sites)
+DEFAULT:
+  # Header labels to extract from Excel column A
+  # Parser looks for these labels in column A and reads values from column B
+  header_labels:
+    - Program
+    - Product
+    - WaferModle
+    - LotID
+    - TesterId
+    - Handler
+    - Device Name
+    - Test temp
+    - TestDate
+    - Sub LotID
+    - Operator ID
+
+  # Test header row patterns (regex) for identifying test metadata rows
+  test_headers:
+    test_num_pattern: 'Test\s*#'
+    test_param_pattern: 'Test\s*Parameter'
+    ll_limit_pattern: '^LL$'
+    hl_limit_pattern: '^HL$'
+    unit_pattern: '^Unit$'
+    test_table_marker: '^No$'
+
+  # Field-level transformations applied during parsing
+  field_transformations:
+    LotID:
+      trim: true
+      skip_empty: true
+      default: 'NA'
+
+# INNOBE site-specific configuration (extends DEFAULT)
+INNOBE:
+  header_labels:
+    - Program
+    - Product
+    - WaferModle
+    - LotID
+    - TesterId
+    - Handler
+    - Device Name
+    - Test temp
+    - TestDate
+    - Sub LotID
+    - Operator ID
+
+  test_headers:
+    test_num_pattern: 'Test\s*#'
+    test_param_pattern: 'Test\s*Parameter'
+    ll_limit_pattern: '^LL$'
+    hl_limit_pattern: '^HL$'
+    unit_pattern: '^Unit$'
+    test_table_marker: '^No$'
+
+  field_transformations:
+    LotID:
+      trim: true
+      skip_empty: true
+      default: 'NA'

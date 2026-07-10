@@ -119,12 +119,13 @@ def main():
     out_dir = params.get('out')
     config_file = params.get('config', os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 
-        'resources', 'InnoFtXlsxSts8200_Enrichment_config.yaml'))
+        'resources', 'InnoFtXlsxSts8200_Enrichment.yaml'))
     site_arg = params.get('site')
     forced_final_folder = params.get('forced_final_folder')
     force_prd = _as_bool(params.get('force_prd'))
     ws_url_config = params.get('ws_url')
     ws_source = params.get('ws_source')
+    debug_mode = _as_bool(params.get('debug'))
 
     # Enable PPLOG if requested via CLI
     if params.get('pplog'):
@@ -183,7 +184,7 @@ def main():
             'parser_config',
             os.path.join(
                 os.path.dirname(os.path.abspath(__file__)), 
-                'resources', 'InnoFtXlsx_ParserConfig.yaml'))
+                'resources', 'InnoFtXlsxSts8200_ParserConfig.yaml'))
         
         parser_config = InnoFtXlsxSts8200ParserConfig(config_file=parser_config_file, site=site)
         Log.INFO(f"Loaded parser configuration from: {parser_config_file}")
@@ -304,7 +305,8 @@ def main():
             model=model,
             config=config,
             site=site,
-            lot_metadata=lot_metadata
+            lot_metadata=lot_metadata,
+            debug=debug_mode
         )
         model = enricher.enrich()
         Log.INFO("Model enriched successfully")
