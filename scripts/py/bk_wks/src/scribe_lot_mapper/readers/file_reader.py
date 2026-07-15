@@ -162,11 +162,20 @@ class FileReader:
                 operation="read",
             )
 
-    # Known delimiters for workstream files
-    KNOWN_DELIMITERS = ["\t", "╔", "|", "\x1e", ";", ","]
+    # Known delimiters for workstream files (ordered by priority)
+    # More specific/distinctive delimiters first (like ╔) before generic ones (like tab)
+    KNOWN_DELIMITERS = ["╔", "\x1e", "|", ";", ",", "\t"]
 
     def _detect_delimiter(self, sample_line: str) -> str:
         """Detect the field delimiter used in the file.
+
+        Checks delimiters in order of priority:
+        1. ╔ (Box Drawings) - distinctive FCS format delimiter
+        2. \x1e (Record Separator) - binary/structured format
+        3. | (Pipe) - common alternative delimiter
+        4. ; (Semicolon) - CSV alternative
+        5. , (Comma) - standard CSV
+        6. \t (Tab) - fallback if others not found
 
         Args:
             sample_line: A sample line to analyze
