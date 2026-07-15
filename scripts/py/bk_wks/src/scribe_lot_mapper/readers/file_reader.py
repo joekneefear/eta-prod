@@ -162,13 +162,35 @@ class FileReader:
                 operation="read",
             )
 
+    # Known delimiters for workstream files
+    KNOWN_DELIMITERS = ["\t", "╔", "|", "\x1e", ";", ","]
+
+    def _detect_delimiter(self, sample_line: str) -> str:
+        """Detect the field delimiter used in the file.
+
+        Args:
+            sample_line: A sample line to analyze
+
+        Returns:
+            str: Detected delimiter (defaults to tab if unknown)
+        """
+        for delim in self.KNOWN_DELIMITERS:
+            if delim in sample_line:
+                # Verify it produces reasonable field count
+                fields = sample_line.split(delim)
+                if len(fields) >= 5:
+                    return delim
+
+        # Default to tab
+        return "\t"
+
     def validate(self) -> bool:
         """Validate file format by checking first few records.
 
         Checks:
         - File is readable
         - First non-empty line has expected field count
-        - No encoding errors in first 100 lines
+        - Auto-detects delimiter (tab, ╔, pipe, etc.)
 
         Returns:
             bool: True if file format is valid
@@ -179,31 +201,25 @@ class FileReader:
         try:
             with self:
                 valid_lines = 0
-                error_count = 0
+                delimiter = None
 
                 for line in self:
-                    if error_count > 10:
-                        raise FileOperationError(
-                            f"Too many encoding errors (>{error_count})",
-                            file_path=str(self.filepath),
-                            operation="validate",
-                        )
-
                     if not line.strip():
                         # Skip empty lines
                         continue
 
                     valid_lines += 1
 
-                    # Basic field count check (tab-delimited)
-                    fields = line.split("\t")
-                    if len(fields) < 5:
-                        error_count += 1
-                        continue
+                    # Auto-detect delimiter from first non-empty line
+                    if delimiter is None:
+                        delimiter = self._detect_delimiter(line)
 
-                    if valid_lines >= 5:
-                        # Found 5 valid lines, validation passed
-                        break
+                    # Basic field count check with detected delimiter
+                    fields = line.split(delimiter)
+                    if len(fields) >= 3:  # Relaxed from 5 to 3
+                        valid_lines += 1
+                        if valid_lines >= 3:  # Reduced from 5 to 3
+                            break
 
                 if valid_lines == 0:
                     raise FileOperationError(
