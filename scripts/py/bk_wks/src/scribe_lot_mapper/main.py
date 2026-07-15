@@ -42,8 +42,14 @@ def cli() -> None:
     help="Output directory for mapping files",
 )
 @click.option(
-    "--format",
+    "--format-dir",
     "-f",
+    type=click.Path(exists=True),
+    default="/export/home/dpower/jag/eta-prod/scripts/workstream/BUCHEON_WKS_BCP_FMT",
+    help="BCP format spec directory (default: Bucheon)",
+)
+@click.option(
+    "--output-format",
     type=click.Choice(["csv", "json", "iff"], case_sensitive=False),
     multiple=True,
     default=["csv"],
@@ -89,7 +95,8 @@ def cli() -> None:
 def map_records(
     input: str,
     output: str,
-    format: tuple,
+    format_dir: str,
+    output_format: tuple,
     facility: Optional[str],
     product: Optional[str],
     log_file: Optional[str],
@@ -106,28 +113,27 @@ def map_records(
 
     Examples:
 
-        # Basic usage
+        # Basic usage (uses Bucheon format directory by default)
         scribe-lot-mapper map-records --input data.phist --output ./mappings
+
+        # With custom format directory
+        scribe-lot-mapper map-records \\
+          --input data.phist \\
+          --output ./mappings \\
+          --format-dir /path/to/MAINE_WKS_BCP_FMT
 
         # With filtering and multiple formats
         scribe-lot-mapper map-records \\
           --input data.phist \\
           --output ./mappings \\
-          --format csv --format json \\
+          --output-format csv --output-format json \\
           --facility BUCHEON \\
           --product "GMBG*"
-
-        # With logging and limits
-        scribe-lot-mapper map-records \\
-          --input data.phist \\
-          --output ./mappings \\
-          --log-file mapper.log \\
-          --log-level DEBUG \\
-          --max-records 100000
     """
     from logging.handlers import RotatingFileHandler
     import logging
     from fnmatch import fnmatch
+    from pathlib import Path
 
     from scribe_lot_mapper.readers.file_reader import FileReader
     from scribe_lot_mapper.extractors.parser import Parser
@@ -184,7 +190,8 @@ def map_records(
     logger.info("Starting Scribe-Lot-Mapper")
     logger.info(f"Input: {input}")
     logger.info(f"Output: {output}")
-    logger.info(f"Formats: {', '.join(format)}")
+    logger.info(f"Formats: {', '.join(output_format)}")
+    logger.info(f"Format directory: {format_dir}")
     if max_records > 0:
         logger.info(f"Max records: {max_records}")
     if dry_run:
@@ -200,7 +207,20 @@ def map_records(
 
         # Validate input file exists
         if not input_path.exists():
-            raise FileOperationError(f"Input file not found: {input}")
+            raise FileOperationError(f"Input file not found: {input}", file_path=input, operation="read")
+
+        # Derive format spec path from input filename
+        basename = input_path.stem  # Remove extension
+        format_spec_path = Path(format_dir) / f"{basename}.bcp_fmt"
+        
+        if not format_spec_path.exists():
+            raise FileOperationError(
+                f"Format spec not found: {format_spec_path}",
+                file_path=str(format_spec_path),
+                operation="read"
+            )
+        
+        logger.info(f"Using format spec: {format_spec_path}")
 
         # Create output directory if needed
         output_path.mkdir(parents=True, exist_ok=True)
@@ -210,8 +230,11 @@ def map_records(
         # Component Initialization Phase
         # =====================================================================
 
-        # Initialize all components
-        file_reader = FileReader(str(input_path))
+        # Initialize file reader with BCP format spec
+        file_reader = FileReader(
+            str(input_path),
+            format_spec_path=str(format_spec_path)
+        )
         parser = Parser()
         equipment_parser = EquipmentParser()
         scribe_extractor = ScribeExtractor()
@@ -223,7 +246,7 @@ def map_records(
 
         # Initialize output generators
         generators = {}
-        for fmt in format:
+        for fmt in output_format:
             fmt_lower = fmt.lower()
             if fmt_lower == "csv":
                 generators["csv"] = CSVGenerator(str(output_path))
@@ -256,7 +279,6 @@ def map_records(
         try:
             file_reader.validate()
             logger.info("Input file format validated")
-            # Get detected delimiter
             detected_delimiter = file_reader.get_delimiter()
             logger.info(f"Detected delimiter: {repr(detected_delimiter)}")
         except FileOperationError as e:
@@ -280,8 +302,16 @@ def map_records(
                 stats["total_records_read"] += 1
 
                 try:
-                    # Step 1: Parse raw record with detected delimiter
-                    parsed_record = parser.parse_record(raw_line, delimiter=detected_delimiter)
+                    # Step 1: Parse raw record with BCP parser if available
+                    if file_reader.bcp_parser:
+                        # Use BCP parser to extract fields according to format spec
+                        bcp_fields = file_reader.bcp_parser.parse_record(raw_line, line_number)
+                        # Convert BCP fields to ParsedRecord format
+                        parsed_record = parser.parse_bcp_record(bcp_fields)
+                    else:
+                        # Fallback to delimiter-based parsing
+                        parsed_record = parser.parse_record(raw_line, delimiter=detected_delimiter)
+                    
                     stats["records_parsed"] += 1
 
                     # Step 2: Equipment parsing

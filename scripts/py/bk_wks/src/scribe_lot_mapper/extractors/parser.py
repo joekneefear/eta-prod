@@ -38,6 +38,62 @@ class Parser:
         self.format_spec = format_spec or {}
         self.empty_marker = empty_marker
 
+    def parse_bcp_record(
+        self, bcp_fields: dict, line_number: int = 0
+    ) -> ParsedRecord:
+        """Parse a BCP-extracted field dictionary into a ParsedRecord.
+        
+        Used when BCP parser has already extracted fields according to format spec.
+        
+        Args:
+            bcp_fields: Dictionary of field names to values from BCP parser
+            line_number: Line number for error reporting
+            
+        Returns:
+            ParsedRecord with extracted fields
+            
+        Raises:
+            ParsingError: If record cannot be constructed
+        """
+        try:
+            # Extract multi-value fields (c_value, d_value arrays)
+            c_values = []
+            for i in range(1, 6):
+                key = f"c_value_{i}"
+                c_values.append(bcp_fields.get(key, ""))
+            
+            d_values = []
+            for i in range(1, 6):
+                key = f"d_value_{i}"
+                d_values.append(bcp_fields.get(key, ""))
+            
+            # Create ParsedRecord
+            record = ParsedRecord(
+                raw_line="",  # BCP already parsed, no raw line
+                parameter_set_id=bcp_fields.get("parameter_set_id", ""),
+                parameter_set_version=bcp_fields.get("parameter_set_version", ""),
+                date_time=bcp_fields.get("date_time", ""),
+                facility=bcp_fields.get("facility", ""),
+                parameter_name=bcp_fields.get("parameter_name", ""),
+                sequence_number=self._parse_int(bcp_fields.get("sequence_number", "1")),
+                unit_id=bcp_fields.get("unit_id", ""),
+                type_id=bcp_fields.get("type_id", ""),
+                c_values=c_values,
+                d_values=d_values,
+                limits_high=bcp_fields.get("high_shutdown_limit", ""),
+                limits_low=bcp_fields.get("low_shutdown_limit", ""),
+                timestamp=bcp_fields.get("date_time", ""),
+            )
+            
+            return record
+        
+        except Exception as e:
+            raise ParsingError(
+                f"Failed to parse BCP record: {str(e)}",
+                line_number=line_number,
+                error_code="PARSE_001"
+            ) from e
+
     def parse_record(
         self, line: str, delimiter: str = "\t", line_number: int = 0
     ) -> ParsedRecord:
