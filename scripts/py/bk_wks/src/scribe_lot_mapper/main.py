@@ -358,18 +358,35 @@ def map_records(
                         stats["mappings_generated"] += 1
 
                 except (ParsingError, Exception) as e:
+                    error_context = {
+                        "line_number": line_number,
+                        "raw_line": raw_line[:100],  # First 100 chars
+                    }
+                    
+                    # Add extraction context if available
+                    try:
+                        error_context["scribe_id"] = str(scribe_id) if 'scribe_id' in locals() else "N/A"
+                        error_context["lot_id"] = str(lot_id) if 'lot_id' in locals() else "N/A"
+                        error_context["wafer_id"] = str(wafer_id) if 'wafer_id' in locals() else "N/A"
+                    except:
+                        pass
+                    
                     error_handler.log_error(
                         error_type=type(e).__name__,
                         message=str(e),
-                        context={
-                            "line_number": line_number,
-                            "raw_line": raw_line[:100],  # First 100 chars
-                        },
+                        context=error_context,
                     )
 
                     if stop_on_error:
                         logger.error(f"Stopping on error at line {line_number}: {e}")
                         raise
+                    
+                    # Log first 5 errors in detail for debugging
+                    if error_handler.get_error_count() <= 5:
+                        logger.warning(
+                            f"Error on line {line_number}: {type(e).__name__} - {str(e)}"
+                        )
+                    
                     continue
 
                 # Progress reporting
@@ -445,8 +462,9 @@ def map_records(
         logger.info(f"Valid percentage:      {validation_report['valid_percentage']:.2f}%")
 
         if error_handler.error_summary:
-            logger.info("\nError Summary:")
-            for error_type, count in error_handler.error_summary.items():
+            logger.info(f"\nProcessing Errors: {error_handler.get_error_count()} total")
+            logger.info("Error Summary by Type:")
+            for error_type, count in sorted(error_handler.error_summary.items(), key=lambda x: -x[1]):
                 logger.info(f"  {error_type}: {count}")
 
         logger.info("=" * 70)
