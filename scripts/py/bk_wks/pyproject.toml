@@ -44,8 +44,11 @@ dev = [
 [project.scripts]
 scribe-lot-mapper = "scribe_lot_mapper.main:cli"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.setuptools]
-packages = ["scribe_lot_mapper"]
+package-dir = {"" = "src"}
 
 [tool.mypy]
 python_version = "3.9"
