@@ -208,16 +208,16 @@ class FileReader:
                         # Skip empty lines
                         continue
 
-                    valid_lines += 1
-
                     # Auto-detect delimiter from first non-empty line
                     if delimiter is None:
                         delimiter = self._detect_delimiter(line)
+                        self._detected_delimiter = delimiter
+
+                    valid_lines += 1
 
                     # Basic field count check with detected delimiter
                     fields = line.split(delimiter)
                     if len(fields) >= 3:  # Relaxed from 5 to 3
-                        valid_lines += 1
                         if valid_lines >= 3:  # Reduced from 5 to 3
                             break
 
@@ -238,6 +238,14 @@ class FileReader:
                 file_path=str(self.filepath),
                 operation="validate",
             )
+
+    def get_delimiter(self) -> str:
+        """Get detected delimiter.
+
+        Returns:
+            str: Detected delimiter (defaults to tab)
+        """
+        return getattr(self, "_detected_delimiter", "\t")
 
     def detect_file_type(self, filepath: str) -> str:
         """Detect file type from filename pattern.

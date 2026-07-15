@@ -241,3 +241,12 @@ class ErrorHandler:
             bool: True if errors exist
         """
         return len(self.errors) > 0
+
+    @property
+    def error_summary(self) -> Dict[str, int]:
+        """Get error summary by type.
+
+        Returns:
+            Dict[str, int]: Error counts by type
+        """
+        return self.error_counts

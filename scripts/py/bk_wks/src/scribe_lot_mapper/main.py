@@ -256,6 +256,9 @@ def map_records(
         try:
             file_reader.validate()
             logger.info("Input file format validated")
+            # Get detected delimiter
+            detected_delimiter = file_reader.get_delimiter()
+            logger.info(f"Detected delimiter: {repr(detected_delimiter)}")
         except FileOperationError as e:
             logger.error(f"File validation failed: {e}")
             raise
@@ -277,8 +280,8 @@ def map_records(
                 stats["total_records_read"] += 1
 
                 try:
-                    # Step 1: Parse raw record
-                    parsed_record = parser.parse_record(raw_line)
+                    # Step 1: Parse raw record with detected delimiter
+                    parsed_record = parser.parse_record(raw_line, delimiter=detected_delimiter)
                     stats["records_parsed"] += 1
 
                     # Step 2: Equipment parsing
