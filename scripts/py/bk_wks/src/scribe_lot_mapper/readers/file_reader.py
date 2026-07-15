@@ -1,7 +1,7 @@
 """FileReader component for reading workstream extract files.
 
 Provides streaming file reading with encoding detection, compression handling,
-and format validation.
+and format-aware parsing (BCP format support).
 """
 
 import gzip
@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Iterator, Optional
 
 from scribe_lot_mapper.exceptions import FileOperationError
+from scribe_lot_mapper.readers.bcp_parser import BCPParser, BCPFormatSpec
 
 
 class FileReader:
@@ -41,6 +42,7 @@ class FileReader:
         filepath: str | Path,
         encoding: Optional[str] = None,
         file_type: Optional[str] = None,
+        format_spec_path: Optional[str | Path] = None,
     ) -> None:
         """Initialize FileReader.
 
@@ -48,6 +50,8 @@ class FileReader:
             filepath: Path to input file
             encoding: File encoding (auto-detected if None)
             file_type: File type hint (auto-detected if None)
+            format_spec_path: Path to BCP format spec file (.bcp_fmt)
+                            Required for BCP format files like phist
 
         Raises:
             FileOperationError: If file does not exist
@@ -65,6 +69,20 @@ class FileReader:
         self.encoding = encoding or self._detect_encoding()
         self._file_handle = None
         self._line_count = 0
+        self._detected_delimiter = "\t"
+        
+        # BCP parser initialization
+        self.bcp_parser = None
+        if format_spec_path:
+            try:
+                format_spec = BCPFormatSpec(format_spec_path)
+                self.bcp_parser = BCPParser(format_spec)
+            except Exception as e:
+                raise FileOperationError(
+                    f"Failed to load BCP format spec: {e}",
+                    file_path=str(format_spec_path),
+                    operation="read"
+                )
 
     def _detect_encoding(self) -> str:
         """Detect file encoding by reading first bytes.
@@ -169,7 +187,10 @@ class FileReader:
     def _detect_delimiter(self, sample_line: str) -> str:
         """Detect the field delimiter used in the file.
 
-        Checks delimiters in order of priority:
+        Checks delimiters in order of priority, counting occurrences.
+        Returns the delimiter that appears most frequently (best split).
+
+        Delimiters checked (in order):
         1. ╔ (Box Drawings) - distinctive FCS format delimiter
         2. \x1e (Record Separator) - binary/structured format
         3. | (Pipe) - common alternative delimiter
@@ -181,17 +202,27 @@ class FileReader:
             sample_line: A sample line to analyze
 
         Returns:
-            str: Detected delimiter (defaults to tab if unknown)
+            str: Detected delimiter (prioritizes high-frequency delimiters)
         """
+        best_delim = "\t"
+        best_count = 0
+        
         for delim in self.KNOWN_DELIMITERS:
-            if delim in sample_line:
-                # Verify it produces reasonable field count
-                fields = sample_line.split(delim)
-                if len(fields) >= 5:
-                    return delim
+            # Count occurrences of this delimiter
+            count = sample_line.count(delim)
+            
+            # If we find a delimiter with many occurrences, use it
+            if count >= 5:  # Need at least 5 occurrences for reasonable field count
+                # Return first one we find with enough occurrences
+                # (KNOWN_DELIMITERS is ordered by priority)
+                return delim
+            
+            # Track the delimiter with most occurrences as backup
+            if count > best_count:
+                best_count = count
+                best_delim = delim
 
-        # Default to tab
-        return "\t"
+        return best_delim
 
     def validate(self) -> bool:
         """Validate file format by checking first few records.
