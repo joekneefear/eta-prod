@@ -1,0 +1,26 @@
+Workstream to EDB Extract Statistics File
+
+This extract is from 07142026 000000 to 07142026 055959
+This extract is for the following facilities: ('FB6')
+This extract began execution at 14-Jul-2026 06:05:02
+
+Facility file completed. Records: 1, Duration: 0h 0m 0.009893s
+DLLH file completed. Records: 1, Duration: 0h 0m 1.318572s
+Lot attribute file completed. Records: 242228, Duration: 0h 0m 8.300683s
+Lot file completed. Records: 2954, Duration: 0h 0m 51.197083s
+Lot history file completed. Records: 20892, Duration: 0h 0m 51.197119s
+Parameter history file partially completed. Records: 4384, Duration: 0h 2m 47.050039s
+Product file completed. Records: 210, Duration: 0h 0m 0.613499s
+Route file completed. Records: 208, Duration: 0h 0m 0.460407s
+Operation file completed. Records: 524, Duration: 0h 0m 1.124554s
+LEHS file completed. Records: 16235, Duration: 0h 10m 21.858816s
+Entity annotations file has completed. Records: 0, Duration: 0h 0m 0.011875s
+Entity file completed. Records: 774, Duration: 0h 0m 15.623824s
+Entity history file completed. Records: 13317, Duration: 0h 0m 15.623921s
+Entity history update file completed. Records: 0, Duration: 0h 0m 15.623961s
+Entity attribute file completed. Records: 0, Duration: 0h 0m 15.623992s
+Parameter history file completed. Total records: 4688, Duration: 0h 2m 49.708009s
+Parameter file completed. Records: 120, Duration: 0h 0m 0.246423s
+Event file completed. Records: 126, Duration:0h 0m 0.559521s
+
+This extract ended execution at 14-Jul-2026 06:16:40
