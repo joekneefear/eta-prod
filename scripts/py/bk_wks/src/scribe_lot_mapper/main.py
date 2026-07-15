@@ -307,10 +307,10 @@ def map_records(
                         # Use BCP parser to extract fields according to format spec
                         bcp_fields = file_reader.bcp_parser.parse_record(raw_line, line_number)
                         # Convert BCP fields to ParsedRecord format
-                        parsed_record = parser.parse_bcp_record(bcp_fields)
+                        parsed_record = parser.parse_bcp_record(bcp_fields, line_number)
                     else:
                         # Fallback to delimiter-based parsing
-                        parsed_record = parser.parse_record(raw_line, delimiter=detected_delimiter)
+                        parsed_record = parser.parse_record(raw_line, delimiter=detected_delimiter, line_number=line_number)
                     
                     stats["records_parsed"] += 1
 

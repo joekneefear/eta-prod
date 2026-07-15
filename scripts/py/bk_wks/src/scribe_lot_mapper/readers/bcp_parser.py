@@ -199,6 +199,14 @@ class BCPParser:
             # Try to split by detected delimiters
             fields = self._split_record(raw_line)
             
+            # Log first record's delimiter info for debugging
+            if line_number == 1:
+                for delim in self.delimiters:
+                    count = raw_line.count(delim)
+                    if count > 0:
+                        import sys
+                        print(f"DEBUG: Delimiter {repr(delim)} count: {count}, fields produced: {len(raw_line.split(delim))}", file=sys.stderr)
+            
             if len(fields) < len(self.format_spec.fields):
                 raise ParsingError(
                     f"Record has {len(fields)} fields, expected {len(self.format_spec.fields)}",
@@ -235,6 +243,7 @@ class BCPParser:
         """Split record by detected delimiter.
         
         Tries multiple delimiters in order of likelihood.
+        Prioritizes delimiters that appear most frequently (more fields).
         
         Args:
             raw_line: Raw record line
@@ -242,21 +251,25 @@ class BCPParser:
         Returns:
             List of field values
         """
-        # Try each delimiter, use the one that produces most fields
-        best_split = []
-        best_count = 0
+        # Try each delimiter, prioritizing those that produce more fields
+        delimiter_attempts = []
         
-        for delim in sorted(self.delimiters, key=lambda x: -raw_line.count(x)):
-            fields = raw_line.split(delim)
-            if len(fields) > best_count:
-                best_split = fields
-                best_count = len(fields)
-            
-            # If we found a delimiter with many fields, use it
-            if len(fields) >= len(self.format_spec.fields):
-                return fields
+        for delim in self.delimiters:
+            count = raw_line.count(delim)
+            if count > 0:
+                delimiter_attempts.append((count, delim))
         
-        return best_split if best_split else [raw_line]
+        # Sort by count descending (most frequent first)
+        delimiter_attempts.sort(reverse=True, key=lambda x: x[0])
+        
+        # Use the delimiter with the most occurrences
+        if delimiter_attempts:
+            best_delim = delimiter_attempts[0][1]
+            fields = raw_line.split(best_delim)
+            return fields
+        
+        # Fallback: try tab
+        return raw_line.split("\t")
 
     def _normalize_value(self, value: str, field_spec: Dict[str, Any]) -> str:
         """Normalize field value based on type and spec.
